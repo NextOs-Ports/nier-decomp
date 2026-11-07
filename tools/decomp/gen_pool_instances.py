@@ -18,7 +18,7 @@ def words(a, n): return struct.unpack_from('>%dI' % (n // 4), pe, a - B)
 def s16(w): w &= 0xFFFF; return w - 0x10000 if w & 0x8000 else w
 
 REF = {'take': (0x821538D0, 128), 'build': (0x82153758, 156), 'take_late': (0x82155C60, 164),
-       'release': (0x82103970, 176)}
+       'release': (0x82103970, 176), 'init_mulli': (0x821127B8, 244), 'init_rlw': (0x823255E0, 284)}
 refw = {k: words(a, n) for k, (a, n) in REF.items()}
 def same_shape(w, r): return len(w) == len(r) and all((x & 0xFFFF0000) == (y & 0xFFFF0000) for x, y in zip(w, r))
 
@@ -58,6 +58,11 @@ for fn in inv:
                     f'@r3.{free}=ptr')
             body = (f'pool_release(base, ctx.r3.u32, ctx.r4.u32, {{{prv}, {nxt}, {used}}}, '
                     f'{{{tail}, {head}, {free}, {count}}});')
+        elif kind in ('init_mulli', 'init_rlw'):
+            size, prev_off = s16(w[9]), s16(w[14])
+            hi = 28
+            spec = 'r3=ptr @r3.0=range:0..6 @r3.4=ptr'
+            body = f'pool_init_storage(base, ctx.r3.u32, {size}, {prev_off});'
         else:
             tail, lb, la, head, count = w[3] & 0xFFFF, w[4] & 0xFFFF, w[7] & 0xFFFF, w[9] & 0xFFFF, w[-2] & 0xFFFF
             hi = max(tail, head, count)

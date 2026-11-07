@@ -114,6 +114,53 @@ inline void pool_release(uint8_t* base, uint32_t pool, uint32_t pnode, const Lin
   }
   st32(base, pool + f.count, ld32(base, pool + f.count) - 1);
 }
+
+// Inicializa o pool a partir do bloco de armazenamento (+4) com n elementos (+0) de
+// `size` bytes: zera as listas e a contagem (+8, +12, +24), encadeia cada elemento com
+// o seguinte (campo next_off = prev_off - 4) e o anterior (campo prev_off), e grava
+// primeiro livre (+16) e último elemento (+20). Releituras na mesma ordem do original.
+inline void pool_init_storage(uint8_t* base, uint32_t pool, uint32_t size, uint32_t prev_off) {
+  const uint32_t next_off = prev_off - 4;
+  const int32_t n0 = static_cast<int32_t>(ld32(base, pool + 0));
+  st32(base, pool + 8, 0);
+  st32(base, pool + 12, 0);
+  st32(base, pool + 24, 0);
+  uint32_t cursor = 0;
+  if (n0 > 1) cursor = ld32(base, pool + 4) + size;           // elemento 1
+  if (n0 - 1 > 1) {
+    cursor += prev_off;
+    int32_t k = 1;
+    do {
+      st32(base, cursor, cursor - size - prev_off);            // anterior = elemento k-1
+      ++k;
+      st32(base, cursor - 4, cursor + size - prev_off);        // próximo = elemento k+1
+      cursor += size;
+    } while (k < static_cast<int32_t>(ld32(base, pool + 0)) - 1);
+  }
+  st32(base, ld32(base, pool + 4) + prev_off, 0);              // elemento 0 sem anterior
+  {
+    const uint32_t s0 = ld32(base, pool + 4);
+    const uint32_t c0 = ld32(base, pool + 0);
+    st32(base, s0 + c0 * size - size + next_off, 0);           // último sem próximo
+  }
+  const int32_t n1 = static_cast<int32_t>(ld32(base, pool + 0));
+  const uint32_t s1 = ld32(base, pool + 4);
+  if (n1 > 1) {
+    st32(base, s1 + next_off, s1 + size);
+    const uint32_t s2 = ld32(base, pool + 4);
+    const uint32_t c2 = ld32(base, pool + 0);
+    st32(base, s2 + c2 * size - size + prev_off, s2 + (c2 - 2) * size);
+  } else {
+    st32(base, s1 + next_off, 0);
+    const uint32_t c2 = ld32(base, pool + 0);
+    const uint32_t s2 = ld32(base, pool + 4);
+    st32(base, s2 + c2 * size - size + prev_off, 0);
+  }
+  const uint32_t s3 = ld32(base, pool + 4);
+  const uint32_t c3 = ld32(base, pool + 0);
+  st32(base, pool + 16, s3);
+  st32(base, pool + 20, s3 + c3 * size - size);
+}
 }  // namespace nier::pools
 using namespace nier::pools;
 using namespace nier::guest;

@@ -381,7 +381,13 @@ int main(int argc, char** argv) {
       State b = run(e.decomp, in, s, t, st);
       err = diff(a, b, callargs);
       if (err.empty()) { if (a.faulted) ++both_fault; else ++ok; }
-      else err = "tentativa " + std::to_string(i) + ": " + err;
+      else {
+        char regs[160];
+        snprintf(regs, sizeof regs, " [entrada r3=0x%llx r4=0x%llx r5=0x%llx r6=0x%llx]",
+                 (unsigned long long)in.r3.u64, (unsigned long long)in.r4.u64,
+                 (unsigned long long)in.r5.u64, (unsigned long long)in.r6.u64);
+        err = "tentativa " + std::to_string(i) + ": " + err + regs;
+      }
     }
     const int min_ok = trials < 2000 ? trials / 4 : 500;
     bool pass = err.empty() && ok >= min_ok;
