@@ -191,3 +191,65 @@ inline void find_then_resolve(PPCContext& ctx, uint8_t* base, uint32_t frame, in
   if (static_cast<int32_t>(ctx.r3.u32) == -1) ctx.r3.u64 = rlwinm(static_cast<uint32_t>(index), sh2, mb2, me2);
 }
 }  // namespace nier::lifecycle
+
+namespace nier::lifecycle {
+// Destrutor de classe com duas bases e dois membros por ponteiro: grava as vtables das
+// bases, destrói o membro 1 (destrutor virtual com delete), grava a vtable intermediária,
+// destrói o membro 2 e chama o destrutor da base.
+inline void dtor_two_members(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t m1_off, uint32_t vt_a,
+                             uint32_t vt_a_off, uint32_t vt_b, uint32_t vt_b_off, uint32_t slot1, uint32_t arg1,
+                             uint32_t m2_off, uint32_t vt_c, uint32_t vt_c_off, uint32_t slot2, uint32_t arg2,
+                             uint32_t base_dtor) {
+  const uint32_t self = ctx.r3.u32;
+  GuestFrame f(ctx, base, frame);
+  const uint32_t m1 = ld32(base, self + m1_off);
+  st32(base, self + vt_a_off, vt_a);
+  st32(base, self + vt_b_off, vt_b);
+  if (m1 != 0) {
+    ctx.r3.u64 = m1;
+    ctx.r4.u64 = arg1;
+    call_virtual(ctx, base, m1, slot1);
+  }
+  const uint32_t m2 = ld32(base, self + m2_off);
+  st32(base, self + vt_c_off, vt_c);
+  if (m2 != 0) {
+    ctx.r3.u64 = m2;
+    ctx.r4.u64 = arg2;
+    call_virtual(ctx, base, m2, slot2);
+  }
+  ctx.r3.u64 = self;
+  call_guest(ctx, base, base_dtor);
+}
+
+// Fábrica de nó: aloca pelo alocador do dono (+alloc_off, método `slot`), inicializa o nó
+// como lista vazia com vtable e escala padrão, guarda o alocador e insere no dono.
+inline void make_node(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t alloc_off, uint32_t size,
+                      uint32_t align, uint32_t slot, uint32_t vtable, uint32_t scale_addr, uint32_t insert) {
+  const uint32_t owner = ctx.r3.u32;
+  GuestFrame f(ctx, base, frame);
+  const uint32_t allocator = ld32(base, owner + alloc_off);
+  ctx.r3.u64 = allocator;
+  ctx.r5.u64 = align;
+  ctx.r4.u64 = size;
+  call_virtual(ctx, base, allocator, slot);
+  uint32_t node = ctx.r3.u32;
+  if (node != 0) {
+    const uint32_t link = node + 4;
+    st32(base, node + 4, link);
+    st32(base, node + 8, link);
+    st32(base, node + 12, link - 4);
+    const float scale = ldf(base, scale_addr);
+    st32(base, node + 0, vtable);
+    stf(base, node + 16, scale);
+    st32(base, node + 20, 0);
+  } else {
+    node = 0;
+  }
+  st32(base, node + 20, ld32(base, owner + alloc_off));
+  ctx.r5.u64 = static_cast<uint64_t>(node) + 4;
+  ctx.r4.u64 = owner;
+  ctx.r3.u64 = owner;
+  call_guest(ctx, base, insert);
+  ctx.r3.u64 = node;
+}
+}  // namespace nier::lifecycle
