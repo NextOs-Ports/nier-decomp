@@ -1,10 +1,12 @@
 // Roteiro FINITO de entradas para provas automatizadas (diagnóstico; nunca em jogo normal).
 // NIER_INPUT_SCRIPT="2600:start,2900:a:6,3200:down" — quadro apresentado : botão [: quadros pressionado].
+// Com sufixo 's' o instante é em segundos desde o 1º quadro apresentado: "45s:start,60s:a" (independe do FPS).
 // Cada toque roda uma vez; no máximo 60 toques por execução (regra: nada de START/A em laço).
 #include "renderer.h"
 
 #include <SDL3/SDL.h>
 
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -13,7 +15,9 @@
 
 namespace nier::render {
 namespace {
-struct Press { uint64_t frame; int button; uint32_t hold; bool down = false, done = false; };
+struct Press { uint64_t frame; int button; uint32_t hold; bool seconds = false; bool down = false, done = false; uint64_t downFrame = 0; };
+std::chrono::steady_clock::time_point g_start;
+bool g_started = false;
 std::vector<Press> g_script;
 SDL_Joystick* g_pad = nullptr;
 bool g_parsed = false;
@@ -39,9 +43,11 @@ void Parse() {
     std::string item = text.substr(at, end == std::string::npos ? std::string::npos : end - at);
     at = end == std::string::npos ? text.size() : end + 1;
     unsigned long long frame = 0; char name[16] = {}; unsigned hold = 6;
-    if (std::sscanf(item.c_str(), "%llu:%15[a-z]:%u", &frame, name, &hold) < 2) continue;
+    bool seconds = false;
+    if (std::sscanf(item.c_str(), "%llus:%15[a-z]:%u", &frame, name, &hold) >= 2) seconds = true;
+    else if (std::sscanf(item.c_str(), "%llu:%15[a-z]:%u", &frame, name, &hold) < 2) continue;
     int b = Button(name);
-    if (b >= 0) g_script.push_back({frame, b, hold ? hold : 6});
+    if (b >= 0) g_script.push_back({frame, b, hold ? hold : 6, seconds});
   }
   if (g_script.empty()) return;
   SDL_VirtualJoystickDesc desc{};
@@ -64,12 +70,14 @@ void Parse() {
 void DriveTestInput(uint64_t frame) {
   if (!g_parsed) Parse();
   if (!g_pad) return;
+  if (!g_started) { g_started = true; g_start = std::chrono::steady_clock::now(); }
+  uint64_t elapsed = uint64_t(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - g_start).count());
   for (auto& p : g_script) {
     if (p.done) continue;
-    if (!p.down && frame >= p.frame) {
-      SDL_SetJoystickVirtualButton(g_pad, p.button, true); p.down = true;
-      std::fprintf(stderr, "[nier-input] quadro %llu: botão %d pressionado\n", (unsigned long long)frame, p.button);
-    } else if (p.down && frame >= p.frame + p.hold) {
+    if (!p.down && (p.seconds ? elapsed >= p.frame : frame >= p.frame)) {
+      SDL_SetJoystickVirtualButton(g_pad, p.button, true); p.down = true; p.downFrame = frame;
+      std::fprintf(stderr, "[nier-input] quadro %llu (%llus): botão %d pressionado\n", (unsigned long long)frame, (unsigned long long)elapsed, p.button);
+    } else if (p.down && frame >= p.downFrame + p.hold) {
       SDL_SetJoystickVirtualButton(g_pad, p.button, false); p.done = true;
     }
   }
