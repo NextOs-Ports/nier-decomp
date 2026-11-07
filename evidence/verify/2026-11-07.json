@@ -757,10 +757,10 @@
    "size": 40,
    "source": "src/decomp/lua/lapi.cpp",
    "trials": 2000,
-   "equal": 4,
+   "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "tentativa 4: r3: original 0xffffffff8200cac8 reconstruída 0x8200cac8"
+   "pass": true,
+   "error": ""
   },
   {
    "name": "sub_82122988",
@@ -840,6 +840,94 @@
    "error": ""
   },
   {
+   "name": "sub_82128AB8",
+   "address": "0x82128AB8",
+   "size": 60,
+   "source": "src/decomp/lua/lobject.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8212C550",
+   "address": "0x8212C550",
+   "size": 36,
+   "source": "src/decomp/lua/lobject.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821307D0",
+   "address": "0x821307D0",
+   "size": 44,
+   "source": "src/decomp/lua/lobject.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82130800",
+   "address": "0x82130800",
+   "size": 156,
+   "source": "src/decomp/lua/lobject.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821308A0",
+   "address": "0x821308A0",
+   "size": 104,
+   "source": "src/decomp/lua/lobject.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8213B0F0",
+   "address": "0x8213B0F0",
+   "size": 28,
+   "source": "src/decomp/game/ctor_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8213B260",
+   "address": "0x8213B260",
+   "size": 28,
+   "source": "src/decomp/game/ctor_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8213B280",
+   "address": "0x8213B280",
+   "size": 32,
+   "source": "src/decomp/game/ctor_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_821B6180",
    "address": "0x821B6180",
    "size": 64,
@@ -900,10 +988,10 @@
    "size": 1160,
    "source": "src/decomp/crt/memory.cpp",
    "trials": 2000,
-   "equal": 1,
-   "both_faulted": 1999,
-   "pass": false,
-   "error": "poucas tentativas executaram sem falha de acesso"
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
   },
   {
    "name": "sub_825D3498",
@@ -911,10 +999,10 @@
    "size": 168,
    "source": "src/decomp/crt/memory.cpp",
    "trials": 2000,
-   "equal": 2,
-   "both_faulted": 1998,
-   "pass": false,
-   "error": "poucas tentativas executaram sem falha de acesso"
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
   },
   {
    "name": "sub_825D3620",
@@ -933,10 +1021,10 @@
    "size": 52,
    "source": "src/decomp/crt/wide_strings.cpp",
    "trials": 2000,
-   "equal": 0,
-   "both_faulted": 2000,
-   "pass": false,
-   "error": "poucas tentativas executaram sem falha de acesso"
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
   },
   {
    "name": "sub_825D3680",
@@ -944,16 +1032,225 @@
    "size": 28,
    "source": "src/decomp/crt/wide_strings.cpp",
    "trials": 2000,
-   "equal": 0,
-   "both_faulted": 2000,
-   "pass": false,
-   "error": "poucas tentativas executaram sem falha de acesso"
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D39B8",
+   "address": "0x825D39B8",
+   "size": 60,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D3BD0",
+   "address": "0x825D3BD0",
+   "size": 116,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D3C48",
+   "address": "0x825D3C48",
+   "size": 120,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D3CC0",
+   "address": "0x825D3CC0",
+   "size": 72,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D3D08",
+   "address": "0x825D3D08",
+   "size": 80,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
   },
   {
    "name": "sub_825D3D90",
    "address": "0x825D3D90",
    "size": 160,
    "source": "src/decomp/crt/memory.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D4050",
+   "address": "0x825D4050",
+   "size": 88,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D9F10",
+   "address": "0x825D9F10",
+   "size": 80,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D9F60",
+   "address": "0x825D9F60",
+   "size": 176,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DA010",
+   "address": "0x825DA010",
+   "size": 60,
+   "source": "src/decomp/crt/memory_compare.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DA050",
+   "address": "0x825DA050",
+   "size": 140,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DA610",
+   "address": "0x825DA610",
+   "size": 76,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DAB20",
+   "address": "0x825DAB20",
+   "size": 144,
+   "source": "src/decomp/crt/memory_compare.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DABB0",
+   "address": "0x825DABB0",
+   "size": 60,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DABF0",
+   "address": "0x825DABF0",
+   "size": 40,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DAC18",
+   "address": "0x825DAC18",
+   "size": 68,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DAC60",
+   "address": "0x825DAC60",
+   "size": 124,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DACE0",
+   "address": "0x825DACE0",
+   "size": 84,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DB038",
+   "address": "0x825DB038",
+   "size": 104,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E4AF0",
+   "address": "0x825E4AF0",
+   "size": 80,
+   "source": "src/decomp/crt/byte_strings.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
