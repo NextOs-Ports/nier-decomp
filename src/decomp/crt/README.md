@@ -104,3 +104,18 @@ A prova extra `nier_crt_contract_probe` passou 7.685 casos: produto dos
 especiais IEEE em quatro modos FP, 4.000 pares aleatórios de binary64,
 formatos decimais com expoente, buffers opcionais nulos, todos os 256 bytes
 na classificação, entradas da tabela de erros e combinações de status.
+
+## Lote X1-11 — extended96 para IEEE
+
+`825E7B88` e `825E82A0` (3.624 bytes originais) compartilham a conversão do
+formato BE de 12 bytes: cabeçalho sinal/expoente de 16 bits, significando de
+80 bits com bit inteiro explícito. A reconstrução usa um acumulador inteiro
+96-bit em `unsigned __int128`, lê as tabelas guest de parâmetros e grava
+binary64/binary32. Preserva status 0/1/2, empate truncado, underflow,
+overflow e comportamento de entradas não normalizadas; não usa cast do
+`long double` do host como substituto.
+
+Ambas passaram em 2.000 comparações aleatórias, sem falhas. A prova extra
+passou 1.441.792 casos: todos os 32.768 expoentes, dois sinais, onze padrões
+de significando (zeros, extremos, empates e valores logo acima) e duas larguras.
+O teste usa as configurações originais da PE; não certifica tabelas corrompidas.
