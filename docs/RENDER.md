@@ -98,3 +98,30 @@ Cada endereço do `docs/D3D_MAP.md` do NieR vai registrar a âncora usada e a co
 - Shaders convertidos no PC com cache por hash. Cada VS medido contra 304 vec4 e o limite de instruções. Os que estourarem recebem plano de cópia de constantes (DMC3) ou versão reduzida documentada.
 - Sem PM4: ticks pulados retornam antes de qualquer trabalho de D3D.
 - Tiling da EDRAM (predicação/`BeginTiling`): desenhar uma vez para o alvo inteiro e ignorar os ladrilhos repetidos (cada ladrilho repetiria os mesmos desenhos).
+
+## 7. Esqueleto do renderizador (Etapa E)
+
+`port/render/` é código próprio (MIT). O renderizador do Rayman é GPL-3 e **não foi copiado**: a arquitetura é a mesma, a implementação é nova. As funções de endereço tiled seguem a Xenia (BSD-3, com atribuição em `xenos_texture.h`).
+
+| Arquivo | Conteúdo |
+|---|---|
+| `nier_d3d.h` | Endereços e campos do device do 9328 (de `docs/D3D_MAP.md`) |
+| `renderer.h/.cpp` | Fila de quadro (estado do device + índices + vértices do stream 0 copiados por comando), buffer duplo, **thread de render dona do contexto** (contexto, desenho e troca de buffer na mesma thread), alvo interno ≥ 640 (padrão 854x480), apresentação letterbox 16:9, cache de texturas com assinatura e **mipmap em POT estática**, estados de blend/depth/cull/viewport lidos dos registradores, Resolve para textura, captura PPM opcional (`NIER_GLES2_CAPTURE`) |
+| `xenos_texture.h` | Fetch constant, tiling 2D, troca de bytes, DXT1/3/5, 8888, 565, 4444, 8 → RGBA8 |
+| `d3d_hooks.cpp` | `REX_HOOK_RAW` em DrawVertices `0x82571508`, DrawIndexedVertices `0x825718F8`, DrawVerticesUP `0x82571070`, Resolve `0x82585888`, Swap `0x8257AB38` e SetRenderState(94) `0x8256BB90`. Por padrão grava e ainda chama o D3D original. `bypassGuestPM4` liga o modelo DMC3 |
+| `selftest.cpp` | Autoteste sem jogo: device sintético, Resolve com limpeza, Present |
+| `CMakeLists.txt` | Lib OBJECT (necessária para os símbolos fracos `sub_…` serem substituídos) + autoteste |
+
+**Provas (07/11, PC):**
+- Host x86-64: `nier_render_selftest` (sha256 `317be184…`) rodou 240 quadros com SDL offscreen + EGL (`timeout 20`, sem jogo). Thread de render com GLES 3.2 NVIDIA, interno 854x480, captura 1280x720 com pixel central (255,0,0) = cor do Resolve com limpeza, GL sem erro.
+- aarch64 NextOS (toolchain do firmware, `-mcpu=cortex-a53 -O3`): `nier_render_selftest` sha256 `8e7c7cbc…` compila e linka. Não executado no aparelho (fica com o coordenador).
+- `d3d_hooks.cpp` passa a checagem de sintaxe contra o SDK ReXGlue 0.10.0. Todos os seis símbolos existem no código gerado do X1 como `DEFINE_REX_FUNC` (alias fraco de `__imp__`).
+
+**Integração pedida ao X1 (dono do `port/CMakeLists.txt` e de `nier_app.h`):** `add_subdirectory(render)`, `target_sources(nier PRIVATE $<TARGET_OBJECTS:nier_render>)`, `target_link_libraries(nier PRIVATE nier_render_deps)` e, em `OnPostSetup`, com `NIER_NATIVE_RENDER` definido, `nier::render::Init(config, {runtime()->virtual_membase(), runtime()->memory()->physical_membase()})`. SELECT+START continua no ciclo de vida do X1 (já provado).
+
+**Pendências do desenho 3D, em ordem:**
+1. Tradutor de shaders em execução. O VS depende da declaração de vértice, que no 9328 ainda não foi localizada (`SetVertexDeclaration`). O tradutor do DMC3 é privado: decidir entre dependência privada fixada (como em `tools/shaders/build.sh`) ou tradutor próprio MIT.
+2. Layout do objeto shader do 9328 (ponteiro do microcódigo; no DMC3: `+0x18` PS / `+0x20` VS, cabeçalho em `+0x28`/`+0x368`), a confirmar por captura.
+3. Fetch constant da textura destino do Resolve (`+0x18` no 20871), bit de limpeza do Resolve (`0x100`, a confirmar) e argumentos exatos do DrawVerticesUP.
+4. Compactação de constantes e literais como `const` (docs/SHADERS.md).
+5. Δt do jogo igual ao tempo real do quadro desenhado (regra do coordenador). O render state 94 é só registrado e a apresentação não espera vblanks do guest.
