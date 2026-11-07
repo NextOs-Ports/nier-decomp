@@ -630,6 +630,7 @@ struct Program {
   std::vector<Vtf> vtf;
   int vsOps = 0;      // operações (vr/sr) no VS final, para o perfil
   bool identityUploaded = false;  // skinning na CPU: paleta de identidade já enviada
+  bool dynIndex = false;          // VS final ainda indexa uniforme com expressão não constante (VC[k+addr], VT[...])
   CullInfo cull;      // MVP e atributo de posição reconhecidos (descarte por AABB)
 };
 // Substitui o stub "nx_sample<t> devolve 0" do tradutor por busca num array de uniformes (a Mali-450 não tem
@@ -649,10 +650,12 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
       if (at == std::string::npos) continue;
       // índices de osso e pesos viram constantes no programa (ver SkinConst em ProgramFor): uv é dobrado pelo
       // compilador e o acesso vira VT<n>[const] — sem índice dinâmico de uniforme (GP da Mali, não software).
-      std::string repl = "uniform vec4 VT" + n + "[4];\nuniform vec2 VT" + n + "_p;\n"
-        "vec4 nx_sample" + n + "(vec2 uv) { return VT" + n + "[int(uv.x * 1024.0 + 0.5)]; }\n";
+      // C1-G7: a paleta é a identidade e a linha é (texel mod 4) → linha calculada em ALU, sem uniforme nenhum
+      // (nada de índice de uniforme no VS: na MaliGP2 isso cai em vértice por software no driver).
+      std::string repl = "vec4 nx_sample" + n + "(vec2 uv) { float k = floor(mod(uv.x * 1024.0 + 0.5, 4.0)); "
+        "return vec4(equal(vec4(k), vec4(0.0, 1.0, 2.0, 3.0))); }\n";
       out.replace(at, stub.size(), repl);
-      slots.push_back({t, 4});
+      slots.push_back({t, 0});  // k = 0: sem uniformes VT (loc = -1); o slot ainda diz de onde a CPU lê a paleta
     }
     return out;
   }
@@ -776,6 +779,8 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
     constify(idxIn, "vec4(0.0)");
     constify(wIn, "vec4(1.0, 0.0, 0.0, 0.0)");
   }
+  p.dynIndex = vsSource.find("VC[nx_clamp_int(") != std::string::npos || vsSource.find("VT0[int(") != std::string::npos ||
+               vsSource.find("[int(clamp(uv.x") != std::string::npos;
   p.cull = ParseCull(vs->source);
   for (size_t at = 0; (at = vsSource.find(" vr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
   for (size_t at = 0; (at = vsSource.find(" sr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
@@ -1370,7 +1375,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
   g_indicesDrawn += c.indexCount;
-  if (c.vs->relativeConstants) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
+  if (p->dynIndex) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
   if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
   glDrawElements(c.mode, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   g_pDraw += Ms(t3, Clock::now());
@@ -1886,7 +1891,7 @@ void RenderThread() {
         g_topDraws.clear();
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, skinning CPU %.0f vtx em %.1f desenhos %.2f ms, VS com VC[k+addr] %.1f desenhos / %.0f vtx / %.0f idx, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, skinning CPU %.0f vtx em %.1f desenhos %.2f ms, VS com índice dinâmico de uniforme %.1f desenhos / %.0f vtx / %.0f idx, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
                      g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_skinnedVertices / double(W), g_skinnedDraws / double(W), g_skinMs / double(W), g_relDraws / double(W), g_relVertices / double(W), g_relIndices / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
       g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = g_cullEval = g_cullNoPattern = g_cullNoData = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0; g_skinnedVertices = g_skinnedDraws = 0; g_skinMs = 0; g_relDraws = g_relVertices = g_relIndices = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
