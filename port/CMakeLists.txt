@@ -24,6 +24,15 @@ endif()
 
 rexglue_setup_target(nier)
 
+# Renderizador GLES2 próprio (port/render, C1). Ver docs/RENDER.md.
+option(NIER_RENDER_GLES2 "Renderizador GLES2 nativo (ganchos do D3D 9328)" OFF)
+if(NIER_RENDER_GLES2)
+    add_subdirectory(render)
+    target_sources(nier PRIVATE $<TARGET_OBJECTS:nier_render>)
+    target_link_libraries(nier PRIVATE nier_render_deps)
+    rexglue_apply_target_settings(nier_render)
+endif()
+
 # Optional protocol-only backend for CPU boot diagnostics. It produces no image.
 set(REXGLUE_PLUGIN_SOURCE "" CACHE PATH "Private ReXGlue source matching the SDK")
 if(REXGLUE_PLUGIN_SOURCE)
