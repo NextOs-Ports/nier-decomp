@@ -516,7 +516,8 @@ std::atomic<bool> g_frameskipAuto{false};
 // registra o custo do quadro na thread GL por modo. Imagem errada de propósito (diagnóstico).
 // 0 base, 1 sem pós/UP (cls 3), 2 sem cenário (cls 0), 3 sem Resolve, 4 PS chapado, 5 tesoura 1x1 (sem preenchimento)
 int g_abMode = 0;
-const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1"};
+// 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices)
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -1639,7 +1640,10 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   if (p->dynIndex) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
   if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
   if (g_abMode == 5) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
-  glDrawElements(c.mode, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
+  GLsizei abCount = GLsizei(c.indexCount);
+  if (g_abMode == 7 && g_drawClassCurrent == 0 && c.mode == GL_TRIANGLES) abCount = GLsizei((c.indexCount / 2) / 3 * 3);
+  if (!(g_abMode == 6 && g_drawClassCurrent == 0))
+    glDrawElements(c.mode, abCount, GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   if (g_abMode == 5) glDisable(GL_SCISSOR_TEST);
   g_pDraw += Ms(t3, Clock::now());
 }
@@ -2089,7 +2093,7 @@ void RenderThread() {
     static Clock::time_point abStart{}; static bool abOn = false;
     if (abCycle) {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
-      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 6 : 0;
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 8 : 0;
     }
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
@@ -2130,9 +2134,11 @@ void RenderThread() {
     auto now = Clock::now();
     if (abCycle && abOn) {  // por modo: replay+apresentação (só thread GL; não inclui espera pelo jogo)
       static int lastMode = -1; static double sum = 0; static int frames = 0; static Clock::time_point modeStart = now;
+      static uint64_t cpuStart = 0;
       if (g_abMode != lastMode) {
-        if (lastMode >= 0 && frames) std::fprintf(stderr, "[nier-ab] modo %d %s: %d quadros em %.1f s, replay+apresentação %.1f ms/quadro\n", lastMode, kAbNames[lastMode], frames, std::chrono::duration<double>(now - modeStart).count(), sum / frames);
-        lastMode = g_abMode; sum = 0; frames = 0; modeStart = now;
+        timespec ts; clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts); uint64_t cpuNow = uint64_t(ts.tv_sec) * 1000000000ull + uint64_t(ts.tv_nsec);
+        if (lastMode >= 0 && frames) std::fprintf(stderr, "[nier-ab] modo %d %s: %d quadros em %.1f s, replay+apresentação %.1f ms/quadro, CPU da thread GL %.1f ms/quadro\n", lastMode, kAbNames[lastMode], frames, std::chrono::duration<double>(now - modeStart).count(), sum / frames, (cpuNow - cpuStart) / 1e6 / frames);
+        lastMode = g_abMode; sum = 0; frames = 0; modeStart = now; cpuStart = cpuNow;
       }
       sum += std::chrono::duration<double, std::milli>(now - tr).count(); ++frames;
     }
