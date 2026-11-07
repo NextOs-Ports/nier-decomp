@@ -187,7 +187,12 @@ uint64_t gen_value(const Arg& a, std::mt19937_64& rng, bool& is_float, double& f
   if (a.kind == "int")   return (uint32_t)rng();
   if (a.kind == "u8")    return rng() & 0xFF;
   if (a.kind == "u16")   return rng() & 0xFFFF;
-  if (a.kind == "range") return a.lo + rng() % (a.hi - a.lo + 1);
+  if (a.kind == "range") {
+    if (a.hi >= a.lo) return a.lo + rng() % (a.hi - a.lo + 1);
+    // faixa que atravessa o zero (ex.: 0xFFFFFFFF..8): inteiros de 32 bits com sinal
+    const int64_t lo = (int32_t)(uint32_t)a.lo, hi = (int32_t)(uint32_t)a.hi;
+    return (uint32_t)(int32_t)(lo + (int64_t)(rng() % (uint64_t)(hi - lo + 1)));
+  }
   if (a.kind == "const") return a.lo;
   if (a.kind == "image") return a.lo + ((rng() % ((a.hi - a.lo) / 4 + 1)) * 4);
   if (a.kind == "f" || a.kind == "f32") {

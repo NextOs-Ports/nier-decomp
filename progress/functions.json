@@ -7868,31 +7868,43 @@
    "address": 2182221808,
    "size": 96,
    "name": "sub_82120FF0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 96,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/script_values.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182221904,
    "size": 80,
    "name": "sub_82121050",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/script_values.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182221984,
    "size": 80,
    "name": "sub_821210A0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/script_values.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182222064,
@@ -7908,11 +7920,15 @@
    "address": 2182222240,
    "size": 24,
    "name": "sub_821211A0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 24,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182222264,
@@ -8108,11 +8124,15 @@
    "address": 2182225152,
    "size": 104,
    "name": "sub_82121D00",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 104,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182225256,
@@ -8138,11 +8158,15 @@
    "address": 2182225504,
    "size": 84,
    "name": "sub_82121E60",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182225592,
@@ -8168,11 +8192,15 @@
    "address": 2182225720,
    "size": 116,
    "name": "sub_82121F38",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 116,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182225840,
@@ -8358,21 +8386,29 @@
    "address": 2182228360,
    "size": 28,
    "name": "sub_82122988",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 28,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182228392,
    "size": 32,
    "name": "sub_821229A8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 32,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182228424,
@@ -8428,21 +8464,29 @@
    "address": 2182229080,
    "size": 40,
    "name": "sub_82122C58",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 40,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182229120,
    "size": 32,
    "name": "sub_82122C80",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 32,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lapi.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182229152,
@@ -8738,11 +8782,15 @@
    "address": 2182232360,
    "size": 100,
    "name": "sub_82123928",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 100,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lauxlib.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182232464,
@@ -8898,11 +8946,15 @@
    "address": 2182235024,
    "size": 24,
    "name": "sub_82124390",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 24,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lauxlib.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182235048,
@@ -8938,11 +8990,15 @@
    "address": 2182235664,
    "size": 40,
    "name": "sub_82124610",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 40,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/lua/lauxlib.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182235704,

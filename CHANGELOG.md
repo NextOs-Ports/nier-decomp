@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 6: API do Lua 5.1 embutido no jogo (index2adr, settop, xmove, pushnil/number/boolean/lightuserdata, typename, luaL_findstring, leitor de string) e comparações de valores de script. O gerador de entradas agora trata faixas que atravessam o zero.
 - Lote 5 e primeiro lote da frente de bibliotecas: pools de objetos, testes de campo de bits, acessores, e memcpy/memset/strings UTF-16 do CRT (as que passaram no comparador atual).
 - Lote 4 da reconstrução: basename de caminhos, estados e flags de objeto, canais de interpolação (valor, alvo, duração). 53 funções verificadas.
 - No PC, com o renderizador GLES2: logos, vídeo de abertura inteiro, tela de título, aviso de save, New Game, escolha de dificuldade e confirmação passam com imagem correta. O nome do herói, que travava no teclado do sistema, agora recebe "Nier" por padrão.

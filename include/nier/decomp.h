@@ -30,6 +30,13 @@ inline void stf (uint8_t* base, uint32_t a, float f) { uint32_t v; std::memcpy(&
 inline uint32_t slw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x << n; }
 inline uint32_t srw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x >> n; }
 inline uint32_t sraw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? (static_cast<int32_t>(x) < 0 ? 0xFFFFFFFFu : 0u) : static_cast<uint32_t>(static_cast<int32_t>(x) >> n); }
+// fctiwz: double → int32 truncando, com saturação (NaN e abaixo de INT_MIN dão 0x80000000).
+inline uint32_t fctiwz(double v) {
+  if (v != v) return 0x80000000u;
+  if (v >= 2147483647.0) return 0x7FFFFFFFu;
+  if (v <= -2147483649.0) return 0x80000000u;
+  return static_cast<uint32_t>(static_cast<int32_t>(v));
+}
 inline uint64_t sld(uint64_t x, uint64_t n) { n &= 127; return n >= 64 ? 0 : x << n; }
 inline uint64_t srd(uint64_t x, uint64_t n) { n &= 127; return n >= 64 ? 0 : x >> n; }
 }  // namespace nier::guest
