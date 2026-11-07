@@ -20,6 +20,38 @@ template<Format F> void convert(PPCContext& ctx,uint8_t* base) {
     else {upper=number(base,0x8206a6b8);scale=number(base,0x8206a6c0);}
     replacement=upper;
     if constexpr(F==Format::I32)replacement=ldf(base,0x8206a6ac);
+    // Caminho quente em float (os operandos são sempre float-exatos; produto de dois floats
+    // em double arredondado a float == produto em float), truncagem com saturação inline.
+    const float lower_f=float(lower),upper_f=float(upper),replacement_f=float(replacement),scale_f=float(scale);
+    const float half_f=ldf(base,0x820007a4);
+    auto truncate=[](float v)->uint32_t{
+        if(v!=v)return 0x80000000u;
+        if(v>=2147483648.0f)return 0x7FFFFFFFu;
+        if(v<=-2147483648.0f)return 0x80000000u;
+        return uint32_t(int32_t(v));
+    };
+    if constexpr(F!=Format::F32 && F!=Format::I32) {
+        for(uint32_t i=0;i<count;++i) {
+            float sample=std::bit_cast<float>(ld32(base,source+i*4));
+            if(sample<lower_f)sample=lower_f;else if(sample>upper_f)sample=replacement_f;
+            float scaled;
+            if constexpr(F==Format::U8)scaled=(sample+half_f)*scale_f;
+            else scaled=sample*scale_f;
+            uint32_t value=truncate(scaled);
+            if constexpr(F==Format::U8)st8(base,destination+i,uint8_t(value));
+            else if constexpr(F==Format::I16)st16(base,destination+i*2,uint16_t(value));
+            else if constexpr(F==Format::LE20 || F==Format::LE24) {
+                if constexpr(F==Format::LE20)value<<=4;
+                const uint32_t q=destination+i*3;
+                st8(base,q,uint8_t(value));st8(base,q+1,uint8_t(value>>8));st8(base,q+2,uint8_t(value>>16));
+            } else {
+                if constexpr(F==Format::BE20)value<<=12;
+                if constexpr(F==Format::BE24)value<<=8;
+                st32(base,destination+i*4,value);
+            }
+        }
+        return;
+    }
     for(uint32_t i=0;i<count;++i) {
         const uint32_t input_bits=ld32(base,source+i*4);
         double sample=double(std::bit_cast<float>(input_bits));
