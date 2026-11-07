@@ -1,6 +1,26 @@
 # Tail-call targets missed by the baseline scanner; verified in original PE.
 # No explicit size: the analyzer follows the target's control flow.
 [functions]
+# Code-constructed callbacks, audited lis+addi/ori references (X1-2d).
+0x82386550 = { size = 0x10 }
+0x82386560 = { size = 0x10 }
+0x82386570 = { size = 0x10 }
+0x82386580 = { size = 0x10 }
+0x82386590 = { size = 0x10 }
+0x823865A0 = { size = 0x10 }
+0x823865B0 = { size = 0x10 }
+0x823865C0 = { size = 0x10 }
+0x823865D0 = { size = 0x10 }
+0x823865E0 = { size = 0x10 }
+0x823865F0 = { size = 0x10 }
+0x82386600 = { size = 0x10 }
+0x82386610 = { size = 0x10 }
+0x82386620 = { size = 0x10 }
+0x82386630 = { size = 0x10 }
+0x82386640 = { size = 0x10 }
+0x825D483C = {} # cleanup callback passed to another function
+0x825E9EE4 = {} # cleanup callback constructed twice
+
 # Data-referenced this-adjustment thunks; complete PE scan, X1-2c.
 0x8249D488 = { size = 0x8 } # this -4, tail 0x824A1B20
 0x8249D490 = { size = 0x8 } # this -4, tail 0x824A1AE8
@@ -147,7 +167,7 @@
 0x8236E3F8 = { size = 0x1C }
 0x8236E4E0 = { size = 0x1C }
 0x8236EBE8 = { size = 0x1C }
-0x82386540 = { size = 0x110 }
+0x82386540 = { size = 0x10 } # split adjacent callback stubs
 0x82389088 = { size = 0x10 }
 0x8239A614 = { size = 0x4 }
 0x823B1B28 = { size = 0x4 }

@@ -42,3 +42,23 @@ lote 1 foram movidos para dentro dela (0x40050000–0x40060000), sem mudar os
 algoritmos. As seis funções passaram novamente em 2.000 casos sem falhas.
 Os testes do lote 2 usam somente RAM válida, strings terminadas, regiões
 separadas para cópia/concatenação e limites explícitos de comparação.
+
+## Lote X1-4 — helpers numéricos
+
+Cinco helpers (336 bytes) passaram em 2.000 casos cada, incluindo os especiais
+NaN/infinito adicionados ao comparador da main. A prova adicional executou
+504 casos com quatro modos de arredondamento, zeros assinados, subnormais,
+infinidades, NaNs com payload e limites inteiros.
+
+- `825DAAF0`: uint64 para binary64 por construção de expoente/mantissa,
+  descartando bits baixos; preserva também o padrão construído em r3.
+- `825D91D8` / `825D9218`: contratos de ceil/floor, preservando a assinatura
+  peculiar do zero sob arredondamento para baixo.
+- `825E4B80`: arredondamento por adição/subtração ordenada de 2^52, respeitando
+  o modo ativo; não foi trocado por `round` com semântica diferente.
+- `825D93E0`: classifica valores int64 exatos como ímpares/pares, preservando
+  o spill de argumento em SP+16. Nãointeiros/fora de faixa retornam zero.
+
+O teste extra inicialmente encontrou oito diferenças de zero assinado; elas
+foram corrigidas e a rodada final passou. A prova compara resultados e memória
+ABI, não certifica todos os flags de exceção floating-point do hardware Xbox.
