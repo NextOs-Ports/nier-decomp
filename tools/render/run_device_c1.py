@@ -18,6 +18,7 @@ mnt = remote + '/game'
 build = Path(sys.argv[1])
 out = Path(sys.argv[2])
 script = sys.argv[3] if len(sys.argv) > 3 else ''
+capture = not (len(sys.argv) > 4 and sys.argv[4] == 'semcaptura')  # medição limpa de tempo
 out.mkdir(parents=True, exist_ok=True)
 locks = []
 for name in ['/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-team/locks/aparelho', '/tmp/nextos-device-test.lock']:
@@ -50,8 +51,8 @@ try:
     for name in ['nier', 'librexruntime.so', 'librexgpu-null.so']:
         run(['smbclient', '-N', '//' + host + '/roms', '-c', 'put "%s" "ports/nier-dev-c1/%s"' % (build / name, name)], timeout=180)
     ssh('chmod +x %s/nier; sha256sum %s/nier %s/librexruntime.so %s/librexgpu-null.so' % (remote, remote, remote, remote))
-    env = ('NIER_NATIVE_RENDER=1 NIER_GLES2_CAPTURE=%s/run/capturas NIER_GLES2_SHADERS=%s/run/shaders '
-           'NIER_INPUT_SCRIPT="%s" LD_LIBRARY_PATH=%s' % (remote, remote, script, remote))
+    env = ('NIER_NATIVE_RENDER=1 %sNIER_GLES2_SHADERS=%s/run/shaders '
+           'NIER_INPUT_SCRIPT="%s" LD_LIBRARY_PATH=%s' % ('NIER_GLES2_CAPTURE=%s/run/capturas ' % remote if capture else '', remote, script, remote))
     sampler = ('( for i in $(seq 1 40); do sleep 2; p=$(pgrep -x nier) || break; '
                'echo "$(date +%%s) $(grep -E \'VmRSS|VmHWM\' /proc/$p/status | tr -s \' \' | tr \'\\n\' \' \')"; done ) > ' + remote + '/run/rss.txt 2>&1 & ')
     cmd = ('systemctl stop emustation; systemctl mask emustation; test -z "$(pgrep -x emulationstatio)"; ' + sampler +

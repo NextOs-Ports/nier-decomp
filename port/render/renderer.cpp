@@ -108,6 +108,8 @@ bool ConvertInput(const VertexInput& in, const uint8_t* base, uint32_t endian, u
     switch (in.format) {
       case 6: { uint32_t w = GpuWord(p, endian); for (int c = 0; c < 4; ++c) d[c] = Component((w >> (8 * c)) & 0xFF, 8, in, scale); break; }
       case 7: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 1023, 10, in, scale); d[1] = Component((w >> 10) & 1023, 10, in, scale); d[2] = Component((w >> 20) & 1023, 10, in, scale); d[3] = Component(w >> 30, 2, in, scale); break; }
+      case 16: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 2047, 11, in, scale); d[1] = Component((w >> 11) & 2047, 11, in, scale); d[2] = Component(w >> 22, 10, in, scale); break; }
+      case 17: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 1023, 10, in, scale); d[1] = Component((w >> 10) & 2047, 11, in, scale); d[2] = Component(w >> 21, 11, in, scale); break; }
       case 25: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 0xFFFF, 16, in, scale); d[1] = Component(w >> 16, 16, in, scale); break; }
       case 26: { uint32_t a = GpuWord(p, endian), b = GpuWord(p + 4, endian); d[0] = Component(a & 0xFFFF, 16, in, scale); d[1] = Component(a >> 16, 16, in, scale); d[2] = Component(b & 0xFFFF, 16, in, scale); d[3] = Component(b >> 16, 16, in, scale); break; }
       case 31: { uint32_t w = GpuWord(p, endian); d[0] = Half(uint16_t(w)); d[1] = Half(uint16_t(w >> 16)); break; }
@@ -176,6 +178,16 @@ std::atomic<uint64_t> g_frames{0}, g_draws{0}, g_skipped{0}, g_recordedBytes{0};
 std::atomic<double> g_lastFrameMs{0};
 std::vector<uint32_t> g_srcIndices;
 std::vector<uint16_t> g_triIndices;
+
+// Teto do quadro em construção: se o jogo desenha muito sem Present (ex.: tela de carregamento), o quadro
+// pendente é descartado em vez de crescer sem limite (cada realocação copiaria centenas de MB).
+std::atomic<uint64_t> g_droppedFrames{0};
+void GuardBuilding() {
+  if (g_building.blob.size() < (192u << 20) && g_building.cmds.size() < 100000) return;
+  if (g_droppedFrames.fetch_add(1) < 5)
+    std::fprintf(stderr, "[nier-gl] quadro sem Present descartado: %zu comandos, %zu MB\n", g_building.cmds.size(), g_building.blob.size() >> 20);
+  g_building.Clear();
+}
 
 void RecordSkip(const char* reason) {
   Cmd c{Kind::Skip};
@@ -283,7 +295,7 @@ Target& CurrentTarget(const uint8_t* state) {
 }
 
 // ---- texturas
-struct Texture { GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; };
+struct Texture { GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; GLenum glFormat = 0; };
 std::unordered_map<uint64_t, Texture> g_textures;
 std::vector<uint8_t> g_pixels;
 GLuint g_white = 0;
@@ -320,7 +332,16 @@ GLuint White() {
   return g_white;
 }
 
+double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs = 0, g_swapMs = 0;
+std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
+GLuint TextureForImpl(const xenos::TextureFetch& t);
 GLuint TextureFor(const xenos::TextureFetch& t) {
+  auto t0 = Clock::now();
+  GLuint id = TextureForImpl(t);
+  g_textureMs += std::chrono::duration<double, std::milli>(Clock::now() - t0).count();
+  return id;
+}
+GLuint TextureForImpl(const xenos::TextureFetch& t) {
   uint64_t key = uint64_t(t.base) << 32 | uint64_t(t.width) << 16 | t.height;
   if (auto r = g_resolved.find(key); r != g_resolved.end()) return r->second.texture;
   if (!xenos::Supported(t.format) || t.dimension != 1) { Skip("formato/dimensão de textura não suportado (branco)"); return White(); }
@@ -333,10 +354,17 @@ GLuint TextureFor(const xenos::TextureFetch& t) {
   uint32_t bw = block ? (t.width + 3) / 4 : t.width, bh = block ? (t.height + 3) / 4 : t.height;
   uint32_t pitchE = std::max(block ? t.pitch / 4 : t.pitch, bw);
   uint32_t span = ((pitchE + 31) & ~31u) * ((bh + 31) & ~31u) * bpe;
+  auto ts = Clock::now();
   uint64_t sig = Signature(t.base, span);
+  auto td = Clock::now();
+  g_sigMs += std::chrono::duration<double, std::milli>(td - ts).count();
   if (tex.id && sig == tex.signature) return tex.id;
-  if (!xenos::DecodeLevel0(Physical, t, g_pixels)) { Skip("decodificação de textura (branco)"); return tex.id ? tex.id : White(); }
-  if (const char* dump = std::getenv("NIER_DUMP_TEXTURES"); dump && tex.uploads < 3) {  // diagnóstico
+  // k8 com swizzle identidade (planos de vídeo): caminho rápido direto para LUMINANCE_ALPHA.
+  td = Clock::now();
+  static std::vector<uint8_t> lumAlpha;
+  bool la = t.format == xenos::k8 && t.swizzle == 0x688 && xenos::DecodeK8LumAlpha(Physical, t, lumAlpha);
+  if (!la && !xenos::DecodeLevel0(Physical, t, g_pixels)) { Skip("decodificação de textura (branco)"); return tex.id ? tex.id : White(); }
+  if (const char* dump = std::getenv("NIER_DUMP_TEXTURES"); dump && !la && tex.uploads < 3) {  // diagnóstico
     char name[160];
     std::snprintf(name, sizeof name, "%s/tex_%08X_%ux%u_f%u_u%u.ppm", dump, t.base, t.width, t.height, t.format, tex.uploads);
     if (FILE* f = std::fopen(name, "wb")) {
@@ -351,11 +379,19 @@ GLuint TextureFor(const xenos::TextureFetch& t) {
       std::fclose(f);
     }
   }
+  auto tu = Clock::now();
+  g_decodeMs += std::chrono::duration<double, std::milli>(tu - td).count();
+  bool fresh = !tex.id;
   if (!tex.id) glGenTextures(1, &tex.id);
   glBindTexture(GL_TEXTURE_2D, tex.id);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, GLsizei(t.width), GLsizei(t.height), 0, GL_RGBA, GL_UNSIGNED_BYTE, g_pixels.data());
+  const uint8_t* upload = la ? lumAlpha.data() : g_pixels.data();
+  GLenum glFormat = la ? GL_LUMINANCE_ALPHA : GL_RGBA;
+  if (fresh || tex.glFormat != glFormat) glTexImage2D(GL_TEXTURE_2D, 0, GLint(glFormat), GLsizei(t.width), GLsizei(t.height), 0, glFormat, GL_UNSIGNED_BYTE, upload);
+  else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GLsizei(t.width), GLsizei(t.height), glFormat, GL_UNSIGNED_BYTE, upload);
+  tex.glFormat = glFormat;
   ++tex.uploads;
+  g_uploadMs += std::chrono::duration<double, std::milli>(Clock::now() - tu).count();
   // Mali-450: textura minificada sem mipmap satura a banda e segura a CPU (medido no Rayman).
   bool pot = (t.width & (t.width - 1)) == 0 && (t.height & (t.height - 1)) == 0;
   if (g_config.mipmaps && pot && tex.uploads == 1 && (t.width > 16 || t.height > 16)) {
@@ -637,20 +673,27 @@ void RenderThread() {
     }
     g_mainTarget = 0;
     uint32_t frameDraws = 0;
+    auto tr = Clock::now();
     for (const Cmd& c : work.cmds) {
       if (c.kind == Kind::Resolve) ReplayResolve(work, c);
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
       else { ++g_draws; ++frameDraws; ReplayDraw(work, c); }
     }
+    auto tp = Clock::now();
+    g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
     PresentToWindow();
     auto now = Clock::now();
+    g_swapMs += std::chrono::duration<double, std::milli>(now - tp).count();
     g_lastFrameMs = std::chrono::duration<double, std::milli>(now - last).count();
     last = now;
     uint64_t n = ++g_frames;
     if (n % 120 == 0)
-      std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, GL 0x%x\n",
+    {
+      std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
                    (unsigned long long)n, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
-                   g_programs.size(), g_textures.size(), glGetError());
+                   g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, glGetError());
+      g_textureMs = g_sigMs = g_decodeMs = g_uploadMs = g_replayMs = g_swapMs = 0;
+    }
     {
       std::lock_guard lock(g_queueMutex);
       work.Clear();
@@ -664,27 +707,31 @@ void RenderThread() {
 }
 
 // Converte os inputs do VS para float4 no blob. Vértices [first, first+count).
-bool SnapshotInputs(Cmd& c, const uint8_t* state, uint32_t first, uint32_t count, const uint8_t* upData, uint32_t upStride) {
+bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count, const uint8_t* upData, uint32_t upStride) {
   c.inputCount = uint32_t(std::min<size_t>(c.vs->inputs.size(), kMaxInputs));
   c.vertexCount = count;
   for (uint32_t i = 0; i < c.inputCount; ++i) {
     VertexInput in = c.vs->inputs[i];
     const uint8_t* base;
     uint32_t endian;
-    if (upData && in.slot == 95) {          // DrawVerticesUP: stream 0 vem da memória da CPU, 8in32
-      base = upData; endian = 2;
+    if (upData && in.slot == 95) {          // BeginVertices: stream 0 vem da memória da CPU, 8in32
       in.stride = upStride / 4;
+      base = upData; endian = 2;
     } else {
       const uint8_t* vf = Field(state, kFetchConstants + in.slot * 8);
       uint32_t address = BE32(vf) & 0x1FFFFFFC, size = ((BE32(vf + 4) >> 2) & 0xFFFFFF) * 4;
       endian = BE32(vf + 4) & 3;
-      uint64_t need = uint64_t(first + count) * in.stride * 4;
-      if (!size || need > size + 64) { RecordSkip("stream de vértice fora do buffer"); return false; }
-      base = Physical(address, uint32_t(std::min<uint64_t>(need + 64, size)));
+      // Faixa em 64 bits e com sinal: baseVertex negativo ou grande não pode dar a volta (SIGSEGV em 07/11).
+      int64_t start = first * int64_t(in.stride) * 4 + int64_t(in.offset) * 4;
+      int elementBytes = (in.format == 57) ? 12 : (in.format == 38 || in.format == 35) ? 16 : (in.format == 26 || in.format == 32 || in.format == 34 || in.format == 37) ? 8 : 4;
+      int64_t end = (first + int64_t(count) - 1) * int64_t(in.stride) * 4 + int64_t(in.offset) * 4 + elementBytes;
+      if (!size || first < 0 || start < 0 || end > int64_t(size)) { RecordSkip("stream de vértice fora do buffer"); return false; }
+      base = Physical(address, size);
       if (!base) { RecordSkip("stream de vértice sem memória"); return false; }
+      base += size_t(first) * in.stride * 4;
     }
     c.inputs[i] = Append(g_building, nullptr, size_t(count) * 16);
-    if (!ConvertInput(in, base, endian, first, count, reinterpret_cast<float*>(g_building.blob.data() + c.inputs[i]))) {
+    if (!ConvertInput(in, base, endian, 0, count, reinterpret_cast<float*>(g_building.blob.data() + c.inputs[i]))) {
       RecordSkip("formato de vfetch não suportado");
       return false;
     }
@@ -788,7 +835,12 @@ bool Enabled() { return g_enabled.load(std::memory_order_relaxed); }
 const Config& Settings() { return g_config; }
 
 void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32_t startIndex, uint32_t count, bool indexed) {
+  static uint64_t calls = 0;
+  if (++calls % 5000 == 0)
+    std::fprintf(stderr, "[nier-jogo] %llu desenhos gravados; quadro atual %zu comandos %zu MB; apresentados %llu\n", (unsigned long long)calls,
+                 g_building.cmds.size(), g_building.blob.size() >> 20, (unsigned long long)g_presented.load());
   FlushPendingUP();
+  GuardBuilding();
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
   if (!state || !count) return;
   Cmd c{Kind::Draw};
@@ -796,7 +848,8 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   c.state = Append(g_building, state, kStateSize);
   const uint8_t* copy = g_building.blob.data() + c.state;
   g_srcIndices.clear();
-  uint32_t first = 0, vertices = 0;
+  int64_t first = 0;
+  uint32_t vertices = 0;
   if (indexed) {
     // Objeto IB (+0x3144): palavra 0 bit 31 = índices de 32 bits; +0x18 = endereço dos dados.
     uint32_t ib = BE32(Field(copy, kIndexBuffer));
@@ -817,13 +870,21 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     if (lo > hi) return;
     if (hi - lo >= 65535) { RecordSkip("faixa de índices > 65535"); return; }
     for (auto& v : g_srcIndices) if (v != 0xFFFFFFFFu) v -= lo;
-    first = baseVertex + lo; vertices = hi - lo + 1;
+    first = int64_t(int32_t(baseVertex)) + lo; vertices = hi - lo + 1;
   } else {
-    first = baseVertex; vertices = count;
+    first = int64_t(int32_t(baseVertex)); vertices = count;
     for (uint32_t i = 0; i < count; ++i) g_srcIndices.push_back(i);
   }
   if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
   if (g_triIndices.empty()) return;
+  static int trace3d = std::getenv("NIER_RENDER_TRACE_3D") ? std::atoi(std::getenv("NIER_RENDER_TRACE_3D")) : 0;
+  if (trace3d > 0 && indexed) {
+    --trace3d;
+    std::fprintf(stderr, "[nier-3d] prim %u n %u idx %d base %u start %u -> first %lld vertices %u inputs %zu vs %016llX ok %d ps ok %d\n",
+                 primitive, count, int(indexed), baseVertex, startIndex, (long long)first, vertices, c.vs->inputs.size(),
+                 (unsigned long long)c.vs->key, int(c.vs->ok), int(c.ps->ok));
+    for (const auto& in : c.vs->inputs) std::fprintf(stderr, "[nier-3d]   slot %u fmt %u off %u stride %u\n", in.slot, in.format, in.offset, in.stride);
+  }
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
   TraceDraw(c, copy, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
@@ -834,6 +895,7 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
 
 void RecordBeginVertices(uint32_t device, uint32_t primitive, uint32_t vertexCount, uint32_t stride, uint32_t guestData) {
   FlushPendingUP();
+  GuardBuilding();
   if (!guestData || !stride || !vertexCount || vertexCount > 65535) return;
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
   if (!state) return;
@@ -893,8 +955,10 @@ void Present() {
   if (!g_enabled) return;
   FlushPendingUP();
   DriveTestInput(++g_presented);
+  auto waitStart = Clock::now();
   std::unique_lock lock(g_queueMutex);
   g_queueCv.wait(lock, [] { return !g_hasInflight || g_quit; });
+  g_gameWaitNs += uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - waitStart).count());
   g_inflight.blob.swap(g_building.blob);
   g_inflight.cmds.swap(g_building.cmds);
   g_inflight.presentInterval = g_interval;

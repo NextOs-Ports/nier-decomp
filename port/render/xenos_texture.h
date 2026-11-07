@@ -164,4 +164,31 @@ inline bool DecodeLevel0(Reader read, const TextureFetch& t, std::vector<uint8_t
   return true;
 }
 
+// Caminho rápido para k8 (planos de vídeo): destila direto para LUMINANCE_ALPHA (L = A = valor).
+inline bool DecodeK8LumAlpha(Reader read, const TextureFetch& t, std::vector<uint8_t>& out) {
+  if (t.format != k8 || t.dimension != 1) return false;
+  const uint32_t pitchE = std::max(t.pitch, t.width);
+  const uint32_t alignedW = (pitchE + 31) & ~31u, alignedH = (t.height + 31) & ~31u;
+  const uint32_t span = alignedW * alignedH;
+  const uint8_t* src = read(t.base, span);
+  if (!src) return false;
+  const uint32_t flip = t.endian == 1 ? 1 : t.endian == 2 ? 3 : t.endian == 3 ? 2 : 0;  // troca de bytes = XOR
+  out.resize(size_t(t.width) * t.height * 2);
+  uint8_t* o = out.data();
+  for (uint32_t y = 0; y < t.height; ++y) {
+    if (!t.tiled) {
+      const uint8_t* row = src + size_t(y) * pitchE;
+      for (uint32_t x = 0; x < t.width; ++x) { uint8_t v = row[x ^ flip]; *o++ = v; *o++ = v; }
+      continue;
+    }
+    const int32_t base = TiledOuter(int32_t(y), int32_t(alignedW), 0);
+    for (uint32_t x = 0; x < t.width; ++x) {
+      uint32_t off = uint32_t(TiledInner(int32_t(x), int32_t(y), 0, base)) ^ flip;
+      uint8_t v = off < span ? src[off] : 0;
+      *o++ = v; *o++ = v;
+    }
+  }
+  return true;
+}
+
 }  // namespace nier::xenos
