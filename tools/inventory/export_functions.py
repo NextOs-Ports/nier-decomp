@@ -71,7 +71,7 @@ def export(pe, info, generated, hints):
         insns = fn.get('instructions', [])
         explicit = hints.get('functions', {}).get(f'0x{address:08X}', {}).get('size', 0)
         size = pdata.get(address) or explicit or (max(insns)+4-address if insns else 16)
-        origin = 'pdata' if address in pdata else 'explicit-switch-extent' if explicit else 'translated-instruction-addresses' if insns else 'import-thunk'
+        origin = 'pdata' if address in pdata else 'explicit-reviewed-extent' if explicit else 'translated-instruction-addresses' if insns else 'import-thunk'
         if size > cap:
             issues.append(dict(address=address, issue='overlap with next function', original_size=size, clipped_size=cap))
             size = cap
@@ -85,8 +85,8 @@ def export(pe, info, generated, hints):
             imported = name.removeprefix('__imp__')
             library = 'XAudio' if imported.startswith('XAudio') else 'D3D/XDK-video' if imported.startswith('Vd') else 'XDK'
             evidence = 'loader import ordinal/name'
-        elif name.startswith(('__save', '__rest')):
-            library, evidence = 'CRT', 'ReXGlue save/restore signature'
+        elif name.startswith(('__save', '__rest')) or 0x825D17A0 <= address <= 0x825D27BC:
+            library, evidence = 'CRT', 'ReXGlue save/restore signature or coordinator-reviewed CRT helper range'
         elif not name.startswith('sub_'):
             library, evidence = 'recognized-library', 'ReXGlue signature name; family requires review'
         output.append(dict(address=address, size=size, name=name,
