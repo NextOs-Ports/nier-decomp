@@ -21,6 +21,7 @@
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <ctime>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -511,7 +512,7 @@ double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs 
 // ficam do último quadro desenhado.
 std::atomic<bool> g_frameskipAuto{false};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
-std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0};  // perfil da thread de captura
+std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
 std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
 GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved);
@@ -2151,8 +2152,13 @@ void RenderThread() {
         uint64_t rec = g_recordNs.exchange(0), th = g_triHits.exchange(0), tm = g_triMisses.exchange(0);
         { uint64_t ph[7]; for (int k = 0; k < 7; ++k) ph[k] = g_recPhaseNs[k].exchange(0);
           double u = up ? up * 1e6 : 1.0;
-          std::fprintf(stderr, "[nier-captura] ms/update: shaders %.2f estado %.2f índices %.2f vértices(SnapshotInputs) %.2f IB+trace %.2f skin(início) %.2f outros %.2f\n",
-                       ph[0] / u, ph[1] / u, ph[2] / u, ph[3] / u, ph[4] / u, ph[5] / u, ph[6] / u); }
+          static uint64_t lastHits = 0, lastMisses = 0, lastConv = 0;
+          uint64_t h = g_bufferSnapshots.hits.load(), m = g_bufferSnapshots.misses.load(), cv = g_bufferSnapshots.converted.load();
+          double upd = up ? double(up) : 1.0;
+          std::fprintf(stderr, "[nier-captura] ms/update: shaders %.2f estado %.2f índices %.2f vértices(SnapshotInputs) %.2f IB+trace %.2f skin(início) %.2f outros %.2f | RecordDraw parede %.2f CPU-da-thread %.2f | cache de vértices/IB por update: acertos %.0f misses %.1f (conteúdo mudou %.1f, chave nova %.1f) convertidos %.0f KB\n",
+                       ph[0] / u, ph[1] / u, ph[2] / u, ph[3] / u, ph[4] / u, ph[5] / u, ph[6] / u, rec / u, g_recordCpuNs.exchange(0) / u,
+                       (h - lastHits) / upd, (m - lastMisses) / upd, g_bufferSnapshots.missChanged.exchange(0) / upd, g_bufferSnapshots.missNewKey.exchange(0) / upd, (cv - lastConv) / upd / 1024.0);
+          lastHits = h; lastMisses = m; lastConv = cv; }
         std::fprintf(stderr, "[nier-frameskip] updates/s %.1f desenhados/s %.1f pulados %llu maior rajada %llu; captura RecordDraw %.2f ms/update, triangulação em cache %llu acertos / %llu erros\n",
                      secs > 0 ? up / secs : 0.0, secs > 0 ? W / secs : 0.0, (unsigned long long)dr, (unsigned long long)g_fsMaxBurst.exchange(0),
                      up ? rec / (up * 1e6) : 0.0, (unsigned long long)th, (unsigned long long)tm);
@@ -2387,7 +2393,12 @@ void StartSkinJob(Cmd& c, const uint8_t* st) {
   { std::lock_guard<std::mutex> lk(g_skinMx); g_skinQueue.push_back(job); }
   g_skinCv.notify_one();
 }
-struct RecordTimer { Clock::time_point t0 = Clock::now(); ~RecordTimer() { g_recordNs += uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - t0).count()); } };
+// Parede e CPU da própria thread: diferença grande = thread do jogo preemptada (núcleos disputados), não custo do código.
+inline uint64_t ThreadCpuNs() { timespec ts; clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts); return uint64_t(ts.tv_sec) * 1000000000ull + uint64_t(ts.tv_nsec); }
+struct RecordTimer {
+  Clock::time_point t0 = Clock::now(); uint64_t c0 = ThreadCpuNs();
+  ~RecordTimer() { g_recordNs += uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - t0).count()); g_recordCpuNs += ThreadCpuNs() - c0; }
+};
 void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32_t startIndex, uint32_t count, bool indexed) {
   RecordTimer recordTimer;
   auto ph = Clock::now();

@@ -140,7 +140,7 @@ class Cache {
   size_t bytes_ = 0, limit_;
   uint64_t serial_ = 0;
  public:
-  std::atomic<uint64_t> hits{0}, misses{0}, converted{0};
+  std::atomic<uint64_t> hits{0}, misses{0}, converted{0}, missChanged{0}, missNewKey{0};
   explicit Cache(size_t limit = 64u << 20) : limit_(limit) {}
   size_t resident_bytes() const { return bytes_; } // recording thread only
   void Clear() { entries_.clear(); age_.clear(); bytes_ = 0; }
@@ -158,7 +158,8 @@ class Cache {
       }
       bytes_ -= old->raw.size() + old->bytes.size();
       age_.erase(it->second.age); entries_.erase(it);
-    }
+      ++missChanged;
+    } else ++missNewKey;
     auto data = std::make_shared<Payload>();
     data->serial = ++serial_; data->sample = sample;
     data->raw.resize(size_t(key.count) * key.element);
