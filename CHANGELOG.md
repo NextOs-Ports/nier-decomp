@@ -4,6 +4,8 @@
 
 - Executável ARM64 rodou no Mali-450 (.164): abriu e leu os dois CPK, 56 trocas de quadro por segundo com GPU nula, ~357 MiB de memória, 61→63 °C.
 - Esqueleto do renderizador GLES2 próprio (MIT): thread dona do contexto, render interno 854x480, mipmaps em texturas estáticas, decodificação Xenos e ganchos nos 6 pontos do D3D.
+- Primeira imagem do jogo no PC com o renderizador GLES2 próprio: logo da CRIWARE, abertura da SQUARE ENIX e partículas da tela de título.
+- Lote de reconstrução: `rand()` do CRT e as funções de chance e faixa aleatória do jogo, interruptores com notificação virtual, inicialização de limites e histórico de 8 posições. 14 funções verificadas.
 - Reconstruída e verificada a espera ativa da CPU pela GPU do D3D (`0x82579D50`), a função mais quente do boot. No port, a pausa dela cede o núcleo em vez de girar.
 - Comparador agora cobre chamadas virtuais: destinos falsos registram alvo e argumentos, e a sequência de chamadas também é comparada. 4 funções verificadas.
 - Primeiras 3 funções com decompilação verificada (204 bytes), provadas pelo novo comparador `tools/verify`: a reconstrução roda contra a tradução do original em 2.000 estados aleatórios. Teste de mutação confirmou que o comparador reprova erro de comparação, de limite e de deslocamento.

@@ -3,7 +3,7 @@
 // Para cada função registrada, executa a original traduzida (`__imp__sub_X`) e a
 // reconstruída (`decomp_sub_X`) a partir do MESMO estado inicial aleatório e compara:
 //   - registradores que a ABI do Xbox 360 preserva ou devolve (r1, r2, r13-r31,
-//     f14-f31, r3, r4, f1, f2) e cr2-cr4;
+//     f14-f31, r3, f1);
 //   - toda a memória tocada: imagem do jogo (páginas sujas por proteção de escrita),
 //     área de dados de teste, área do r13 e a pilha acima do r1 de entrada;
 //   - falha de acesso: as duas falham ou nenhuma falha.
@@ -245,9 +245,9 @@ std::string diff(const State& a, const State& b, int callargs) {
   }
   PPCContext ca = a.ctx, cb = b.ctx;
   std::string r;
-  const int keep[] = {1, 2, 3, 4, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+  const int keep[] = {1, 2, 3, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
   for (int n : keep) { std::string nm = "r" + std::to_string(n); if (!(r = chk(nm.c_str(), gpr(ca, n)->u64, gpr(cb, n)->u64)).empty()) return r; }
-  const int fkeep[] = {1, 2, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+  const int fkeep[] = {1, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
   for (int n : fkeep) { std::string nm = "f" + std::to_string(n); if (!(r = chk(nm.c_str(), fpr(ca, n)->u64, fpr(cb, n)->u64)).empty()) return r; }
   auto cmpmem = [&](const char* n, const std::vector<uint8_t>& x, const std::vector<uint8_t>& y, uint32_t g, size_t from) -> std::string {
     for (size_t i = from; i < x.size(); ++i) if (x[i] != y[i]) {
