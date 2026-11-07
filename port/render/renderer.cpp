@@ -155,6 +155,7 @@ struct Cmd {
   uint32_t flags = 0, argb = 0;
   int32_t rect[4] = {};
   bool hasRect = false;
+  bool up = false;  // BeginVertices (2D/UI); falso = DrawVertices/DrawIndexedVertices
 };
 struct Frame {
   std::vector<uint8_t> blob;
@@ -205,7 +206,8 @@ uint64_t g_mainTarget = 0;
 // textura destino for amostrada ou antes de o alvo de origem ser alterado; sem uso no quadro, é descartada.
 struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; };
 std::vector<PendingCopy> g_pendingCopies;
-std::set<uint64_t> g_frameSampled, g_everSampled;  // texturas amostradas no quadro (olhando à frente) e alguma vez
+std::set<uint64_t> g_frameSampled, g_everSampled;
+std::map<uint64_t, uint32_t> g_resolveSeen;  // quantas vezes cada destino foi resolvido  // texturas amostradas no quadro (olhando à frente) e alguma vez
 uint32_t g_copiesDone = 0, g_copiesSkipped = 0;
 void DoCopy(const PendingCopy& p) {
   auto s = g_targets.find(p.src); auto d = g_resolved.find(p.dst);
@@ -302,6 +304,10 @@ void CreateTarget(Target& t, int w, int h, bool withDepth) {
 }
 
 float Scale() { return float(g_config.renderWidth) / 1280.0f; }
+// Chave de textura por endereço físico (o objeto pode trazer bits altos de mapeamento, ex. 0xF105…).
+// Endereço ≥ 0xE0000000 (heap física de 4 KB) corresponde a físico + 0x1000 (o mesmo do index buffer).
+uint32_t PhysicalOf(uint32_t base) { return (base & 0x1FFFFFFF) + (base >= 0xE0000000 ? 0x1000 : 0); }
+uint64_t TexKey(const xenos::TextureFetch& t) { return uint64_t(PhysicalOf(t.base)) << 32 | uint64_t(t.width) << 16 | t.height; }
 
 // Alvo de cor atual do guest (chave RB_SURFACE_INFO/RB_COLOR_INFO), na resolução interna.
 Target& CurrentTarget(const uint8_t* state) {
@@ -377,13 +383,18 @@ GLuint TextureFor(const xenos::TextureFetch& t) {
   return id;
 }
 GLuint TextureForImpl(const xenos::TextureFetch& t) {
-  uint64_t key = uint64_t(t.base) << 32 | uint64_t(t.width) << 16 | t.height;
+  uint64_t key = TexKey(t);
   if (auto r = g_resolved.find(key); r != g_resolved.end()) {
     g_everSampled.insert(key);
     if (!g_pendingCopies.empty()) FlushCopyTo(key);
     return r->second.texture;
   }
-  if (!xenos::Supported(t.format) || t.dimension != 1) { Skip("formato/dimensão de textura não suportado (branco)"); return White(); }
+  if (!xenos::Supported(t.format) || t.dimension != 1) {
+    static std::map<uint32_t, uint32_t> seen;
+    uint32_t k = t.format | t.dimension << 8;
+    if (++seen[k] == 1) std::fprintf(stderr, "[nier-gl] textura sem suporte: formato %u dimensão %u (%ux%u)\n", t.format, t.dimension, t.width, t.height);
+    Skip("formato/dimensão de textura não suportado (branco)"); return White();
+  }
   Texture& tex = g_textures[key ^ uint64_t(t.format) << 58];
   uint64_t frame = g_frames.load();
   if (tex.id && tex.checkedFrame == frame) return tex.id;
@@ -468,15 +479,16 @@ struct Program {
 };
 std::unordered_map<uint64_t, Program> g_programs;
 
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps) {
-  uint64_t key = vs->key * 0x9E3779B97F4A7C15ull ^ ps->key;
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false) {
+  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0);
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
   char vn[40], pn[40];
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
   std::snprintf(pn, sizeof pn, "%016llX_ps", (unsigned long long)ps->key);
-  GLuint v = CompileShader(GL_VERTEX_SHADER, vs->source.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, ps->source.c_str(), pn);
+  static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
+  GLuint v = CompileShader(GL_VERTEX_SHADER, vs->source.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : ps->source.c_str(), pn);
   if (!v || !f) { if (v) glDeleteShader(v); if (f) glDeleteShader(f); return nullptr; }
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
@@ -588,7 +600,8 @@ void ReplayDraw(const Frame& f, const Cmd& c) {
   auto t1 = Clock::now();
   g_pTarget += Ms(t0, t1);
   ApplyFixedState(state);
-  Program* p = ProgramFor(c.vs, c.ps);
+  static bool flat3d = std::getenv("NIER_FLAT_3D") != nullptr;  // diagnóstico: 3D em vermelho sólido
+  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up);
   if (!p) { Skip("programa não compilou/linkou"); return; }
   glUseProgram(p->id);
   UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs);
@@ -640,7 +653,7 @@ void ReplayResolve(const Frame& f, const Cmd& c) {
     static bool noCopy = std::getenv("NIER_NO_RESOLVE_COPY") != nullptr;  // diagnóstico
     if (t.width >= 8 && t.height >= 8 && !noCopy) {
       ++g_resolveCopies;
-      uint64_t key = uint64_t(t.base) << 32 | uint64_t(t.width) << 16 | t.height;
+      uint64_t key = TexKey(t);
       Target& dst = g_resolved[key];
       int w = std::max(1, int(t.width * s)), h = std::max(1, int(t.height * s));
       if (dst.w != w || dst.h != h) CreateTarget(dst, w, h, false);
@@ -648,7 +661,9 @@ void ReplayResolve(const Frame& f, const Cmd& c) {
       // substitui pendência anterior do mesmo destino (a antiga nunca foi usada)
       for (size_t i = 0; i < g_pendingCopies.size(); ++i)
         if (g_pendingCopies[i].dst == key) { g_pendingCopies.erase(g_pendingCopies.begin() + i); ++g_copiesSkipped; break; }
-      if (g_frameSampled.count(key) || g_everSampled.count(key)) {
+      // Copia se amostrado neste quadro, já amostrado antes, ou nas 3 primeiras vezes do destino (pode ser
+      // amostrado em quadros seguintes: com a GPU nula, a memória do guest não tem o conteúdo).
+      if (g_frameSampled.count(key) || g_everSampled.count(key) || g_resolveSeen[key]++ < 3) {
         g_pendingCopies.push_back({srcKey, key, x0, y0, w, h});
         FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
       } else {
@@ -752,7 +767,7 @@ void RenderThread() {
       for (int t = 0; t < 32; ++t)
         if (c.ps->textureMask & (1u << t)) {
           auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t));
-          g_frameSampled.insert(uint64_t(tf.base) << 32 | uint64_t(tf.width) << 16 | tf.height);
+          g_frameSampled.insert(TexKey(tf));
         }
     }
     auto tr = Clock::now();
@@ -777,6 +792,11 @@ void RenderThread() {
       std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
                    (unsigned long long)n, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
                    g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, glGetError());
+      if (!g_skipReasons.empty()) {
+        std::string line;
+        for (auto& [r, n] : g_skipReasons) line += " | " + r + ": " + std::to_string(n);
+        std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
+      }
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f) glFinish(GPU) %.2f\n",
                      g_pTarget / 120, g_pState / 120, g_pBuffers / 120, g_pDraw / 120, g_pResolve / 120, g_resolves / 120.0, g_resolveCopies / 120.0, g_copiesDone / 120.0, g_copiesSkipped / 120.0, g_pFinish / 120);
@@ -833,8 +853,9 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count,
 int TraceBudget() { static int n = std::getenv("NIER_RENDER_TRACE") ? std::atoi(std::getenv("NIER_RENDER_TRACE")) : 0; return n; }
 std::atomic<int> g_traced{0};
 std::atomic<uint64_t> g_presented{0};
+std::atomic<long long> g_traceFrame{std::getenv("NIER_RENDER_TRACE_FRAME") ? std::atoll(std::getenv("NIER_RENDER_TRACE_FRAME")) : -1};
 bool TraceThisFrame() {
-  static long long f = std::getenv("NIER_RENDER_TRACE_FRAME") ? std::atoll(std::getenv("NIER_RENDER_TRACE_FRAME")) : -1;
+  long long f = g_traceFrame.load();
   return f >= 0 && g_presented.load() == uint64_t(f);
 }
 void TraceDraw(const Cmd& c, const uint8_t* state, uint32_t primitive, uint32_t count, bool indexed) {
@@ -1006,6 +1027,7 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
   const uint8_t* state = frozen ? frozen->state.data() : Virtual(device + kStateBegin, kStateSize);
   if (!state || !data || !stride || !vertexCount || vertexCount > 65535) return;
   Cmd c{Kind::Draw};
+  c.up = true;
   if (frozen) { c.vs = frozen->vs; c.ps = frozen->ps; }
   else if (!PrepareShaders(c, device)) return;
   c.state = Append(g_building, state, kStateSize);
@@ -1031,8 +1053,18 @@ void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_
   if (rect) { std::memcpy(c.rect, rect, sizeof c.rect); c.hasRect = true; }
   c.state = Append(g_building, state, kStateSize);
   if (destTexture) {
-    // Textura D3D: fetch constant em +0x18 (layout do 20871; conferir no 9328 pela captura).
-    if (const uint8_t* fetch = Virtual(destTexture + 0x18, 24)) c.fetch = Append(g_building, fetch, 24);
+    // Textura D3D do 9328: fetch constant em +0x1C (o 20871 usa +0x18). Conferido no rastro de 07/11:
+    // objeto+0x1C = 8A000002 (tipo textura), +0x24 = 0059E4FF (1280x720).
+    if (const uint8_t* fetch = Virtual(destTexture + 0x1C, 24)) c.fetch = Append(g_building, fetch, 24);
+    if (TraceThisFrame()) {
+      const uint8_t* obj = Virtual(destTexture, 0x40);
+      if (obj) {
+        std::fprintf(stderr, "[nier-trace] resolve flags %08X dest %08X objeto:", flags, destTexture);
+        for (int i = 0; i < 16; ++i) std::fprintf(stderr, " %08X", BE32(obj + 4 * i));
+        auto t = xenos::DecodeFetch(obj + 0x1C);
+        std::fprintf(stderr, " -> fetch+0x1C base %08X %ux%u fmt %u\n", t.base, t.width, t.height, t.format);
+      }
+    }
   }
   g_building.cmds.push_back(c);
 }
@@ -1044,6 +1076,11 @@ void DriveTestInput(uint64_t frame);  // test_input.cpp
 void Present() {
   if (!g_enabled) return;
   FlushPendingUP();
+  static long long sceneDelay = std::getenv("NIER_RENDER_TRACE_SCENE") ? std::atoll(std::getenv("NIER_RENDER_TRACE_SCENE")) : -1;
+  if (sceneDelay >= 0 && g_traceFrame.load() < 0 && g_building.cmds.size() > 60) {
+    g_traceFrame = (long long)g_presented.load() + 1 + sceneDelay;
+    std::fprintf(stderr, "[nier-trace] cena 3D no quadro %llu; rastro no quadro %lld\n", (unsigned long long)g_presented.load(), g_traceFrame.load());
+  }
   DriveTestInput(++g_presented);
   auto waitStart = Clock::now();
   std::unique_lock lock(g_queueMutex);
