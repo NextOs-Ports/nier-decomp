@@ -38,3 +38,23 @@ NIER_DECOMP(sub_823C6A50) {
   ctx.r3.u64 = result;
 }
 NIER_VERIFY_SPEC(sub_823C6A50, 0x823C6A50, "r3=ptr r4=range:0..64");
+
+// sub_82338BD0 (60 bytes)
+// Encaminhador: se há um alvo em +4, chama o método virtual 1 dele com
+// (alvo, campo +8, arg1, arg2, campo +12) e devolve o resultado; senão devolve 0.
+NIER_DECOMP(sub_82338BD0) {
+  const uint32_t self = ctx.r3.u32;
+  const uint32_t target = ld32(base, self + 4);
+  if (target == 0) {
+    ctx.r3.u64 = 0;
+    return;
+  }
+  const uint64_t arg1 = ctx.r4.u64, arg2 = ctx.r5.u64;
+  ctx.r3.u64 = target;
+  ctx.r4.u64 = ld32(base, self + 8);
+  ctx.r5.u64 = arg1;
+  ctx.r6.u64 = arg2;
+  ctx.r7.u64 = ld32(base, self + 12);
+  call_virtual(ctx, base, target, 1);
+}
+NIER_VERIFY_SPEC(sub_82338BD0, 0x82338BD0, "r3=ptr");

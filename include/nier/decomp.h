@@ -25,7 +25,47 @@ inline void st16(uint8_t* base, uint32_t a, uint16_t v) { v = __builtin_bswap16(
 inline void st32(uint8_t* base, uint32_t a, uint32_t v) { v = __builtin_bswap32(v); std::memcpy(base + a, &v, 4); }
 inline void st64(uint8_t* base, uint32_t a, uint64_t v) { v = __builtin_bswap64(v); std::memcpy(base + a, &v, 8); }
 inline void stf (uint8_t* base, uint32_t a, float f) { uint32_t v; std::memcpy(&v, &f, 4); st32(base, a, v); }
+// Deslocamentos com quantidade em registrador, com a semântica do PowerPC:
+// usam os 6 (32 bits) ou 7 (64 bits) bits baixos, e quantidade >= largura dá 0 (ou o sinal).
+inline uint32_t slw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x << n; }
+inline uint32_t srw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x >> n; }
+inline uint32_t sraw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? (static_cast<int32_t>(x) < 0 ? 0xFFFFFFFFu : 0u) : static_cast<uint32_t>(static_cast<int32_t>(x) >> n); }
+// fctiwz: double → int32 truncando, com saturação (NaN e abaixo de INT_MIN dão 0x80000000).
+inline uint32_t fctiwz(double v) {
+  if (v != v) return 0x80000000u;
+  if (v >= 2147483647.0) return 0x7FFFFFFFu;
+  if (v <= -2147483649.0) return 0x80000000u;
+  return static_cast<uint32_t>(static_cast<int32_t>(v));
+}
+inline uint64_t sld(uint64_t x, uint64_t n) { n &= 127; return n >= 64 ? 0 : x << n; }
+inline uint64_t srd(uint64_t x, uint64_t n) { n &= 127; return n >= 64 ? 0 : x >> n; }
 }  // namespace nier::guest
+
+#ifdef REX_CALL_INDIRECT_FUNC
+namespace nier::guest {
+// Chamada indireta (ponteiro de função ou método virtual), como `mtctr; bctrl`.
+// Os argumentos já devem estar em ctx.r3.. / ctx.f1.. conforme a ABI do Xbox 360.
+inline void call_indirect(PPCContext& __restrict ctx, uint8_t* base, uint32_t target) {
+  ctx.ctr.u64 = target;
+  REX_CALL_INDIRECT_FUNC(target);
+}
+// Método virtual `slot` do objeto em `obj` (vtable na palavra 0).
+inline void call_virtual(PPCContext& __restrict ctx, uint8_t* base, uint32_t obj, uint32_t slot) {
+  call_indirect(ctx, base, ld32(base, ld32(base, obj) + slot * 4));
+}
+}  // namespace nier::guest
+#endif
+
+// Pausa curta numa espera ativa do guest. No console era `db16cyc` (só atraso,
+// sem efeito em memória ou registradores); no port cede o núcleo ao sistema.
+#include <sched.h>
+namespace nier::host {
+inline void spin_pause() {
+#ifndef NIER_VERIFY
+  sched_yield();
+#endif
+}
+}  // namespace nier::host
 
 #ifdef NIER_VERIFY
 #define NIER_DECOMP(name) extern "C" void decomp_##name([[maybe_unused]] PPCContext& __restrict ctx, [[maybe_unused]] uint8_t* base)

@@ -39,7 +39,7 @@ for r in run['results']:
         f['status'] = 'decompiled'; f.pop('evidence', None)
 doc = {'tool': 'tools/verify/verify_main.cpp', 'executable_sha256': inv['baseline']['executable_sha256'],
        'method': 'Mesmo estado inicial aleatório para a função traduzida (oráculo) e a reconstruída; '
-                 'compara r1-r4, r13-r31, f1, f2, f14-f31, memória tocada da imagem, dados de teste, '
+                 'compara r1-r3, r13-r31, f1, f14-f31, memória tocada da imagem, dados de teste, '
                  'área do r13 e pilha acima do r1. Aprovação exige zero divergência e ao menos metade '
                  'das tentativas sem falha de acesso.',
        'results': sorted(merged.values(), key=lambda x: x['address'])}

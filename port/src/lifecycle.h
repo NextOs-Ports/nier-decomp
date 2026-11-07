@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <mutex>
+#include <cstdio>
 #include <unordered_map>
 
 // SDL events are observed without taking input away from the runtime.
@@ -32,6 +33,7 @@ class NierLifecycle {
       quit = state == 3;
     }
     if (quit) {
+      std::fprintf(stderr, "NIER_INPUT SELECT_START joystick=%u immediate quit\n", event->gbutton.which);
       SDL_Event close{};
       close.type = SDL_EVENT_QUIT;
       SDL_PushEvent(&close);

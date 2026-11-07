@@ -38,3 +38,7 @@ Mapa byte a byte das faixas de código:
 Nenhum byte é contado duas vezes. Os 560 bytes restantes são tabelas de endereços embutidas e os campos da tabela de thunks de imports, todos dados. Não há código fora do inventário.
 
 **Inventário declarado completo** para o `default.xex` SHA-256 `f375d506…`. O denominador da porcentagem passa a ser 5.372.176 bytes.
+
+## Terceira rodada (thunks de ajuste de `this`)
+
+O renderizador revelou, ao passar da tela de título, uma chamada virtual para um thunk `addi r3,r3,-4; b alvo` sem `.pdata`. A varredura da PE inteira (`.text` e `PSFD00`) achou 328 thunks desse padrão, 135 referenciados por dados; 12 faltavam no codegen. Todos entraram; quatro limites antigos que englobavam thunks foram separados em entradas de 8 bytes. Inventário: 22.423 entradas, mesmos 5.372.176 bytes. A revisão byte a byte continua sem código fora do inventário.

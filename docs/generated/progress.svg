@@ -8,18 +8,18 @@
 <text x="920" y="132" class="label" text-anchor="end">100.00%</text>
 <rect x="36" y="147" width="888" height="13" rx="6" fill="#334155"/>
 <rect x="36" y="147" width="888.000" height="13" rx="6" fill="#60a5fa"/>
-<text x="36" y="183" class="small muted" >22411 funções · 5,372,176 bytes</text>
+<text x="36" y="183" class="small muted" >22423 funções · 5,372,176 bytes</text>
 <text x="36" y="226" class="label" >Fonte reconstruída</text>
-<text x="920" y="226" class="label" text-anchor="end">0.00%</text>
+<text x="920" y="226" class="label" text-anchor="end">0.34%</text>
 <rect x="36" y="241" width="888" height="13" rx="6" fill="#334155"/>
-<rect x="36" y="241" width="0.034" height="13" rx="6" fill="#c4b5fd"/>
-<text x="36" y="277" class="small muted" >3 funções · 204 bytes</text>
+<rect x="36" y="241" width="3.049" height="13" rx="6" fill="#c4b5fd"/>
+<text x="36" y="277" class="small muted" >197 funções · 18,444 bytes</text>
 <text x="36" y="320" class="label" >Decompilação verificada</text>
-<text x="920" y="320" class="label" text-anchor="end">0.00%</text>
+<text x="920" y="320" class="label" text-anchor="end">0.34%</text>
 <rect x="36" y="335" width="888" height="13" rx="6" fill="#334155"/>
-<rect x="36" y="335" width="0.034" height="13" rx="6" fill="#34d399"/>
-<text x="36" y="371" class="small muted" >3 funções · 204 bytes</text>
-<text x="36" y="421" class="small muted" >Inventário: 22411 funções · 5,372,176 bytes</text>
+<rect x="36" y="335" width="3.034" height="13" rx="6" fill="#34d399"/>
+<text x="36" y="371" class="small muted" >196 funções · 18,356 bytes</text>
+<text x="36" y="421" class="small muted" >Inventário: 22423 funções · 5,372,176 bytes</text>
 <text x="36" y="446" class="small muted" >Base completa e identificada</text>
 <text x="36" y="493" class="heading" >Marcos do port</text>
 <circle cx="44" cy="524" r="6" fill="#34d399"/>
@@ -34,9 +34,9 @@
 <circle cx="44" cy="629" r="6" fill="#34d399"/>
 <text x="64" y="635" class="small" >Inventário completo de funções</text>
 <text x="920" y="635" class="small muted" text-anchor="end">Concluído</text>
-<circle cx="44" cy="664" r="6" fill="#475569"/>
+<circle cx="44" cy="664" r="6" fill="#34d399"/>
 <text x="64" y="670" class="small" >Execução e carregamento ARM64</text>
-<text x="920" y="670" class="small muted" text-anchor="end">Pendente</text>
+<text x="920" y="670" class="small muted" text-anchor="end">Concluído</text>
 <circle cx="44" cy="699" r="6" fill="#475569"/>
 <text x="64" y="705" class="small" >Primeira área com imagem GLES2</text>
 <text x="920" y="705" class="small muted" text-anchor="end">Pendente</text>

@@ -5,7 +5,7 @@
     {"id": "input", "label": "Arquivo do jogo recebido e íntegro", "status": "done", "evidence": "evidence/input-20261107.md"},
     {"id": "identity", "label": "Executável e timing original identificados", "status": "done", "evidence": "evidence/identity-20261107.md"},
     {"id": "inventory", "label": "Inventário completo de funções", "status": "done", "evidence": "evidence/inventory-review-20261107.md"},
-    {"id": "runtime", "label": "Execução e carregamento ARM64", "status": "pending", "evidence": null},
+    {"id": "runtime", "label": "Execução e carregamento ARM64", "status": "done", "evidence": "evidence/runtime-arm64-164-20261107.md"},
     {"id": "graphics", "label": "Primeira área com imagem GLES2", "status": "pending", "evidence": null},
     {"id": "gameplay", "label": "Movimento, câmera e combate", "status": "pending", "evidence": null},
     {"id": "functionality", "label": "Áudio, controles, transições e saves", "status": "pending", "evidence": null},

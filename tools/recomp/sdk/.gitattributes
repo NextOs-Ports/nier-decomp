@@ -1,0 +1,2 @@
+# A single leading space represents an empty context line in unified patches.
+*.patch whitespace=-blank-at-eol

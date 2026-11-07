@@ -1,0 +1,185 @@
+--- a/src/core/threading_posix.cpp
++++ b/src/core/threading_posix.cpp
+@@ -268,22 +268,22 @@
+ }
+ #endif  // __APPLE__
+ 
+-// Adapted from the pinned Rayman SDK wait patch: signal generation wakes
+-// multi-waits without polling every handle or spinning on contended locks.
+-namespace multi_wait {
+-inline std::mutex mutex;
+-inline std::condition_variable cond;
+-inline uint64_t generation = 0;
+-inline std::atomic<int> waiters{0};
+-inline void Wake() {
+-  if (!waiters.load()) return;
+-  { std::lock_guard lock(mutex); ++generation; }
+-  cond.notify_all();
+-}
+-}
+-
+ class PosixConditionBase {
+  public:
++  struct WaitSet {
++    std::mutex mutex;
++    std::condition_variable cond;
++    uint64_t generation = 0;
++
++    void Wake() {
++      {
++        std::lock_guard<std::mutex> lock(mutex);
++        ++generation;
++      }
++      cond.notify_all();
++    }
++  };
++
+   PosixConditionBase() {
+ #if REX_PLATFORM_LINUX
+     // Use robust mutexes so waits can recover if owner thread terminates.
+@@ -348,42 +348,92 @@
+     const bool infinite = timeout == std::chrono::milliseconds::max();
+     const auto end_time = infinite ? std::chrono::steady_clock::time_point::max()
+                                    : std::chrono::steady_clock::now() + timeout;
+-    multi_wait::waiters.fetch_add(1);
+-    struct WaiterGuard { ~WaiterGuard() { multi_wait::waiters.fetch_sub(1); } } guard;
+-    std::vector<PosixConditionBase*> ordered;
+-    if (wait_all) {
+-      ordered=handles;
+-      std::sort(ordered.begin(),ordered.end(),std::less<PosixConditionBase*>{});
+-      ordered.erase(std::unique(ordered.begin(),ordered.end()),ordered.end());
+-    }
+-    bool timed_out=false;
++    std::vector<PosixConditionBase*> unique_handles = handles;
++    std::sort(unique_handles.begin(), unique_handles.end(), std::less<PosixConditionBase*>{});
++    unique_handles.erase(std::unique(unique_handles.begin(), unique_handles.end()),
++                         unique_handles.end());
++
++    WaitSet wait_set;
++    struct SubscriptionGuard {
++      const std::vector<PosixConditionBase*>& handles;
++      WaitSet* wait_set;
++      size_t subscribed_count = 0;
++
++      SubscriptionGuard(const std::vector<PosixConditionBase*>& h, WaitSet* ws)
++          : handles(h), wait_set(ws) {
++        try {
++          for (auto* handle : handles) {
++            handle->SubscribeWaitSet(wait_set);
++            ++subscribed_count;
++          }
++        } catch (...) {
++          while (subscribed_count) {
++            handles[--subscribed_count]->UnsubscribeWaitSet(wait_set);
++          }
++          throw;
++        }
++      }
++      ~SubscriptionGuard() {
++        for (size_t i = subscribed_count; i > 0; --i) {
++          handles[i - 1]->UnsubscribeWaitSet(wait_set);
++        }
++      }
++      SubscriptionGuard(const SubscriptionGuard&) = delete;
++      SubscriptionGuard& operator=(const SubscriptionGuard&) = delete;
++    } sub_guard(unique_handles, &wait_set);
++
++    bool timed_out = false;
+     while (true) {
+       uint64_t generation;
+-      { std::lock_guard lock(multi_wait::mutex); generation=multi_wait::generation; }
++      {
++        std::lock_guard<std::mutex> lock(wait_set.mutex);
++        generation = wait_set.generation;
++      }
+       if (wait_all) {
+         std::vector<std::unique_lock<std::mutex>> locks;
+-        for(auto* handle:ordered) locks.push_back(handle->LockMutex());
+-        bool ready=true;
+-        for(auto* handle:ordered) ready=ready && handle->signaled();
+-        if(ready) {
+-          for(auto* handle:ordered) handle->post_execution();
+-          return {WaitResult::kSuccess,0};
++        locks.reserve(unique_handles.size());
++        for (auto* handle : unique_handles) {
++          locks.push_back(handle->LockMutex());
++        }
++        bool ready = true;
++        for (auto* handle : unique_handles) {
++          ready = ready && handle->signaled();
++        }
++        if (ready) {
++          for (auto* handle : unique_handles) {
++            handle->post_execution();
++          }
++          return {WaitResult::kSuccess, 0};
+         }
+       } else {
+-        for(size_t i=0;i<handles.size();++i) {
+-          auto lock=handles[i]->LockMutex();
+-          if(handles[i]->signaled()) { handles[i]->post_execution();return {WaitResult::kSuccess,i}; }
++        for (size_t i = 0; i < handles.size(); ++i) {
++          auto lock = handles[i]->LockMutex();
++          if (handles[i]->signaled()) {
++            handles[i]->post_execution();
++            return {WaitResult::kSuccess, i};
++          }
+         }
+       }
+-      if(timed_out)return {WaitResult::kTimeout,0};
+-      std::unique_lock lock(multi_wait::mutex);
+-      auto changed=[&] { return multi_wait::generation!=generation; };
+-      if(infinite)multi_wait::cond.wait(lock,changed);
+-      else if(!multi_wait::cond.wait_until(lock,end_time,changed))timed_out=true;
+-    }
+-  }
+-
+-  void NotifyAll() { cond_.notify_all();multi_wait::Wake(); }
++      if (timed_out) {
++        return {WaitResult::kTimeout, 0};
++      }
++      std::unique_lock<std::mutex> lock(wait_set.mutex);
++      auto changed = [&] { return wait_set.generation != generation; };
++      if (infinite) {
++        wait_set.cond.wait(lock, changed);
++      } else if (!wait_set.cond.wait_until(lock, end_time, changed)) {
++        timed_out = true;
++      }
++    }
++  }
++
++  void NotifyAll() {
++    cond_.notify_all();
++    std::lock_guard<std::mutex> lock(sub_mutex_);
++    for (auto* ws : wait_sets_) {
++      ws->Wake();
++    }
++  }
+   std::unique_lock<std::mutex> LockMutex() {
+ #if REX_PLATFORM_LINUX
+     auto native=static_cast<pthread_mutex_t*>(mutex_.native_handle());
+@@ -405,6 +455,24 @@
+   inline virtual void post_execution() = 0;
+   std::condition_variable cond_;
+   std::mutex mutex_;
++
++ private:
++  void SubscribeWaitSet(WaitSet* ws) {
++    std::lock_guard<std::mutex> lock(sub_mutex_);
++    wait_sets_.push_back(ws);
++  }
++
++  void UnsubscribeWaitSet(WaitSet* ws) noexcept {
++    std::lock_guard<std::mutex> lock(sub_mutex_);
++    auto it = std::find(wait_sets_.rbegin(), wait_sets_.rend(), ws);
++    if (it != wait_sets_.rend()) {
++      *it = wait_sets_.back();
++      wait_sets_.pop_back();
++    }
++  }
++
++  std::mutex sub_mutex_;
++  std::vector<WaitSet*> wait_sets_;
+ };
+ 
+ // There really is no native POSIX handle for a single wait/signal construct

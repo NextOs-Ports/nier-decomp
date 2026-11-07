@@ -8,6 +8,9 @@
 #include "lifecycle.h"
 #include <rex/audio/downmix.h>
 #include <cstdio>
+#include <cstdlib>
+#include <rex/input/input_system.h>
+#include "virtual_pad_probe.h"
 
 class NierApp : public rex::ReXApp {
  public:
@@ -26,6 +29,8 @@ class NierApp : public rex::ReXApp {
     rex::audio::SetOutputGain(1.0f);
     std::fprintf(stderr, "NIER_AUDIO stereo_fold=1.000 output_gain=1.000\n");
     lifecycle_.Start();
+    if (std::getenv("NIER_VIRTUAL_PAD_PROBE"))
+      NierProbeVirtualGamepad(dynamic_cast<rex::input::InputSystem*>(runtime()->input_system()));
   }
   void OnShutdown() override { lifecycle_.Stop(); }
 

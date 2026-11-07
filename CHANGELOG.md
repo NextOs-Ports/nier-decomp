@@ -2,6 +2,25 @@
 
 ## 2026-11-07
 
+- Lote 11: o template de pool (lista livre + lista em uso) foi isolado num cabeçalho; um localizador por estrutura de instruções achou 33 instâncias adicionais, cada uma provada pelo comparador. 196 funções verificadas.
+- Lote 10 e lote 3 de bibliotecas: mais 5 pools de objetos (com as duas ordens de atualização do compilador), objeto estático local, e funções do XDK (último erro, timeout NT, troca atômica, filtro de exceção).
+- Lote 9: listas duplamente ligadas, inicialização de pools, checagens de vetor e outro gerador aleatório. O comparador agora injeta NaN, infinitos e zero com sinal, e a função de chance foi corrigida para a semântica exata do PowerPC com NaN.
+- Lote 8: acessores dos 3 slots (estado, flags, dados, double com fallback), fases da máquina de estados e pedido assíncrono. 129 funções verificadas.
+- Lote 7 e lote 2 de bibliotecas: luaO_int2fb, luaO_log2, luaO_rawequalObj, luaC_link e lua_sethook do Lua 5.1; construtores; funções de string ASCII/UTF-16, comparação e busca do CRT.
+- Lote 6: API do Lua 5.1 embutido no jogo (index2adr, settop, xmove, pushnil/number/boolean/lightuserdata, typename, luaL_findstring, leitor de string) e comparações de valores de script. O gerador de entradas agora trata faixas que atravessam o zero.
+- Lote 5 e primeiro lote da frente de bibliotecas: pools de objetos, testes de campo de bits, acessores, e memcpy/memset/strings UTF-16 do CRT (as que passaram no comparador atual).
+- Lote 4 da reconstrução: basename de caminhos, estados e flags de objeto, canais de interpolação (valor, alvo, duração). 53 funções verificadas.
+- No PC, com o renderizador GLES2: logos, vídeo de abertura inteiro, tela de título, aviso de save, New Game, escolha de dificuldade e confirmação passam com imagem correta. O nome do herói, que travava no teclado do sistema, agora recebe "Nier" por padrão.
+- No Mali-450 (.164): logos e vídeo com imagem correta; todos os shaders compilam e linkam na Mali, nenhum desenho pulado, sem erro de GL, 368–389 MB de RAM.
+- Áudio provado no PC: música da abertura/título e efeitos de menu com sinal real. A thread de áudio caiu de 47 s para 0,4 s de CPU por minuto.
+- Controles (14 botões, 4 eixos, 2 gatilhos), SELECT+START e saves persistentes provados no PC e no ARM64.
+- Lotes 2 e 3 da reconstrução: construtores, cálculo de tiles da EDRAM, listas paginadas de menu, ordenação por nome, tabelas por máscara. 37 funções verificadas; o comparador roda tudo em fatias paralelas em cerca de 30 s.
+- Executável ARM64 rodou no Mali-450 (.164): abriu e leu os dois CPK, 56 trocas de quadro por segundo com GPU nula, ~357 MiB de memória, 61→63 °C.
+- Esqueleto do renderizador GLES2 próprio (MIT): thread dona do contexto, render interno 854x480, mipmaps em texturas estáticas, decodificação Xenos e ganchos nos 6 pontos do D3D.
+- Primeira imagem do jogo no PC com o renderizador GLES2 próprio: logo da CRIWARE, abertura da SQUARE ENIX e partículas da tela de título.
+- Lote de reconstrução: `rand()` do CRT e as funções de chance e faixa aleatória do jogo, interruptores com notificação virtual, inicialização de limites e histórico de 8 posições. 14 funções verificadas.
+- Reconstruída e verificada a espera ativa da CPU pela GPU do D3D (`0x82579D50`), a função mais quente do boot. No port, a pausa dela cede o núcleo em vez de girar.
+- Comparador agora cobre chamadas virtuais: destinos falsos registram alvo e argumentos, e a sequência de chamadas também é comparada. 4 funções verificadas.
 - Primeiras 3 funções com decompilação verificada (204 bytes), provadas pelo novo comparador `tools/verify`: a reconstrução roda contra a tradução do original em 2.000 estados aleatórios. Teste de mutação confirmou que o comparador reprova erro de comparação, de limite e de deslocamento.
 - Boot no PC provado: o jogo abre e lê `LAYER1.CPK`/`LAYER2.CPK`, roda o laço principal com mais de 900 trocas de quadro em 20 s e não deixa import pendente. O passo de tempo da lógica vem do relógio real (`mftb`), e a soma bate com o tempo de parede em 0,007%.
 - Executável ARM64 do NieR compilado com a toolchain NextOS, sem avisos.

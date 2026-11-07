@@ -3,13 +3,13 @@
 Gerado por `python3 tools/progress.py`. Não editar manualmente.
 
 Inventário completo: **sim**.
-Funções inventariadas: **22411**; bytes: **5372176**.
+Funções inventariadas: **22423**; bytes: **5372176**.
 
 | Cobertura cumulativa | Funções | Bytes | Porcentagem |
 | --- | ---: | ---: | ---: |
-| Código traduzido ou reconstruído | 22411 | 5372176 | 100.00% |
-| Fonte reconstruída | 3 | 204 | 0.00% |
-| Decompilação verificada | 3 | 204 | 0.00% |
+| Código traduzido ou reconstruído | 22423 | 5372176 | 100.00% |
+| Fonte reconstruída | 197 | 18444 | 0.34% |
+| Decompilação verificada | 196 | 18356 | 0.34% |
 
 ## Marcos
 
@@ -19,7 +19,7 @@ Funções inventariadas: **22411**; bytes: **5372176**.
 | Arquivo do jogo recebido e íntegro | done | [registro](../../evidence/input-20261107.md) |
 | Executável e timing original identificados | done | [registro](../../evidence/identity-20261107.md) |
 | Inventário completo de funções | done | [registro](../../evidence/inventory-review-20261107.md) |
-| Execução e carregamento ARM64 | pending | — |
+| Execução e carregamento ARM64 | done | [registro](../../evidence/runtime-arm64-164-20261107.md) |
 | Primeira área com imagem GLES2 | pending | — |
 | Movimento, câmera e combate | pending | — |
 | Áudio, controles, transições e saves | pending | — |
