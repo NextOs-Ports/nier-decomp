@@ -1,0 +1,39 @@
+{
+  "stage": "X1-H5a CPU sampler",
+  "base_commit": "7a7c9df",
+  "arm64": {
+    "librexruntime.so": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-sampler/arm64/librexruntime.so",
+      "sha256": "b79e167a30178221b0f700c7abe82660c18599dcc1754a6536b681e6de5b5041"
+    },
+    "nier": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-sampler/arm64/nier",
+      "sha256": "b52329128ae3d348d8e1f09458358c1e4b964ebcb31cba56fe1d972f8f383317"
+    },
+    "librexgpu-null.so": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-sampler/arm64/librexgpu-null.so",
+      "sha256": "725f4ed69a861b68d9f5c56f6258de0337ebe5d0395db864f1c49bd81ae02eef"
+    }
+  },
+  "runtime_variant": "Baseline H1 runtime, before TimerQueue change. Use this same executable for both runtime variants.",
+  "environment": {
+    "NIER_CPU_PROFILE": "private writable output JSON",
+    "NIER_CPU_PROFILE_DELAY": "140",
+    "NIER_CPU_PROFILE_SECONDS": "45",
+    "NIER_CPU_PROFILE_HZ": "100"
+  },
+  "validation": {
+    "host_weighting": "hot 297 vs cool 5 samples; zero drops/errors",
+    "arm_qemu_weighting": "hot 284 vs cool 16 samples; zero drops/errors",
+    "blocked_threads": "busy blocked thread reported with >2 CPU seconds and zero samples, host and ARM/QEMU",
+    "existing_handler": "preserved; sampler disabled when SIGPROF already owned",
+    "elf_identity": "GNU Build IDs captured from mapped modules; wrong ELF rejected",
+    "host_game": "sampler reached 3D in bounded 85-second run; final base 7a7c9df booted in bounded 10-second smoke",
+    "fps": "No PC FPS approval; .164 only"
+  },
+  "hot_list": "messages/X1-H-hot.json (host post-H4; ARM update awaits device capture)",
+  "sources": {
+    "port/src/cpu_profile.cpp": "3d6694d77fa722b6efaed778cbdd924a8f70b4f547dfef2f38bb99b7b77896d3",
+    "tools/inventory/export_cpu_samples.py": "7ab7ea453de9d73020ff0b17c054543289dc9f6b234ef4d57242d03a48b8d188"
+  }
+}

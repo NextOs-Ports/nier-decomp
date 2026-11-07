@@ -31,3 +31,11 @@
 - F11Mali:menus186–271mscomanelSubData; PCnãoaprova buffers. Agora stagingCPUcompleto+1glBufferData(dados,STREAM_DRAW)porVBO/IBOantesdetodosdraws;rodízio3pares. SemSubDatadinâmico; STATICapós2quadrosmantido. Contadorconfirma2uploads/quadro; buffersincluicópia+upload.
 - PCapenasimagem/contadores:157draws3D/21alvos/16.000.896bytes,0diferenças,originaligual;rodada95sencerrada. Gatesglobal/incrementalOK. ARM64h4-upload/arm64/nier SHA1136e216e9dc12947262d93282999fee10d0196a767c1937d94b5c90e60b4ec7. AceiteMali(UI≤4,3D<21ms)aguardacoordenador.
 - CPUdraftcorrigido preservado emstash46abe590;16384bordas4modosFPpassaram,sem ganhoisoladoPC(10,589→10,640ns). Fora doELF entregue.
+
+## X1-H4 — aceite físico recebido (F12)
+- Coordenador aprovou o ELF 1136e216 no .164: menus 15–33 ms/quadro, buffers 0,1–4 ms; buffers 3D 7,9–12,4 ms. Meta final de 3 ms ainda não atingida, mas buffers deixaram de ser o gargalo principal. FPS permanece medido somente no aparelho.
+
+## X1-H5a — perfil para D1 e coletor ARM
+- Lista host pós-H4 atualizada em X1-H-hot.json e entregue no diretório compartilhado. D1 é dono da decomp; rascunho de feedback de áudio foi identificado como NÃO aprovado devido a NaNs sinalizantes e entregue separadamente.
+- Coletor opt-in: timers de CPU por thread, SIGPROF dirigido, handler apenas com atomics lock-free; JSON periódico e Build IDs. Informa threads bloqueadas, cobertura, overruns e perdas. Testes host/ARM-QEMU passaram; ELF incorreto foi recusado.
+- Base 7a7c9df integrada. ARM em h5-sampler/arm64, com DLL anterior para coleta inicial. Mesmo ELF pode usar a DLL TimerQueue candidata. Sem perf no aparelho; env padrão delay140/duração45/100Hz. Coordenador mantém corte ≤300s e envia JSON para simbolização. Recibo X1-H5-sampler.json.
