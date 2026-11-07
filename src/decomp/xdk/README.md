@@ -38,3 +38,23 @@ completos. Duas rotinas ADPCM preservam o cálculo de samples/bloco, o resultado
 de 16 bits, a contagem de blocos/padding e a convenção do oráculo para divisão
 por zero. Os parâmetros do teste também incluem cabeçalhos inválidos para
 conferir esses retornos, sem afirmar que sejam formatos reproduzíveis.
+
+## Lote X1-6 — filtro e estruturas de áudio
+
+Nove rotinas passaram em 2.000 casos cada, sem falhas de acesso. O filtro de
+variável de estado foi reconstruído por suas duas integrações (low/band),
+coeficientes frequency/damping e saídas low/band/high/notch. A ordem dos FMAs e
+os arredondamentos single intermediários foram conservados. Os dados de teste
+usam amostras/estados finitos normalizados, coeficientes variados e 0–32 samples.
+
+Também foram verificados: inicialização dos treze buckets (incluindo campos
+que não devem ser zerados), lookup com chaves presentes nas duas posições de
+cada bucket, retirada de payload com reciclagem de nó, seleção de modo pendente,
+marcação de acesso, máscaras de canais XMA/extended/default e seleção das seis
+entradas de conversão PCM. O lookup mantém a pré-condição de chave existente;
+não inventa recuperação para a desreferência nula do original fora desse domínio.
+
+210 casos extras passaram: fila vazia/um/dois nós e payload zero, tags de
+formato/channels/flags, escolhas suportadas e rejeitadas, e filtro sob quatro
+modos FP. A prova é de resultados/ABI/memória; não substitui audição no jogo ou
+uma prova formal de estabilidade do filtro para coeficientes arbitrários.

@@ -61,3 +61,12 @@ if(NIER_VERIFY_BUILD AND NIER_VERIFY_GENERATED)
   target_link_libraries(nier_pcm_probe PRIVATE rex::runtime)
   rexglue_apply_target_settings(nier_pcm_probe)
 endif()
+if(NIER_VERIFY_BUILD AND NIER_VERIFY_GENERATED)
+  add_executable(nier_audio_structure_probe audio_structure_probe.cpp
+    ../../src/decomp/xdk/audio_filter.cpp ../../src/decomp/xdk/audio_containers.cpp
+    ../../src/decomp/xdk/audio_layout.cpp ${NIER_ORACLE_OBJECTS})
+  target_compile_definitions(nier_audio_structure_probe PRIVATE NIER_VERIFY=1)
+  target_include_directories(nier_audio_structure_probe PRIVATE ../../include "${NIER_VERIFY_GENERATED}")
+  target_link_libraries(nier_audio_structure_probe PRIVATE rex::runtime)
+  rexglue_apply_target_settings(nier_audio_structure_probe)
+endif()
