@@ -68,3 +68,6 @@ add_executable(nier_resolve_alpha_test EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_input.cpp)
 target_link_libraries(nier_resolve_alpha_test PRIVATE nier_render_deps)
+
+add_executable(nier_texture_gamma_test EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/../tests/texture_gamma_test.cpp)
+target_link_libraries(nier_texture_gamma_test PRIVATE nier_render_deps)

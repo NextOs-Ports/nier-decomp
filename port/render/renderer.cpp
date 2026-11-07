@@ -11,6 +11,7 @@
 
 #include "nier_d3d.h"
 #include "xenos_texture.h"
+#include "texture_gamma.h"
 #include "vertex_cache.h"
 
 #include <SDL3/SDL.h>
@@ -685,7 +686,9 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
   }
   return out;
 }
-std::unordered_map<uint64_t, Program> g_programs;
+struct ProgramKey { uint64_t shader, gamma; bool operator==(const ProgramKey&) const = default; };
+struct ProgramHash { size_t operator()(const ProgramKey& k) const { return k.shader ^ (k.gamma * 0x9E3779B97F4A7C15ull); } };
+std::unordered_map<ProgramKey, Program, ProgramHash> g_programs;
 
 // Variante sem alpha test (alphaTest = false): o bloco "bool pass … if (!pass) discard;" sai do PS. Na Mali-450 um
 // `discard` presente no shader desliga o early-Z/descarte de fragmentos escondidos mesmo que nunca execute.
@@ -765,8 +768,8 @@ CullInfo ParseCull(const std::string& src) {
   ci.ok = true;
   return ci;
 }
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0) {
-  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3);
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, uint64_t gammaChannels = 0) {
+  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3), gammaChannels};
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
@@ -774,7 +777,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
-  std::string psSource = ScalarizeRegisters(alphaTest ? ps->source : StripAlphaTest(ps->source));
+  std::string psSource = ScalarizeRegisters(TextureGammaVariant(alphaTest ? ps->source : StripAlphaTest(ps->source), ps->textureMask, gammaChannels));
   std::vector<std::pair<int, int>> vtfSlots;
   static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
   std::string vsSource = ScalarizeRegisters(StripUnusedVaryings((vs->textureMask && !noVtf) ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source, flat ? 0xFF : ps->inputMask));
@@ -1301,7 +1304,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   uint32_t colorControl = BE32(Field(state, kColorControl));
   int skinIdx = -1, skinW = -1;
   int skinConst = SkinInputs(c, skinIdx, skinW, nullptr, nullptr);
-  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up, keepAlphaTest || (colorControl & 8), skinConst);
+  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up, keepAlphaTest || (colorControl & 8), skinConst, TextureGammaChannels(Field(state,kFetchConstants),c.ps->textureMask));
   if (!p) { Skip("programa não compilou/linkou"); return; }
   UseProgram(p->id);
   UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc, p->vcSeq);
