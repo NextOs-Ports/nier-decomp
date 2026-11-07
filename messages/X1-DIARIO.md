@@ -21,3 +21,8 @@
 - PCmenu,medianasms: resolve 0.790→0.840, buffers 0.100→0.060, texture 0.395→0.490, state_without_texture 0.060→0.130, draw_gpu 4.810→7.770. Janelasvariáveis,nãoFPSisolado.
 - PC3D,medianasms: resolve 45.535→35.060, buffers 1.065→0.420, texture 2.585→6.800, state_without_texture 0.765→0.950, draw_gpu 19.885→20.350. Janelasvariáveis,nãoFPSisolado.
 - Menus1080–3000:zero criações/missesSTATIC/crescimentoanel; contadoresporquadro adicionados. Auditoriaquadro3543:153draws3D,22alvos,0diferenças;480imagensGLES2+ASan/UBSanpass. GateincrementalOK. ARM64emh3-stream/arm64; aceitefísico(UI≤4ms,3D≤21ms)pendente coord. CPUdraftstash90f674d preservado,fora desteELF.
+
+### H3 integração concluída
+- BaseC1 2d5a41e integrada; check_leve global e incrementalOK. Auditoria agora segue holder deResolve como apresentação:156draws/21alvos/16.000.896bytes,0diferenças,replaysestáveis eoriginaligual. Teste90sencerrado. ARM64 de96ddd1e permaneceintacto duranteprova .164; ajuste posterior sódiagnósticoopt-in.
+- PCintegrado menu,ms: resolve=0.000, buffers=0.040, texture=0.010, state_without_texture=0.055, draw_gpu=4.460.
+- PCintegrado 3d,ms: resolve=1.170, buffers=0.410, texture=0.160, state_without_texture=0.370, draw_gpu=22.400.

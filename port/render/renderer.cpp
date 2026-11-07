@@ -926,7 +926,14 @@ void AuditBufferImage(const Frame& work) {
   if (sceneDraws < 50) return;
   auto originalTarget = g_targets.find(g_mainTarget);
   if (originalTarget == g_targets.end()) return;
-  const auto& target = originalTarget->second;
+  auto logicalTarget = [&](const Target& stored) -> const Target& {
+    if (stored.holder) {
+      auto it = g_resolved.find(stored.holder);
+      if (it != g_resolved.end() && it->second.texture) return it->second;
+    }
+    return stored;
+  };
+  const auto& target = logicalTarget(originalTarget->second);
   std::vector<uint8_t> originalMain(size_t(target.w) * target.h * 4), finalMain;
   glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
   glReadPixels(0, 0, target.w, target.h, GL_RGBA, GL_UNSIGNED_BYTE, originalMain.data()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
@@ -948,7 +955,8 @@ void AuditBufferImage(const Frame& work) {
     g_bufferAuditReference = false;
     std::vector<uint8_t> pixels;
     auto readTargets = [&](const auto& targets, const char* kind) {
-      for (const auto& [key, target] : targets) {
+      for (const auto& [key, stored] : targets) {
+        const auto& target = logicalTarget(stored);
         if (!target.fbo || target.w < 1 || target.h < 1) continue;
         std::vector<uint8_t> rgba(size_t(target.w) * target.h * 4);
         glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
@@ -979,9 +987,9 @@ void AuditBufferImage(const Frame& work) {
     for (size_t i = 0; i < ref1.size(); ++i) differences += ref1[i] != candidate[i];
   bool stable = !ref1.empty() && ref0 == ref1 && ref1 == ref2 && originalMain == finalMain;
   bool equal = stable && ref1 == candidate;
-  std::fprintf(stderr, "[nier-buffer-audit] %s frame %llu scene_draws %zu targets %zu bytes %zu differences %zu stable_reference %d original_lit_pixels %zu GL 0x%x\n",
+  std::fprintf(stderr, "[nier-buffer-audit] %s frame %llu scene_draws %zu targets %zu bytes %zu differences %zu stable_reference %d original_lit_pixels %zu stable_replays %d original_match %d GL 0x%x\n",
                equal ? "PASS" : stable ? "FAIL" : "INCONCLUSIVE", (unsigned long long)g_frames.load(), sceneDraws,
-               g_targets.size() + g_resolved.size(), ref1.size(), differences, int(stable), litPixels, glGetError()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
+               g_targets.size() + g_resolved.size(), ref1.size(), differences, int(stable), litPixels, int(ref0 == ref1 && ref1 == ref2), int(originalMain == finalMain), glGetError()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
 
 }
 
