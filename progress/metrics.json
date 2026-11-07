@@ -17,14 +17,14 @@
       "percent": 100.0
     },
     "decompiled": {
-      "functions": 750,
-      "bytes": 79072,
-      "percent": 1.4719
+      "functions": 758,
+      "bytes": 80784,
+      "percent": 1.5037
     },
     "verified": {
-      "functions": 750,
-      "bytes": 79072,
-      "percent": 1.4719
+      "functions": 758,
+      "bytes": 80784,
+      "percent": 1.5037
     }
   }
 }

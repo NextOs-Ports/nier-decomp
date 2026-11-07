@@ -7451,6 +7451,39 @@
    "error": ""
   },
   {
+   "name": "sub_824C4E90",
+   "address": "0x824C4E90",
+   "size": 76,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C4EE0",
+   "address": "0x824C4EE0",
+   "size": 192,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C4FA0",
+   "address": "0x824C4FA0",
+   "size": 268,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824C50B0",
    "address": "0x824C50B0",
    "size": 144,
@@ -7484,10 +7517,43 @@
    "error": ""
   },
   {
+   "name": "sub_824CA4F8",
+   "address": "0x824CA4F8",
+   "size": 96,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824CA558",
+   "address": "0x824CA558",
+   "size": 124,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824CA758",
    "address": "0x824CA758",
    "size": 68,
    "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824CA9E8",
+   "address": "0x824CA9E8",
+   "size": 204,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
@@ -7532,6 +7598,17 @@
    "address": "0x824D1388",
    "size": 80,
    "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824D13D8",
+   "address": "0x824D13D8",
+   "size": 92,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
@@ -9215,6 +9292,17 @@
    "address": "0x825E9678",
    "size": 72,
    "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E9AA8",
+   "address": "0x825E9AA8",
+   "size": 660,
+   "source": "src/decomp/crt/decimal_accumulate.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,

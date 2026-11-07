@@ -150060,31 +150060,43 @@
    "address": 2186038928,
    "size": 76,
    "name": "sub_824C4E90",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 76,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186039008,
    "size": 192,
    "name": "sub_824C4EE0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 192,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186039200,
    "size": 268,
    "name": "sub_824C4FA0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 268,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186039472,
@@ -150362,21 +150374,29 @@
    "address": 2186061048,
    "size": 96,
    "name": "sub_824CA4F8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 96,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186061144,
    "size": 124,
    "name": "sub_824CA558",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 124,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186061272,
@@ -150436,11 +150456,15 @@
    "address": 2186062312,
    "size": 204,
    "name": "sub_824CA9E8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 204,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186062520,
@@ -151278,11 +151302,15 @@
    "address": 2186089432,
    "size": 92,
    "name": "sub_824D13D8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 92,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/xdk/audio_buffers.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186089528,
@@ -215040,11 +215068,15 @@
    "address": 2187238056,
    "size": 660,
    "name": "sub_825E9AA8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 660,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/crt/decimal_accumulate.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2187238720,
