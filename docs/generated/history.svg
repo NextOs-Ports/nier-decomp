@@ -15,6 +15,6 @@
 <text x="65" y="105.0" class="small muted" text-anchor="end">100%</text>
 <text x="80.0" y="294" class="small muted" text-anchor="middle">11-06</text>
 <text x="920.0" y="294" class="small muted" text-anchor="middle">11-07</text>
-<circle cx="920.0" cy="264.70201" r="5" fill="#34d399"/>
+<circle cx="920.0" cy="264.668185" r="5" fill="#34d399"/>
 <text x="36" y="326" class="small muted" >Até 12 snapshots diários · lacunas = sem medição · bases distintas não são unidas</text>
 </svg>
