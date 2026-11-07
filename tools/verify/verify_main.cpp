@@ -78,8 +78,8 @@ void on_segv(int, siginfo_t* si, void*) {
   g_fault_addr = a;
   if (g_armed) siglongjmp(g_jmp, 1);
   char msg[160];
-  int n = snprintf(msg, sizeof msg, "falha fora da execução: sinal %d host %p guest 0x%llx\n", si->si_signo, si->si_addr,
-                   (unsigned long long)(a - (uintptr_t)g_base));
+  int n = snprintf(msg, sizeof msg, "falha fora da execução: sinal %d host %p guest 0x%llx armed=%d tid=%ld main=%ld\n", si->si_signo, si->si_addr,
+                   (unsigned long long)(a - (uintptr_t)g_base), (int)g_armed, (long)gettid(), (long)getpid());
   write(2, msg, n);
   _exit(99);
 }
@@ -502,7 +502,18 @@ int main(int argc, char** argv) {
       State a = run(e.orig, in, s, t, st);
       if (trace) fprintf(stderr, "TRACE original: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\nTRACE reconstruída\n", a.faulted, (unsigned long long)a.fault, a.calls.size(), (unsigned long long)a.ctx.r3.u64);
       State b = run(e.decomp, in, s, t, st);
-      if (trace) fprintf(stderr, "TRACE reconstruída: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\n", b.faulted, (unsigned long long)b.fault, b.calls.size(), (unsigned long long)b.ctx.r3.u64);
+      if (trace) {
+        fprintf(stderr, "TRACE reconstruída: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\n", b.faulted, (unsigned long long)b.fault, b.calls.size(), (unsigned long long)b.ctx.r3.u64);
+        // 8 palavras a partir do r3 de entrada, nos dois lados (quando aponta para a área de teste)
+        if (in.r3.u32 >= kScratch && in.r3.u32 + 32 <= kScratch + kScratchSize) {
+          for (int side = 0; side < 2; ++side) {
+            const std::vector<uint8_t>& m = side ? b.scratch : a.scratch;
+            fprintf(stderr, "TRACE %s @r3:", side ? "reconstruída" : "original");
+            for (int k = 0; k < 8; ++k) { uint32_t w; std::memcpy(&w, &m[in.r3.u32 - kScratch + k * 4], 4); fprintf(stderr, " %08x", __builtin_bswap32(w)); }
+            fprintf(stderr, "\n");
+          }
+        }
+      }
       if (trace) unsetenv("NIER_TRACE_NOW");
       err = diff(a, b, callargs);
       if (err.empty()) {

@@ -206,3 +206,180 @@ inline void make_pair_result(PPCContext& ctx, uint8_t* base, uint32_t frame, int
 }
 }  // namespace nier::pattern
 using namespace nier::pattern;
+
+namespace nier::pattern {
+// Chama o método `slot` do sub-objeto em this+sub_off com (sub, global, arg5) e grava `value`
+// em this+field_off.
+inline void sub_virtual_then_set(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t sub_off, uint32_t global,
+                                 int32_t arg5, uint32_t slot, int32_t field_off, int32_t value) {
+  const uint32_t self = ctx.r3.u32;
+  GuestFrame f(ctx, base, frame);
+  const uint32_t sub = self + sub_off;
+  ctx.r5.s64 = arg5;
+  ctx.r4.s64 = static_cast<int32_t>(global);
+  ctx.r3.u64 = sub;
+  call_virtual(ctx, base, sub, slot);
+  st32(base, self + field_off, static_cast<uint32_t>(value));
+}
+
+// Construtor: base(this, arg); byte; vtable; float constante.
+inline void ctor_base_vt_byte_float(PPCContext& ctx, uint8_t* base, uint32_t frame, PPCFunc* base_ctor, int32_t arg,
+                                    int32_t byte_off, int32_t byte_val, uint32_t vt, int32_t vt_off,
+                                    uint32_t const_addr, int32_t f_off) {
+  const uint32_t self = ctx.r3.u32;
+  {
+    GuestFrame f(ctx, base, frame);
+    ctx.r4.s64 = arg;
+    base_ctor(ctx, base);
+  }
+  st8(base, self + byte_off, static_cast<uint8_t>(byte_val));
+  st32(base, self + vt_off, vt);
+  stf(base, self + f_off, ldf(base, const_addr));
+  ctx.r3.u64 = self;
+}
+
+// Registro de singleton: grava a vtable; se a flag global já estava ligada, erro fatal
+// (função que não volta) e laço infinito; senão liga a flag e guarda o ponteiro.
+inline void singleton_register(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vt, uint32_t flag_addr,
+                               PPCFunc* fatal, uint32_t message, uint32_t ptr_addr, int32_t flag_value) {
+  const uint32_t self = ctx.r3.u32;
+  GuestFrame f(ctx, base, frame);
+  st32(base, self, vt);
+  if (static_cast<int32_t>(ld32(base, flag_addr)) != 0) {
+    ctx.r3.s64 = static_cast<int32_t>(message);
+    fatal(ctx, base);
+    for (;;) nier::host::spin_pause();
+  }
+  st32(base, flag_addr, static_cast<uint32_t>(flag_value));
+  st32(base, ptr_addr, self);
+}
+
+// Normaliza um ângulo à faixa [lo, hi] somando/subtraindo `step` no máximo 20 vezes e
+// devolve (x * k1) * k2; estourando as voltas devolve (zero * k1) * k2.
+struct AngleWrap { uint32_t lo, step, hi, k1, k2, zero; int32_t turns; };
+inline void angle_wrap(PPCContext& ctx, uint8_t* base, const AngleWrap& p) {
+  double x = ctx.f1.f64;
+  int32_t n = p.turns;
+  const double lo = ldf(base, p.lo), step = ldf(base, p.step);
+  if (!(x >= lo)) { do { x = static_cast<float>(x + step); --n; } while (x < lo); }
+  const double hi = ldf(base, p.hi);
+  if (!(x <= hi)) {
+    do {
+      --n;
+      x = static_cast<float>(x - step);
+      if (n < 0) { x = ldf(base, p.zero); break; }
+    } while (x > hi);
+  }
+  const double k1 = ldf(base, p.k1), k2 = ldf(base, p.k2);
+  ctx.f1.f64 = static_cast<float>(static_cast<double>(static_cast<float>(x * k1)) * k2);
+}
+
+// Construtor: duas vtables; liga this->campo no objeto do "getter"; com flags & 1, pede
+// de novo o getter e chama o método `slot` do objeto em +obj_off com (obj, this).
+inline void ctor_vt2_link(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vt_a, int32_t vt_a_off,
+                          uint32_t vt_b, int32_t vt_b_off, int32_t tmp_off, PPCFunc* getter, int32_t src_off,
+                          int32_t link_off, int32_t obj_off, uint32_t slot) {
+  const uint32_t self = ctx.r3.u32;
+  const uint32_t flags = ctx.r4.u32;
+  GuestFrame f(ctx, base, frame);
+  st32(base, self + vt_a_off, vt_a);
+  st32(base, self + vt_b_off, vt_b);
+  ctx.r3.u64 = f.slot(tmp_off);
+  getter(ctx, base);
+  const uint32_t holder = ld32(base, f.slot(tmp_off));
+  st32(base, holder + link_off, ld32(base, self + src_off));
+  if (flags & 1) {
+    ctx.r3.u64 = f.slot(tmp_off);
+    getter(ctx, base);
+    const uint32_t obj = ld32(base, ld32(base, f.slot(tmp_off)) + obj_off);
+    ctx.r4.u64 = self;
+    ctx.r3.u64 = obj;
+    call_virtual(ctx, base, obj, slot);
+  }
+  ctx.r3.u64 = self;
+}
+
+// Cinco chamadas f(this, 0, flag) com flag = (n == k) para k = 0, 1, {2,3}, 3, 4.
+struct FiveFlags { PPCFunc* a; PPCFunc* b; PPCFunc* c; PPCFunc* d; PPCFunc* e; int32_t arg; int32_t d1, c1, c2, d3, d4; };
+inline void five_flag_calls(PPCContext& ctx, uint8_t* base, uint32_t frame, const FiveFlags& p) {
+  const uint32_t self = ctx.r3.u32, n = ctx.r4.u32;
+  GuestFrame f(ctx, base, frame);
+  auto call = [&](PPCFunc* fn, uint64_t flag) { ctx.r5.u64 = flag; ctx.r4.s64 = p.arg; ctx.r3.u64 = self; fn(ctx, base); };
+  call(p.a, n == 0);
+  call(p.b, (n + p.d1) == 0);
+  call(p.c, (static_cast<int32_t>(n) == p.c1 || static_cast<int32_t>(n) == p.c2) ? 1 : 0);
+  call(p.d, (n + p.d3) == 0);
+  call(p.e, (n + p.d4) == 0);
+}
+
+// Inicialização de efeito: pede ao sistema (global, args, floats), marca dois campos,
+// e se há dono (+owner_off) resolve o alvo e chama o método virtual com (alvo, k, 0, f1, f2).
+struct EffectInit {
+  PPCFunc* request; PPCFunc* resolve; uint32_t global, const_a, const_b, const_f1;
+  int32_t r4, r5, r7, r8, owner_off, mark, mark_off1, mark_off2, resolve_arg, v4, v5; uint32_t slot; int32_t done, done_off;
+};
+inline void effect_init(PPCContext& ctx, uint8_t* base, uint32_t frame, const EffectInit& p) {
+  const uint32_t self = ctx.r3.u32;
+  GuestFrame f(ctx, base, frame);
+  const double a = ldf(base, p.const_a), b = ldf(base, p.const_b);
+  ctx.r3.s64 = static_cast<int32_t>(p.global);
+  ctx.f1.f64 = ldf(base, p.const_f1); ctx.f2.f64 = b; ctx.f3.f64 = a;
+  ctx.r8.s64 = p.r8; ctx.r7.s64 = p.r7; ctx.r5.s64 = p.r5; ctx.r4.s64 = p.r4;
+  p.request(ctx, base);
+  const uint32_t owner = ld32(base, self + p.owner_off);
+  st32(base, self + p.mark_off1, static_cast<uint32_t>(p.mark));
+  st32(base, self + p.mark_off2, static_cast<uint32_t>(p.mark));
+  ctx.r3.u64 = owner;
+  if (owner == 0) return;
+  ctx.r4.s64 = p.resolve_arg;
+  p.resolve(ctx, base);
+  const uint32_t target = ctx.r3.u32;
+  if (target == 0) return;
+  ctx.r5.s64 = p.v5; ctx.r4.s64 = p.v4;
+  ctx.f2.f64 = b; ctx.f1.f64 = a;
+  call_virtual(ctx, base, target, p.slot);
+  st32(base, self + p.done_off, static_cast<uint32_t>(p.done));
+}
+
+// Clonagem condicional: se o tipo em r5+type_off não é `type`, só a chamada base; senão
+// base, aloca um novo via factory(dono->+alloc_off), liga ao dono, copia 56 bytes de
+// this+src_off (5 palavras, vetor de 16 bytes alinhado, 2 floats), marca e devolve 1.
+struct CloneIf { PPCFunc* base_fn; PPCFunc* factory; int32_t type_off, type, owner_off, alloc_off, owner_link, src_off, vec_off, mark_off, mark, ret; };
+inline void clone_if_type(PPCContext& ctx, uint8_t* base, uint32_t frame, const CloneIf& p) {
+  const uint32_t self = ctx.r3.u32;
+  GuestFrame f(ctx, base, frame);
+  if (static_cast<int32_t>(ld32(base, ctx.r5.u32 + p.type_off)) != p.type) { p.base_fn(ctx, base); return; }
+  p.base_fn(ctx, base);
+  const uint32_t owner = ld32(base, self + p.owner_off);
+  ctx.r3.u64 = ld32(base, owner + p.alloc_off);
+  p.factory(ctx, base);
+  const uint32_t node = ctx.r3.u32;
+  st32(base, node + p.owner_link, owner);
+  const uint32_t src = self + p.src_off, dst = node + p.src_off;
+  if (src != 0) {
+    for (int k = 0; k < 20; k += 4) st32(base, dst + k, ld32(base, src + k));
+    const uint32_t vs = (src + p.vec_off) & ~0xFu, vd = (dst + p.vec_off) & ~0xFu;
+    std::memcpy(base + vd, base + vs, 16);
+    st32(base, dst + 48, ld32(base, src + 48));
+    st32(base, dst + 52, ld32(base, src + 52));
+  }
+  st8(base, node + p.mark_off, static_cast<uint8_t>(p.mark));
+  ctx.r3.s64 = p.ret;
+}
+
+// Cópia de string limitada: sem origem, this[0] = 0; senão copia min(strlen+1, limit)
+// bytes com `copy` e termina em this[end_off].
+inline void bounded_string_copy(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t first_off, uint32_t limit,
+                                PPCFunc* copy, int32_t end_off) {
+  const uint32_t self = ctx.r3.u32, src = ctx.r4.u32;
+  if (src == 0) { st8(base, self + first_off, 0); return; }
+  GuestFrame f(ctx, base, frame);
+  uint32_t len = 0;
+  while (ld8(base, src + len) != 0) ++len;
+  const uint32_t n = len + 1;
+  ctx.r5.u64 = n >= limit ? limit : n;
+  ctx.r3.u64 = self;
+  copy(ctx, base);
+  st8(base, self + end_off, 0);
+}
+}  // namespace nier::pattern
