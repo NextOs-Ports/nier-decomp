@@ -198,7 +198,7 @@ void RecordSkip(const char* reason) {
 }
 
 // ---------------------------------------------------------------- GL (thread de render)
-struct Target { GLuint texture = 0, fbo = 0, depth = 0; int w = 0, h = 0; uint64_t clearedFrame = ~0ull; };
+struct Target { GLuint texture = 0, fbo = 0, depth = 0; int w = 0, h = 0; uint64_t clearedFrame = ~0ull; uint64_t drew3DFrame = ~0ull; bool from3D = false; };
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
 uint64_t g_mainTarget = 0;
@@ -218,6 +218,7 @@ void DoCopy(const PendingCopy& p) {
   glBindFramebuffer(GL_FRAMEBUFFER, s->second.fbo);
   glBindTexture(GL_TEXTURE_2D, d->second.texture);
   glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, p.x0, p.y0, std::min(p.w, s->second.w - p.x0), std::min(p.h, s->second.h - p.y0));
+  d->second.from3D = s->second.drew3DFrame == g_frames.load();
   glBindTexture(GL_TEXTURE_2D, GLuint(tex));
   glBindFramebuffer(GL_FRAMEBUFFER, GLuint(fbo));
   ++g_copiesDone;
@@ -388,7 +389,7 @@ GLuint TextureFor(const xenos::TextureFetch& t, bool allowResolved = true) {
 }
 GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   uint64_t key = TexKey(t);
-  if (auto r = g_resolved.find(key); allowResolved && r != g_resolved.end()) {
+  if (auto r = g_resolved.find(key); r != g_resolved.end() && (allowResolved || r->second.from3D)) {
     g_everSampled.insert(key);
     if (!g_pendingCopies.empty()) FlushCopyTo(key);
     return r->second.texture;
@@ -600,7 +601,8 @@ void ApplyFixedState(const uint8_t* state) {
 void ReplayDraw(const Frame& f, const Cmd& c) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
-  CurrentTarget(state);
+  Target& drawTarget = CurrentTarget(state);
+  if (!c.up) drawTarget.drew3DFrame = g_frames.load();
   auto t1 = Clock::now();
   g_pTarget += Ms(t0, t1);
   ApplyFixedState(state);
@@ -619,8 +621,8 @@ void ReplayDraw(const Frame& f, const Cmd& c) {
     const uint8_t* fetch = Field(state, kFetchConstants + 24 * slot);
     auto t = xenos::DecodeFetch(fetch);
     glActiveTexture(GL_TEXTURE0 + unit);
-    // Heurística (07/11): a tela resolvida só alimenta desenhos não-UP (composição 3D). A UI (BeginVertices)
-    // amostra a memória do guest como antes; com a tela resolvida os menus ficavam com faixas brancas.
+    // Heurística (07/11): a tela resolvida alimenta desenhos não-UP e também UP quando a origem recebeu
+    // desenho 3D no quadro (composição da cena). Tela de UI pura vem da memória do guest (menus sem faixas).
     static bool resolvedInUi = std::getenv("NIER_RESOLVED_IN_UI") != nullptr;
     glBindTexture(GL_TEXTURE_2D, (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White());
     if (sizeLoc >= 0) glUniform2f(sizeLoc, float(t.width), float(t.height));
@@ -829,6 +831,10 @@ void RenderThread() {
 bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count, const uint8_t* upData, uint32_t upStride) {
   c.inputCount = uint32_t(std::min<size_t>(c.vs->inputs.size(), kMaxInputs));
   c.vertexCount = count;
+  // Cópia local das fetch constants de vértice: `state` pode apontar para dentro de g_building.blob, que é
+  // realocado pelos Append abaixo (ponteiro pendurado -> SIGSEGV em laço no tratador do runtime, 07/11).
+  uint8_t vfetch[96 * 8];
+  std::memcpy(vfetch, Field(state, kFetchConstants), sizeof vfetch);
   for (uint32_t i = 0; i < c.inputCount; ++i) {
     VertexInput in = c.vs->inputs[i];
     const uint8_t* base;
@@ -837,7 +843,7 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count,
       in.stride = upStride / 4;
       base = upData; endian = 2;
     } else {
-      const uint8_t* vf = Field(state, kFetchConstants + in.slot * 8);
+      const uint8_t* vf = vfetch + std::min<uint32_t>(in.slot, 95) * 8;
       uint32_t address = BE32(vf) & 0x1FFFFFFC, size = ((BE32(vf + 4) >> 2) & 0xFFFFFF) * 4;
       endian = BE32(vf + 4) & 3;
       // Faixa em 64 bits e com sinal: baseVertex negativo ou grande não pode dar a volta (SIGSEGV em 07/11).
@@ -1006,7 +1012,7 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     for (const auto& in : c.vs->inputs) std::fprintf(stderr, "[nier-3d]   slot %u fmt %u off %u stride %u\n", in.slot, in.format, in.offset, in.stride);
   }
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
-  TraceDraw(c, copy, primitive, count, indexed);
+  TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
   c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   g_recordedBytes = g_building.blob.size();
