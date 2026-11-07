@@ -509,6 +509,17 @@ int main(int argc, char** argv) {
       if (trace) fprintf(stderr, "TRACE original: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\nTRACE reconstruída\n", a.faulted, (unsigned long long)a.fault, a.calls.size(), (unsigned long long)a.ctx.r3.u64);
       State b = run(e.decomp, in, s, t, st);
       if (trace) {
+        if (const char* memory = getenv("NIER_TRACE_SCRATCH")) {
+          const uint32_t address = uint32_t(strtoul(memory, nullptr, 0));
+          if (address >= kScratch && address + 128 <= kScratch + kScratchSize) {
+            for (int side = 0; side < 2; ++side) {
+              const auto& bytes = side ? b.scratch : a.scratch;
+              fprintf(stderr, "TRACE %s scratch 0x%08x:", side ? "reconstruída" : "original", address);
+              for (int j = 0; j < 128; ++j) fprintf(stderr, "%s%02x", j % 4 ? "" : " ", bytes[address-kScratch+j]);
+              fprintf(stderr, "\n");
+            }
+          }
+        }
         fprintf(stderr, "TRACE reconstruída: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\n", b.faulted, (unsigned long long)b.fault, b.calls.size(), (unsigned long long)b.ctx.r3.u64);
         for (int side = 0; side < 2; ++side) {
           const State& st = side ? b : a;
