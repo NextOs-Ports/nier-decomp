@@ -135,3 +135,27 @@ do gameplay, renderer, texturas, buffers e custos da GPU. O coordenador fará
 a medição física. `run_device_probe.sh`, colocado junto aos três artefatos,
 impõe 55 s + 5 s para morte forçada do teste inteiro. Não é launcher de jogo
 normal nem prepara frontend, dispositivo ou trava de uso.
+
+## B1 — boot ARM64 físico, 07/11/2026
+
+Uma abertura autorizada com o backend null, dados por NFSv4.1 somente leitura,
+travas local/remota e supervisor externo de 55 + 5 segundos. Duração total
+54,087 s, saída 0, processo ausente ao fim. A montagem e a exportação temporária
+foram removidas; nenhum arquivo existente do aparelho foi apagado. O frontend
+permaneceu inativo e mascarado. Não houve alteração de vídeo, clocks ou governor.
+
+- Ambos os CPKs abertos/lidos com sucesso.
+- 1.966 swaps de protocolo; 56,267 swaps/s entre o primeiro e o último
+  (janela de 34,923 s, exclui inicialização). Não são FPS renderizados.
+- RSS máximo 366.032 KiB (~357,45 MiB), até 45 threads do processo.
+- CPU do sistema durante a janela: núcleos 0/1/2/3 em
+  48,19% / 43,68% / 49,59% / 43,45%. Inclui serviços concorrentes do sistema.
+- Temperatura passou de 61 para 63 °C.
+- Amostra 1.800 do relógio: Δt acumulado 32,119814 s / monotônico 32,106591 s.
+- SDL/PulseAudio abriu stream estéreo 48 kHz, não mudo, 100%, associado ao PID
+  do jogo. Ganho frontal unitário configurado pela API do SDK. Captura PCM por
+  monitor não ficou disponível; esse teste não certifica som audível/correto.
+
+ELF desta rodada: SHA-256
+`d1c7d218a608677bd49b6d7715e75087870f782e7f324b59ce8c4ee2645ba745`.
+O plugin diagnóstico inclui timestamps opcionais por swap para a medição.

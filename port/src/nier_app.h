@@ -6,6 +6,8 @@
 
 #include <rex/rex_app.h>
 #include "lifecycle.h"
+#include <rex/audio/downmix.h>
+#include <cstdio>
 
 class NierApp : public rex::ReXApp {
  public:
@@ -17,7 +19,14 @@ class NierApp : public rex::ReXApp {
         PPCImageConfig));
   }
 
-  void OnPostSetup() override { lifecycle_.Start(); }
+  void OnPostSetup() override {
+    rex::audio::StereoFold fold;
+    fold.scale = 1.0f;
+    rex::audio::SetStereoFold(fold);
+    rex::audio::SetOutputGain(1.0f);
+    std::fprintf(stderr, "NIER_AUDIO stereo_fold=1.000 output_gain=1.000\n");
+    lifecycle_.Start();
+  }
   void OnShutdown() override { lifecycle_.Stop(); }
 
  private:
