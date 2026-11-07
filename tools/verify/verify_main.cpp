@@ -70,6 +70,10 @@ void on_segv(int, siginfo_t* si, void*) {
   }
   g_fault_addr = a;
   if (g_armed) siglongjmp(g_jmp, 1);
+  char msg[160];
+  int n = snprintf(msg, sizeof msg, "falha fora da execução: sinal %d host %p guest 0x%llx\n", si->si_signo, si->si_addr,
+                   (unsigned long long)(a - (uintptr_t)g_base));
+  write(2, msg, n);
   _exit(99);
 }
 
@@ -299,6 +303,18 @@ static void bad_indirect(PPCContext& ctx, uint8_t*) {
 }
 namespace rex::runtime {
 PPCFunc* ResolveIndirectFunction(uint32_t) { return bad_indirect; }
+}
+
+// O runtime encerra o processo em erros fatais do guest. Dentro de uma execução,
+// isso vira falha controlada; fora dela, encerra normalmente.
+extern "C" void exit(int code) noexcept {
+  if (g_armed) { g_fault_addr = (uintptr_t)g_base; siglongjmp(g_jmp, 1); }
+  fflush(nullptr);
+  _exit(code);
+}
+extern "C" void abort() noexcept {
+  if (g_armed) { g_fault_addr = (uintptr_t)g_base; siglongjmp(g_jmp, 1); }
+  _exit(134);
 }
 
 int main(int argc, char** argv) {

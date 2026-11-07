@@ -21,7 +21,9 @@ REF = {'dtor_vtable_delete': (0x824DEAB8, 76), 'ctor_base_field_vtable': (0x8226
        'dtor_vtable_free': (0x82106118, 72), 'dtor_body_free': (0x82497AA8, 76),
        'forward_member_then_self': (0x8226AC18, 76), 'ctor_base_memset': (0x8226B490, 96),
        'member_pair_virtual_then': (0x8226BA98, 92), 'find_then_resolve': (0x82175360, 116),
-       'dtor_two_members': (0x8226B9E8, 148), 'make_node': (0x821056B0, 176)}
+}
+# dtor_two_members e make_node (templates no cabeçalho) chamam código do runtime que encerra o
+# processo do comparador fora do caminho interceptado; ficam fora até isso ser resolvido.
 # chain3_global e static_init (templates no cabeçalho) chamam inicialização real do CRT/runtime,
 # que não roda com estado aleatório no comparador; ficam fora até haver prova específica.
 refs = {k: shape(words(a, n)) for k, (a, n) in REF.items()}
@@ -77,10 +79,10 @@ for fn in inv:
             args = (f'{frame}, {s16(w[5])}, 0x{hi_lo(6, 8):08X}, {s16(w[10])}, 0x{hi_lo(7, 9):08X}, {s16(w[12])}, '
                     f'{s16(w[16]) // 4}, {s16(w[15])}, {s16(w[20])}, 0x{hi_lo(19, 21):08X}, {s16(w[23])}, '
                     f'{s16(w[27]) // 4}, {s16(w[26])}, 0x{bl_target(a + 124, w[31]):08X}')
-            spec = 'r3=ptr @r3.0=ptr'
+            spec = 'r3=ptr @r3.0=ptr callargs=2'   # o destrutor virtual do membro recebe (this, flags)
         elif kind == 'make_node':
-            fa = ((s16(w[16]) << 16) + s16(w[25])) & 0xFFFFFFFF
-            args = (f'{frame}, {s16(w[6])}, {s16(w[8])}, {s16(w[7])}, {s16(w[10]) // 4}, 0x{hi_lo(17, 22):08X}, '
+            fa = ((s16(w[16]) << 16) + s16(w[24])) & 0xFFFFFFFF
+            args = (f'{frame}, {s16(w[6])}, {s16(w[8])}, {s16(w[7])}, {s16(w[10]) // 4}, 0x{hi_lo(17, 21):08X}, '
                     f'0x{fa:08X}, 0x{bl_target(a + 140, w[35]):08X}')
             spec = 'r3=ptr'
         elif kind == 'chain3_global':
