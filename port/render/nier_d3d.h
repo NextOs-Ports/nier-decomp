@@ -13,6 +13,7 @@ constexpr uint32_t kDrawIndexedVertices = 0x825718F8;  // (dev, prim, baseVertex
 constexpr uint32_t kDrawVerticesUP = 0x82571070;       // (dev, prim, vertexCount, ?, stride=r6) — ordem a confirmar
 constexpr uint32_t kResolve = 0x82585888;              // (dev, flags, rect, destTex, destPoint, level, slice, color, z=f1, …)
 constexpr uint32_t kSwap = 0x8257AB38;                 // Present: único caminho até VdSwap
+constexpr uint32_t kSetVertexDeclaration = 0x825708F8; // (dev, decl): grava +0x2ED8, dirty de vfetch
 constexpr uint32_t kSetPresentInterval = 0x8256BB90;   // SetRenderState(94): o jogo escolhe 1/2/4 em 0x825A6F48
 
 // ---- device ----
@@ -38,6 +39,11 @@ constexpr uint32_t kStreamStride0 = 0x31A0;   // stride/4 do stream 0 (20871: 0x
 constexpr uint32_t kPixelShader = 0x3244;     // (20871: 0x330C)
 constexpr uint32_t kVertexShader = 0x3248;    // (20871: 0x3310)
 constexpr uint32_t kPresentInterval = 0x35EC; // render state 94
+constexpr uint32_t kVertexDeclaration = 0x2ED8; // (DMC3/20871: 0x2FD0)
+
+// Objeto shader (igual ao DMC3): VS cabeçalho em +0x368, microcódigo em +0x20; PS cabeçalho +0x28,
+// microcódigo +0x18. Seção do programa = cabeçalho + BE32(cabeçalho+0x18): {offset, size}.
+constexpr uint32_t kVsHeader = 0x368, kVsUcode = 0x20, kPsHeader = 0x28, kPsUcode = 0x18;
 
 inline uint32_t BE32(const uint8_t* p) { uint32_t v; std::memcpy(&v, p, 4); return __builtin_bswap32(v); }
 inline float BEF(const uint8_t* p) { uint32_t v = BE32(p); float f; std::memcpy(&f, &v, 4); return f; }

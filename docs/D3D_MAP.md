@@ -29,6 +29,7 @@ O primeiro bloco (até `+0x2A50`) é **idêntico** ao do 20871/DMC3. A partir de
 | `+0x3148…+0x3154` / `+0x3158` | **render targets 0–3 / depth-stencil** | `Resolve`: `0x3148+4·idx`, idx 4 = `0x3158` | `0x3210` / `0x3220` |
 | `+0x315C+4s` | stream source `s` | `SetStreamSource` | — |
 | `+0x31A0` | stride/4 do stream 0 | `DrawVerticesUP` grava `stride>>2` | `0x3268` |
+| `+0x2ED8` | **declaração de vértice atual** | `SetVertexDeclaration` `0x825708F8` grava; o upload de shader `0x82579240` lê junto com VS/PS | `0x2FD0` |
 | `+0x3244` / `+0x3248` | **pixel shader / vertex shader atuais** | `0x82570568` / `0x82570728` | `0x330C` / `0x3310` |
 | `+0x2A94`, `+0x30`, `+0x38` | ring/command buffer: ponteiro de escrita `+0x30`, limite `+0x38` | emissão de PM4 em todo o bloco | — |
 | `+0x35EC` | **intervalo de apresentação** (render state 94) | ver §4 | — |
@@ -49,6 +50,8 @@ O primeiro bloco (até `+0x2A50`) é **idêntico** ao do 20871/DMC3. A partir de
 | `0x82578418` / `0x82578080` | escrita de constantes / bloco de registradores | alta | chamadas com (`0x4000`, `+0x780`), (`0x2200`, `+0x2934`)… |
 | `0x82570568` | **SetPixelShader**(dev, ps) | média | grava `+0x3244`, marca dirty |
 | `0x82570728` | **SetVertexShader**(dev, vs) | média | grava `+0x3248`, dirty de vfetch (`oris 8`) |
+| `0x825708F8` | **SetVertexDeclaration**(dev, decl) | alta | `stw r4,0x2ED8(r3)` + dirty de vfetch (`oris 8`); `+0x2ED8` lido no upload do shader |
+| objeto shader | VS: cabeçalho `+0x368`, seção = `+0x368 + [+0x380]` (lido em `0x82579240`) | alta | mesmo layout do DMC3; PS `+0x28` por analogia (média) |
 | `0x8256C6E0` | **SetStreamSource**(dev, stream, vb, offset, stride, dirtyMask) | alta | fórmula `v=95−s`, 6 argumentos como no DMC3 |
 | `0x8256C800` | **SetIndices**(dev, ib) | alta | grava `+0x3144`. Chamado com SetStreamSource em `0x8258B850` |
 | `0x8256F910` | **SetTexture**(dev, sampler, tex, dirtyMask) | alta | `0x8257D190` chama por sampler com `tex=0` e máscara `1<<(63−(32+i))`. 19 chamadores no jogo |
@@ -63,7 +66,7 @@ O primeiro bloco (até `+0x2A50`) é **idêntico** ao do 20871/DMC3. A partir de
 | `0x82580290`, `0x8257F660` | caminho com `DRAW_INDX_2` + Resolve, registrado como callback em `0x82580E20` | inferida | candidato a Clear rápido/EDRAM |
 | `0x825846F0`, `0x8257FDF8`, `0x825805D8`, `0x82580CF0` | cópia para o front buffer dentro do Swap (`DRAW_INDX_2` + `IM_LOAD_IMMEDIATE`) | média | só alcançados por `0x8257AB38` |
 
-**Pendentes (Etapa E / captura do X1):** `ClearF` público, `SetRenderTarget`/`SetDepthStencilSurface` (gravam `+0x3148…+0x3158`), `SetVertexDeclaration`, `CreateVertexShader`/`CreatePixelShader`, `CreateTexture`/buffers, `Set*ShaderConstantF` (o NieR pode gravar `+0x780` direto), `BeginTiling`/`EndTiling`. O jogo chega a `DrawIndexedVertices` só por `0x8258B850` ← `0x825FA150`. Uma captura curta no X1 deve confirmar que não há outros caminhos (ex.: ponteiro de função).
+**Pendentes (Etapa E / captura do X1):** `ClearF` público, `SetRenderTarget`/`SetDepthStencilSurface` (gravam `+0x3148…+0x3158`), `CreateVertexShader`/`CreatePixelShader`, `CreateTexture`/buffers, `Set*ShaderConstantF` (o NieR pode gravar `+0x780` direto), `BeginTiling`/`EndTiling`. O jogo chega a `DrawIndexedVertices` só por `0x8258B850` ← `0x825FA150`. Uma captura curta no X1 deve confirmar que não há outros caminhos (ex.: ponteiro de função).
 
 ## 4. `0x8256BB90`: a trava 30/60 (patch 60 FPS da Xenia Canary)
 
