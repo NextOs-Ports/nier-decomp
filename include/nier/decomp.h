@@ -30,6 +30,13 @@ inline void stf (uint8_t* base, uint32_t a, float f) { uint32_t v; std::memcpy(&
 inline uint32_t slw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x << n; }
 inline uint32_t srw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x >> n; }
 inline uint32_t sraw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? (static_cast<int32_t>(x) < 0 ? 0xFFFFFFFFu : 0u) : static_cast<uint32_t>(static_cast<int32_t>(x) >> n); }
+// rlwinm: rotaciona 32 bits à esquerda e aplica a máscara dos bits mb..me (numeração IBM).
+inline uint32_t rlwinm(uint32_t x, uint32_t sh, uint32_t mb, uint32_t me) {
+  const uint32_t rot = sh ? ((x << sh) | (x >> (32 - sh))) : x;
+  const uint32_t from = 0xFFFFFFFFu >> mb, to = 0xFFFFFFFFu << (31 - me);
+  const uint32_t mask = mb <= me ? (from & to) : (from | to);
+  return rot & mask;
+}
 // fctiwz: double → int32 truncando, com saturação (NaN e abaixo de INT_MIN dão 0x80000000).
 inline uint32_t fctiwz(double v) {
   if (v != v) return 0x80000000u;

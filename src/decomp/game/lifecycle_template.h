@@ -130,3 +130,64 @@ inline void static_init(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t
   call_guest(ctx, base, reg);
 }
 }  // namespace nier::lifecycle
+
+namespace nier::lifecycle {
+// Construtor: base(this, arg); memset(this + block, value, size); vtable; dois floats iguais.
+inline void ctor_base_memset(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t base_ctor, uint32_t arg,
+                             int32_t block, uint32_t value, uint32_t size, uint32_t memset_fn, uint32_t vtable,
+                             uint32_t float_addr, int32_t vt_off, int32_t f_off_a, int32_t f_off_b) {
+  const uint32_t self = ctx.r3.u32;
+  {
+    GuestFrame f(ctx, base, frame);
+    ctx.r4.u64 = arg;
+    call_guest(ctx, base, base_ctor);
+    ctx.r3.u64 = static_cast<uint64_t>(self) + static_cast<int64_t>(block);
+    ctx.r5.u64 = size;
+    ctx.r4.u64 = value;
+    call_guest(ctx, base, memset_fn);
+  }
+  const float init = ldf(base, float_addr);
+  st32(base, self + vt_off, vtable);
+  stf(base, self + f_off_a, init);
+  stf(base, self + f_off_b, init);
+  ctx.r3.u64 = self;
+}
+
+// Método: a(membro, this); b(membro, this); this->método virtual; c(this).
+inline void member_pair_virtual_then(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t member_off, uint32_t a,
+                                     uint32_t b, uint32_t slot, uint32_t c) {
+  const uint32_t self = ctx.r3.u32;
+  GuestFrame f(ctx, base, frame);
+  ctx.r4.u64 = ctx.r3.u64;
+  ctx.r3.u64 = ld32(base, self + member_off);
+  call_guest(ctx, base, a);
+  ctx.r4.u64 = self;
+  ctx.r3.u64 = ld32(base, self + member_off);
+  call_guest(ctx, base, b);
+  ctx.r3.u64 = self;
+  call_virtual(ctx, base, self, slot);
+  ctx.r3.u64 = self;
+  call_guest(ctx, base, c);
+}
+
+// Busca: índice = find(this + off, 1, x, y); -1 se não achou; senão tenta
+// resolve(this, 2*índice, 2*índice + 2) e, se falhar, devolve 4*índice.
+inline void find_then_resolve(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t off, uint32_t first_arg,
+                              uint32_t find, uint32_t resolve, uint32_t sh1 = 1, uint32_t mb1 = 0, uint32_t me1 = 30,
+                              uint32_t sh2 = 2, uint32_t mb2 = 0, uint32_t me2 = 29) {
+  const uint64_t self = ctx.r3.u64;
+  GuestFrame f(ctx, base, frame);
+  ctx.r6.u64 = ctx.r5.u64;
+  ctx.r5.u64 = ctx.r4.u64;
+  ctx.r4.u64 = first_arg;
+  ctx.r3.u64 = self + static_cast<int64_t>(off);
+  call_guest(ctx, base, find);
+  const uint64_t index = ctx.r3.u64;
+  if (static_cast<int32_t>(index) == -1) { ctx.r3.u64 = ~0ull; return; }
+  ctx.r4.u64 = rlwinm(static_cast<uint32_t>(index), sh1, mb1, me1);
+  ctx.r3.u64 = self;
+  ctx.r5.u64 = ctx.r4.u64 + 2;
+  call_guest(ctx, base, resolve);
+  if (static_cast<int32_t>(ctx.r3.u32) == -1) ctx.r3.u64 = rlwinm(static_cast<uint32_t>(index), sh2, mb2, me2);
+}
+}  // namespace nier::lifecycle
