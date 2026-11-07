@@ -5,6 +5,8 @@
 #include <rex/graphics/command_processor.h>
 #include <atomic>
 #include <cstdio>
+#include <cstdlib>
+#include <chrono>
 #include <rex/graphics/graphics_system.h>
 #include <rex/system/gpu_plugin.h>
 namespace rex::graphics {
@@ -14,7 +16,10 @@ class NextOSCommandProcessor final : public CommandProcessor {
   void IssueSwap(uint32_t, uint32_t, uint32_t) override {
     static std::atomic<unsigned> swaps{0};
     const auto n = ++swaps;
-    if (n <= 3 || n % 300 == 0) std::fprintf(stderr, "NIER_DIAG swaps=%u (no rendering)\n", n);
+    static const bool trace = std::getenv("NIER_DIAG_SWAP_TRACE") != nullptr;
+    const auto stamp = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (trace || n <= 3 || n % 300 == 0)
+      std::fprintf(stderr, "NIER_DIAG swaps=%u monotonic=%.6f (no rendering)\n", n, stamp);
   }
  protected:
   bool SetupContext() override { return true; }
