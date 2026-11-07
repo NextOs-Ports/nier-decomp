@@ -19,3 +19,22 @@ teste de quatro threads/8.000 trocas: cada token aparece uma vez entre retornos
 e valor final. O teste não é uma prova formal de todas as interleavings.
 
 Provas/JSONs ficam privados; o coordenador integra os resultados no painel.
+
+## Lote X1-5 — PCM e formatos de áudio
+
+Onze helpers da camada de áudio passaram em 2.000 casos cada, sem falhas.
+A posição no caminho XAudio e a semântica dos formatos foram identificadas;
+não atribuímos um nome de middleware/PDB não comprovado.
+
+Os sete leitores cobrem PCM unsigned8, signed16 BE, 20 bits em contêiner
+24 LE/32 BE, 24 bits em contêiner24 LE/32 BE e signed32 BE. A conversão para
+float mantém o arredondamento intermediário e as palavras empacotadas que duas
+rotinas deixam em r3. 560 casos suplementares passaram com quatro modos de
+arredondamento, extremos/midpoints, bits descartados e ponteiros com word alto.
+
+Duas conversões de cabeçalho preservam a ordem de acessos e os campos que o
+original deixa zerados; não foram convertidas em construtores WAVEFORMATEX
+completos. Duas rotinas ADPCM preservam o cálculo de samples/bloco, o resultado
+de 16 bits, a contagem de blocos/padding e a convenção do oráculo para divisão
+por zero. Os parâmetros do teste também incluem cabeçalhos inválidos para
+conferir esses retornos, sem afirmar que sejam formatos reproduzíveis.
