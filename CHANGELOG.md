@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 9: listas duplamente ligadas, inicialização de pools, checagens de vetor e outro gerador aleatório. O comparador agora injeta NaN, infinitos e zero com sinal, e a função de chance foi corrigida para a semântica exata do PowerPC com NaN.
 - Lote 8: acessores dos 3 slots (estado, flags, dados, double com fallback), fases da máquina de estados e pedido assíncrono. 129 funções verificadas.
 - Lote 7 e lote 2 de bibliotecas: luaO_int2fb, luaO_log2, luaO_rawequalObj, luaC_link e lua_sethook do Lua 5.1; construtores; funções de string ASCII/UTF-16, comparação e busca do CRT.
 - Lote 6: API do Lua 5.1 embutido no jogo (index2adr, settop, xmove, pushnil/number/boolean/lightuserdata, typename, luaL_findstring, leitor de string) e comparações de valores de script. O gerador de entradas agora trata faixas que atravessam o zero.

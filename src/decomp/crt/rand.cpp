@@ -20,7 +20,8 @@ uint32_t next_rand(uint8_t* base) {
 NIER_DECOMP(sub_82100000) {
   const float r = static_cast<float>(next_rand(base));
   const float roll = r * ldf(base, kInvRandMaxA);
-  ctx.r3.u64 = (static_cast<double>(roll) <= ctx.f1.f64) ? 1 : 0;
+  // ble: verdadeiro também quando a comparação é desordenada (NaN).
+  ctx.r3.u64 = !(static_cast<double>(roll) > ctx.f1.f64) ? 1 : 0;
 }
 NIER_VERIFY_SPEC(sub_82100000, 0x82100000, "f1=f32:2..2");
 
@@ -32,3 +33,16 @@ NIER_DECOMP(sub_82100058) {
   ctx.f1.f64 = static_cast<float>(std::fma(static_cast<double>(scaled), static_cast<double>(ldf(base, kInvRandMaxB)), ctx.f1.f64));
 }
 NIER_VERIFY_SPEC(sub_82100058, 0x82100058, "f1=f32 f2=f32");
+
+// sub_82141D58 (84 bytes) — aleatório(−x, +x) com uma segunda semente (0x826908A0).
+NIER_DECOMP(sub_82141D58) {
+  constexpr uint32_t kSeed2 = 0x826908A0;
+  const double lo = -ctx.f1.f64;
+  const float span = static_cast<float>(ctx.f1.f64 - lo);
+  const uint32_t seed = ld32(base, kSeed2) * 214013u + 2531011u;
+  st32(base, kSeed2, seed);
+  const float r = static_cast<float>((seed >> 16) & 0x7FFF);
+  const float scaled = r * span;
+  ctx.f1.f64 = static_cast<float>(std::fma(static_cast<double>(scaled), static_cast<double>(ldf(base, kInvRandMaxB)), lo));
+}
+NIER_VERIFY_SPEC(sub_82141D58, 0x82141D58, "f1=f32");

@@ -198,7 +198,14 @@ uint64_t gen_value(const Arg& a, std::mt19937_64& rng, bool& is_float, double& f
   if (a.kind == "f" || a.kind == "f32") {
     is_float = true;
     std::uniform_real_distribution<double> d(a.lo ? -(double)a.lo : -1000.0, a.hi ? (double)a.hi : 1000.0);
-    fv = d(rng); if (a.kind == "f32") fv = (float)fv;
+    fv = d(rng);
+    // 1 em 16 tentativas: valor especial (NaN, infinitos, zero negativo) para provar
+    // o comportamento das comparações desordenadas.
+    if (rng() % 16 == 0) {
+      const double sp[] = {__builtin_nan(""), __builtin_inf(), -__builtin_inf(), -0.0, 0.0};
+      fv = sp[rng() % 5];
+    }
+    if (a.kind == "f32") fv = (float)fv;
     return 0;
   }
   return (uint32_t)rng();

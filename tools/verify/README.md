@@ -26,7 +26,7 @@ NIER_DECOMP(sub_823C6A50) {
 NIER_VERIFY_SPEC(sub_823C6A50, 0x823C6A50, "r3=ptr r4=range:0..64");
 ```
 
-Especificação dos argumentos: `ptr[:alinhamento]`, `bptr`, `int`, `u8`, `u16`, `range:a..b`, `const:v`, `image:a..b`, `f[:min..max]`, `f32`. Registradores sem especificação recebem ponteiro válido ou inteiro pequeno.
+Especificação dos argumentos: `ptr[:alinhamento]`, `bptr`, `int`, `u8`, `u16`, `range:a..b` (faixas que atravessam o zero valem como inteiros com sinal), `const:v`, `image:a..b`, `f[:min..max]`, `f32`. Em 1 de cada 16 tentativas os floats recebem NaN, infinito ou zero com sinal. Registradores sem especificação recebem ponteiro válido ou inteiro pequeno.
 
 No jogo, `NIER_DECOMP(sub_X)` define o símbolo forte `sub_X` e substitui o alias fraco gerado: a reconstrução roda no lugar da tradução.
 
