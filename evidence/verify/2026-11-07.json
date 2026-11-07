@@ -107,13 +107,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 38 ns vs original 35 ns por entrada (x1.07)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 35.2,
-   "decomp_ns": 37.8,
-   "time_ratio": 1.073,
-   "time_pass": false
+   "orig_ns": 36.9,
+   "decomp_ns": 35.9,
+   "time_ratio": 0.974,
+   "time_pass": true
   },
   {
    "name": "sub_82103638",
@@ -1307,13 +1307,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 27 ns vs original 20 ns por entrada (x1.35)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 20.4,
-   "decomp_ns": 27.4,
-   "time_ratio": 1.346,
-   "time_pass": false
+   "orig_ns": 25.4,
+   "decomp_ns": 14.2,
+   "time_ratio": 0.557,
+   "time_pass": true
   },
   {
    "name": "sub_82114AF8",
@@ -1467,13 +1467,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 5 ns vs original 5 ns por entrada (x1.08)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 4.5,
-   "decomp_ns": 4.9,
-   "time_ratio": 1.083,
-   "time_pass": false
+   "orig_ns": 3.8,
+   "decomp_ns": 3.2,
+   "time_ratio": 0.846,
+   "time_pass": true
   },
   {
    "name": "sub_82116CE0",
@@ -1611,13 +1611,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 1 ns vs original 0 ns por entrada (x2.61)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 0.4,
-   "decomp_ns": 0.9,
-   "time_ratio": 2.609,
-   "time_pass": false
+   "orig_ns": 2.7,
+   "decomp_ns": 0.7,
+   "time_ratio": 0.269,
+   "time_pass": true
   },
   {
    "name": "sub_8211CE70",
@@ -1739,13 +1739,13 @@
    "trials": 2000,
    "equal": 1990,
    "both_faulted": 10,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 5 ns vs original 4 ns por entrada (x1.41)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 3.5,
-   "decomp_ns": 5.0,
-   "time_ratio": 1.413,
-   "time_pass": false
+   "orig_ns": 14.2,
+   "decomp_ns": 10.5,
+   "time_ratio": 0.736,
+   "time_pass": true
   },
   {
    "name": "sub_8211EE78",
@@ -1803,13 +1803,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 4 ns vs original 3 ns por entrada (x1.40)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 2.8,
-   "decomp_ns": 3.9,
-   "time_ratio": 1.401,
-   "time_pass": false
+   "orig_ns": 16.2,
+   "decomp_ns": 14.0,
+   "time_ratio": 0.865,
+   "time_pass": true
   },
   {
    "name": "sub_82121050",
@@ -1835,13 +1835,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 11 ns vs original 10 ns por entrada (x1.15)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 9.7,
-   "decomp_ns": 11.1,
-   "time_ratio": 1.146,
-   "time_pass": false
+   "orig_ns": 7.8,
+   "decomp_ns": 8.3,
+   "time_ratio": 1.067,
+   "time_pass": true
   },
   {
    "name": "sub_821211A0",
@@ -2139,13 +2139,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 7 ns vs original 6 ns por entrada (x1.16)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 5.8,
-   "decomp_ns": 6.8,
-   "time_ratio": 1.158,
-   "time_pass": false
+   "orig_ns": 2.9,
+   "decomp_ns": 2.9,
+   "time_ratio": 0.989,
+   "time_pass": true
   },
   {
    "name": "sub_8213B260",
@@ -2299,13 +2299,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 1 ns vs original 0 ns por entrada (x1.85)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 0.3,
-   "decomp_ns": 0.6,
-   "time_ratio": 1.85,
-   "time_pass": false
+   "orig_ns": 26.1,
+   "decomp_ns": 12.5,
+   "time_ratio": 0.479,
+   "time_pass": true
   },
   {
    "name": "sub_82140330",
@@ -2651,13 +2651,13 @@
    "trials": 2000,
    "equal": 1135,
    "both_faulted": 865,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 16 ns vs original 14 ns por entrada (x1.11)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 14.3,
-   "decomp_ns": 15.8,
-   "time_ratio": 1.107,
-   "time_pass": false
+   "orig_ns": 23.3,
+   "decomp_ns": 24.3,
+   "time_ratio": 1.044,
+   "time_pass": true
   },
   {
    "name": "sub_82147860",
@@ -2907,13 +2907,13 @@
    "trials": 2000,
    "equal": 623,
    "both_faulted": 1377,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 19 ns vs original 12 ns por entrada (x1.52)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 12.4,
-   "decomp_ns": 18.8,
-   "time_ratio": 1.515,
-   "time_pass": false
+   "orig_ns": 20.0,
+   "decomp_ns": 13.4,
+   "time_ratio": 0.67,
+   "time_pass": true
   },
   {
    "name": "sub_8214D380",
@@ -2939,13 +2939,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 26 ns vs original 17 ns por entrada (x1.52)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 17.2,
-   "decomp_ns": 26.2,
-   "time_ratio": 1.524,
-   "time_pass": false
+   "orig_ns": 14.2,
+   "decomp_ns": 14.0,
+   "time_ratio": 0.982,
+   "time_pass": true
   },
   {
    "name": "sub_8214D8E0",
@@ -3371,13 +3371,13 @@
    "trials": 2000,
    "equal": 1131,
    "both_faulted": 869,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 43 ns vs original 26 ns por entrada (x1.69)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 25.5,
-   "decomp_ns": 43.2,
-   "time_ratio": 1.694,
-   "time_pass": false
+   "orig_ns": 4.8,
+   "decomp_ns": 4.9,
+   "time_ratio": 1.016,
+   "time_pass": true
   },
   {
    "name": "sub_82154AF0",
@@ -4587,13 +4587,13 @@
    "trials": 2000,
    "equal": 1962,
    "both_faulted": 38,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 70 ns vs original 64 ns por entrada (x1.10)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 63.7,
-   "decomp_ns": 70.0,
-   "time_ratio": 1.099,
-   "time_pass": false
+   "orig_ns": 54.5,
+   "decomp_ns": 51.4,
+   "time_ratio": 0.942,
+   "time_pass": true
   },
   {
    "name": "sub_821C75F8",
@@ -4699,13 +4699,13 @@
    "trials": 2000,
    "equal": 1974,
    "both_faulted": 26,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 96 ns vs original 85 ns por entrada (x1.13)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 85.0,
-   "decomp_ns": 96.5,
-   "time_ratio": 1.135,
-   "time_pass": false
+   "orig_ns": 80.2,
+   "decomp_ns": 74.8,
+   "time_ratio": 0.933,
+   "time_pass": true
   },
   {
    "name": "sub_821D9658",
@@ -4843,13 +4843,13 @@
    "trials": 2000,
    "equal": 1968,
    "both_faulted": 32,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 69 ns vs original 65 ns por entrada (x1.06)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 64.8,
-   "decomp_ns": 68.9,
-   "time_ratio": 1.064,
-   "time_pass": false
+   "orig_ns": 76.8,
+   "decomp_ns": 78.2,
+   "time_ratio": 1.017,
+   "time_pass": true
   },
   {
    "name": "sub_821D9E38",
@@ -4955,13 +4955,13 @@
    "trials": 2000,
    "equal": 1974,
    "both_faulted": 26,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 64 ns vs original 60 ns por entrada (x1.07)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 60.0,
-   "decomp_ns": 64.0,
-   "time_ratio": 1.067,
-   "time_pass": false
+   "orig_ns": 68.1,
+   "decomp_ns": 69.8,
+   "time_ratio": 1.024,
+   "time_pass": true
   },
   {
    "name": "sub_821DA620",
@@ -5851,13 +5851,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 3 ns vs original 3 ns por entrada (x1.06)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 3.2,
-   "decomp_ns": 3.4,
-   "time_ratio": 1.063,
-   "time_pass": false
+   "orig_ns": 2.1,
+   "decomp_ns": 1.7,
+   "time_ratio": 0.815,
+   "time_pass": true
   },
   {
    "name": "sub_821FF790",
@@ -7387,13 +7387,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 101 ns vs original 94 ns por entrada (x1.08)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 93.6,
-   "decomp_ns": 100.6,
-   "time_ratio": 1.075,
-   "time_pass": false
+   "orig_ns": 61.1,
+   "decomp_ns": 60.7,
+   "time_ratio": 0.993,
+   "time_pass": true
   },
   {
    "name": "sub_822A2550",
@@ -9227,13 +9227,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 122 ns vs original 115 ns por entrada (x1.06)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 114.8,
-   "decomp_ns": 122.3,
-   "time_ratio": 1.065,
-   "time_pass": false
+   "orig_ns": 52.1,
+   "decomp_ns": 51.2,
+   "time_ratio": 0.983,
+   "time_pass": true
   },
   {
    "name": "sub_8230C8B0",
@@ -10811,13 +10811,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 68 ns vs original 65 ns por entrada (x1.05)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 64.6,
-   "decomp_ns": 68.1,
-   "time_ratio": 1.054,
-   "time_pass": false
+   "orig_ns": 71.4,
+   "decomp_ns": 62.9,
+   "time_ratio": 0.881,
+   "time_pass": true
   },
   {
    "name": "sub_8236E128",
@@ -11067,13 +11067,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 152 ns vs original 140 ns por entrada (x1.09)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 139.9,
-   "decomp_ns": 152.0,
-   "time_ratio": 1.087,
-   "time_pass": false
+   "orig_ns": 84.4,
+   "decomp_ns": 80.4,
+   "time_ratio": 0.952,
+   "time_pass": true
   },
   {
    "name": "sub_8236EBE8",
@@ -11163,13 +11163,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 23 ns vs original 20 ns por entrada (x1.15)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 20.2,
-   "decomp_ns": 23.2,
-   "time_ratio": 1.149,
-   "time_pass": false
+   "orig_ns": 17.9,
+   "decomp_ns": 10.7,
+   "time_ratio": 0.597,
+   "time_pass": true
   },
   {
    "name": "sub_8237ABD8",
@@ -11211,13 +11211,13 @@
    "trials": 2000,
    "equal": 1142,
    "both_faulted": 858,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 18 ns vs original 16 ns por entrada (x1.12)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 15.9,
-   "decomp_ns": 17.7,
-   "time_ratio": 1.118,
-   "time_pass": false
+   "orig_ns": 10.8,
+   "decomp_ns": 9.6,
+   "time_ratio": 0.889,
+   "time_pass": true
   },
   {
    "name": "sub_8237AD88",
@@ -12987,13 +12987,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 18 ns vs original 17 ns por entrada (x1.06)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 17.1,
-   "decomp_ns": 18.2,
-   "time_ratio": 1.06,
-   "time_pass": false
+   "orig_ns": 10.7,
+   "decomp_ns": 9.8,
+   "time_ratio": 0.912,
+   "time_pass": true
   },
   {
    "name": "sub_824376D8",
@@ -13339,13 +13339,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 60 ns vs original 52 ns por entrada (x1.15)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 52.1,
-   "decomp_ns": 60.2,
-   "time_ratio": 1.154,
-   "time_pass": false
+   "orig_ns": 77.1,
+   "decomp_ns": 60.0,
+   "time_ratio": 0.778,
+   "time_pass": true
   },
   {
    "name": "sub_82461CB8",
@@ -13963,13 +13963,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 29 ns vs original 25 ns por entrada (x1.15)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 24.9,
-   "decomp_ns": 28.6,
-   "time_ratio": 1.15,
-   "time_pass": false
+   "orig_ns": 14.8,
+   "decomp_ns": 14.2,
+   "time_ratio": 0.959,
+   "time_pass": true
   },
   {
    "name": "sub_824B5DD0",
@@ -14347,13 +14347,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 10 ns vs original 2 ns por entrada (x6.31)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 1.5,
-   "decomp_ns": 9.6,
-   "time_ratio": 6.309,
-   "time_pass": false
+   "orig_ns": 4.6,
+   "decomp_ns": 3.8,
+   "time_ratio": 0.825,
+   "time_pass": true
   },
   {
    "name": "sub_824BECB0",
@@ -14366,9 +14366,9 @@
    "pass": true,
    "error": "",
    "time_inputs": 64,
-   "orig_ns": 347.0,
-   "decomp_ns": 71.7,
-   "time_ratio": 0.207,
+   "orig_ns": 327.0,
+   "decomp_ns": 44.8,
+   "time_ratio": 0.137,
    "time_pass": true
   },
   {
@@ -14379,13 +14379,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 469 ns vs original 371 ns por entrada (x1.27)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 370.8,
-   "decomp_ns": 469.2,
-   "time_ratio": 1.266,
-   "time_pass": false
+   "orig_ns": 460.4,
+   "decomp_ns": 204.5,
+   "time_ratio": 0.444,
+   "time_pass": true
   },
   {
    "name": "sub_824BEF58",
@@ -14398,9 +14398,9 @@
    "pass": true,
    "error": "",
    "time_inputs": 64,
-   "orig_ns": 310.8,
-   "decomp_ns": 90.8,
-   "time_ratio": 0.292,
+   "orig_ns": 343.4,
+   "decomp_ns": 71.8,
+   "time_ratio": 0.209,
    "time_pass": true
   },
   {
@@ -14414,9 +14414,9 @@
    "pass": true,
    "error": "",
    "time_inputs": 64,
-   "orig_ns": 478.9,
-   "decomp_ns": 482.9,
-   "time_ratio": 1.008,
+   "orig_ns": 520.7,
+   "decomp_ns": 369.9,
+   "time_ratio": 0.71,
    "time_pass": true
   },
   {
@@ -14430,9 +14430,9 @@
    "pass": true,
    "error": "",
    "time_inputs": 64,
-   "orig_ns": 428.8,
-   "decomp_ns": 354.2,
-   "time_ratio": 0.826,
+   "orig_ns": 310.6,
+   "decomp_ns": 217.0,
+   "time_ratio": 0.699,
    "time_pass": true
   },
   {
@@ -14444,11 +14444,11 @@
    "equal": 2000,
    "both_faulted": 0,
    "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 484 ns vs original 374 ns por entrada (x1.29)",
+   "error": "mais lenta que a tradução: reconstruída 521 ns vs original 347 ns por entrada (x1.50)",
    "time_inputs": 64,
-   "orig_ns": 374.3,
-   "decomp_ns": 483.6,
-   "time_ratio": 1.292,
+   "orig_ns": 346.8,
+   "decomp_ns": 521.0,
+   "time_ratio": 1.502,
    "time_pass": false
   },
   {
@@ -14462,9 +14462,9 @@
    "pass": true,
    "error": "",
    "time_inputs": 64,
-   "orig_ns": 436.3,
-   "decomp_ns": 238.8,
-   "time_ratio": 0.547,
+   "orig_ns": 263.6,
+   "decomp_ns": 181.5,
+   "time_ratio": 0.689,
    "time_pass": true
   },
   {
@@ -14478,9 +14478,9 @@
    "pass": true,
    "error": "",
    "time_inputs": 64,
-   "orig_ns": 440.8,
-   "decomp_ns": 121.5,
-   "time_ratio": 0.276,
+   "orig_ns": 205.4,
+   "decomp_ns": 65.5,
+   "time_ratio": 0.319,
    "time_pass": true
   },
   {
@@ -14636,11 +14636,11 @@
    "equal": 2000,
    "both_faulted": 0,
    "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 225 ns vs original 171 ns por entrada (x1.31)",
+   "error": "mais lenta que a tradução: reconstruída 206 ns vs original 120 ns por entrada (x1.72)",
    "time_inputs": 64,
-   "orig_ns": 171.4,
-   "decomp_ns": 224.7,
-   "time_ratio": 1.311,
+   "orig_ns": 119.9,
+   "decomp_ns": 205.7,
+   "time_ratio": 1.716,
    "time_pass": false
   },
   {
@@ -15131,13 +15131,13 @@
    "trials": 2000,
    "equal": 1081,
    "both_faulted": 919,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 20 ns vs original 18 ns por entrada (x1.10)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 17.7,
-   "decomp_ns": 19.5,
-   "time_ratio": 1.101,
-   "time_pass": false
+   "orig_ns": 6.8,
+   "decomp_ns": 6.3,
+   "time_ratio": 0.92,
+   "time_pass": true
   },
   {
    "name": "sub_824DEB08",
@@ -15195,13 +15195,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 70 ns vs original 47 ns por entrada (x1.50)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 47.0,
-   "decomp_ns": 70.5,
-   "time_ratio": 1.5,
-   "time_pass": false
+   "orig_ns": 32.1,
+   "decomp_ns": 22.2,
+   "time_ratio": 0.691,
+   "time_pass": true
   },
   {
    "name": "sub_824E0760",
@@ -15601,6 +15601,22 @@
    "orig_ns": 63.5,
    "decomp_ns": 59.9,
    "time_ratio": 0.943,
+   "time_pass": true
+  },
+  {
+   "name": "sub_824F5EF0",
+   "address": "0x824F5EF0",
+   "size": 860,
+   "source": "src/decomp/xdk/audio_comb.cpp",
+   "trials": 2000,
+   "equal": 1998,
+   "both_faulted": 2,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 496.6,
+   "decomp_ns": 481.2,
+   "time_ratio": 0.969,
    "time_pass": true
   },
   {
@@ -16331,13 +16347,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 1 ns vs original 1 ns por entrada (x1.45)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 0.7,
-   "decomp_ns": 1.0,
-   "time_ratio": 1.452,
-   "time_pass": false
+   "orig_ns": 7.0,
+   "decomp_ns": 5.8,
+   "time_ratio": 0.84,
+   "time_pass": true
   },
   {
    "name": "sub_8254F6D0",
@@ -16763,13 +16779,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 10 ns vs original 9 ns por entrada (x1.07)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 9.0,
-   "decomp_ns": 9.5,
-   "time_ratio": 1.066,
-   "time_pass": false
+   "orig_ns": 4.5,
+   "decomp_ns": 3.9,
+   "time_ratio": 0.875,
+   "time_pass": true
   },
   {
    "name": "sub_825612C8",
@@ -17083,13 +17099,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 4 ns vs original 4 ns por entrada (x1.07)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 3.7,
-   "decomp_ns": 4.0,
-   "time_ratio": 1.072,
-   "time_pass": false
+   "orig_ns": 3.2,
+   "decomp_ns": 2.8,
+   "time_ratio": 0.859,
+   "time_pass": true
   },
   {
    "name": "sub_825A4EE8",
@@ -17867,13 +17883,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 11 ns vs original 11 ns por entrada (x1.06)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 10.7,
-   "decomp_ns": 11.3,
-   "time_ratio": 1.06,
-   "time_pass": false
+   "orig_ns": 2.5,
+   "decomp_ns": 2.2,
+   "time_ratio": 0.877,
+   "time_pass": true
   },
   {
    "name": "sub_825DBF00",
@@ -18203,13 +18219,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 172 ns vs original 163 ns por entrada (x1.06)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 162.7,
-   "decomp_ns": 172.0,
+   "orig_ns": 139.2,
+   "decomp_ns": 147.2,
    "time_ratio": 1.057,
-   "time_pass": false
+   "time_pass": true
   },
   {
    "name": "sub_825EBA18",
@@ -18331,13 +18347,13 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
-   "pass": false,
-   "error": "mais lenta que a tradução: reconstruída 2 ns vs original 0 ns por entrada (x11.00)",
+   "pass": true,
+   "error": "",
    "time_inputs": 64,
-   "orig_ns": 0.1,
-   "decomp_ns": 1.5,
-   "time_ratio": 11.0,
-   "time_pass": false
+   "orig_ns": 9.8,
+   "decomp_ns": 9.8,
+   "time_ratio": 0.995,
+   "time_pass": true
   },
   {
    "name": "sub_825F8AD0",
