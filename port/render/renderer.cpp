@@ -11,6 +11,7 @@
 
 #include "nier_d3d.h"
 #include "xenos_texture.h"
+#include "vertex_cache.h"
 
 #include <SDL3/SDL.h>
 #include <GLES2/gl2.h>
@@ -71,62 +72,7 @@ const uint8_t* Physical(uint32_t address, uint32_t size) {
   return g_mem.physicalBase && uint64_t(address) + size <= 0x20000000ull ? g_mem.physicalBase + address : nullptr;
 }
 
-// Palavra de 32 bits como a GPU a vê, com o endian da fetch constant (0 nenhum, 1 8in16, 2 8in32, 3 16in32).
-inline uint32_t GpuWord(const uint8_t* p, uint32_t endian) {
-  uint32_t w; std::memcpy(&w, p, 4);
-  switch (endian) {
-    case 1: return ((w & 0x00FF00FFu) << 8) | ((w >> 8) & 0x00FF00FFu);
-    case 2: return __builtin_bswap32(w);
-    case 3: return (w << 16) | (w >> 16);
-    default: return w;
-  }
-}
-float Half(uint16_t h) {
-  uint32_t s = uint32_t(h >> 15) << 31, e = (h >> 10) & 31, m = h & 1023, f;
-  if (!e) { if (!m) f = s; else { e = 127 - 14; while (!(m & 1024)) { m <<= 1; --e; } m &= 1023; f = s | e << 23 | m << 13; } }
-  else if (e == 31) f = s | 0x7F800000u | m << 13;
-  else f = s | (e + 112) << 23 | m << 13;
-  float v; std::memcpy(&v, &f, 4); return v;
-}
-float Component(uint32_t raw, int bits, const VertexInput& in, float scale) {
-  float v;
-  if (in.isSigned) {
-    int32_t x = int32_t(raw << (32 - bits)) >> (32 - bits);
-    v = in.isInteger ? float(x) : std::max(float(x) / float((1u << (bits - 1)) - 1), -1.0f);
-  } else {
-    v = in.isInteger ? float(raw) : float(raw) / float((bits == 32 ? 0xFFFFFFFFu : (1u << bits) - 1));
-  }
-  return v * scale;
-}
-// Converte `count` vértices a partir de `first` para float4 (x, y, z, w; ausentes = 0,0,0,1).
-bool ConvertInput(const VertexInput& in, const uint8_t* base, uint32_t endian, uint32_t first, uint32_t count, float* out) {
-  float scale = in.expAdjust ? std::ldexp(1.0f, in.expAdjust) : 1.0f;
-  for (uint32_t v = 0; v < count; ++v) {
-    const uint8_t* p = base + size_t((first + v) * in.stride + in.offset) * 4;
-    float* d = out + size_t(v) * 4;
-    d[0] = d[1] = d[2] = 0; d[3] = 1;
-    auto f32 = [&](int i) { uint32_t w = GpuWord(p + 4 * i, endian); float x; std::memcpy(&x, &w, 4); return x * scale; };
-    switch (in.format) {
-      case 6: { uint32_t w = GpuWord(p, endian); for (int c = 0; c < 4; ++c) d[c] = Component((w >> (8 * c)) & 0xFF, 8, in, scale); break; }
-      case 7: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 1023, 10, in, scale); d[1] = Component((w >> 10) & 1023, 10, in, scale); d[2] = Component((w >> 20) & 1023, 10, in, scale); d[3] = Component(w >> 30, 2, in, scale); break; }
-      case 16: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 2047, 11, in, scale); d[1] = Component((w >> 11) & 2047, 11, in, scale); d[2] = Component(w >> 22, 10, in, scale); break; }
-      case 17: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 1023, 10, in, scale); d[1] = Component((w >> 10) & 2047, 11, in, scale); d[2] = Component(w >> 21, 11, in, scale); break; }
-      case 25: { uint32_t w = GpuWord(p, endian); d[0] = Component(w & 0xFFFF, 16, in, scale); d[1] = Component(w >> 16, 16, in, scale); break; }
-      case 26: { uint32_t a = GpuWord(p, endian), b = GpuWord(p + 4, endian); d[0] = Component(a & 0xFFFF, 16, in, scale); d[1] = Component(a >> 16, 16, in, scale); d[2] = Component(b & 0xFFFF, 16, in, scale); d[3] = Component(b >> 16, 16, in, scale); break; }
-      case 31: { uint32_t w = GpuWord(p, endian); d[0] = Half(uint16_t(w)); d[1] = Half(uint16_t(w >> 16)); break; }
-      case 32: { uint32_t a = GpuWord(p, endian), b = GpuWord(p + 4, endian); d[0] = Half(uint16_t(a)); d[1] = Half(uint16_t(a >> 16)); d[2] = Half(uint16_t(b)); d[3] = Half(uint16_t(b >> 16)); break; }
-      case 33: d[0] = Component(GpuWord(p, endian), 32, in, scale); break;
-      case 34: d[0] = Component(GpuWord(p, endian), 32, in, scale); d[1] = Component(GpuWord(p + 4, endian), 32, in, scale); break;
-      case 35: for (int c = 0; c < 4; ++c) d[c] = Component(GpuWord(p + 4 * c, endian), 32, in, scale); break;
-      case 36: d[0] = f32(0); break;
-      case 37: d[0] = f32(0); d[1] = f32(1); break;
-      case 38: for (int c = 0; c < 4; ++c) d[c] = f32(c); break;
-      case 57: d[0] = f32(0); d[1] = f32(1); d[2] = f32(2); break;
-      default: return false;
-    }
-  }
-  return true;
-}
+using buffers::ConvertInput;
 
 // Primitivas do guest -> lista de triângulos (índices relativos ao 1º vértice convertido).
 bool Triangulate(uint32_t primitive, const std::vector<uint32_t>& src, std::vector<uint16_t>& dst) {
@@ -151,6 +97,8 @@ struct Cmd {
   const char* skipReason = nullptr;
   size_t state = 0, indices = SIZE_MAX, fetch = SIZE_MAX;
   size_t inputs[kMaxInputs] = {};
+  buffers::Ref vertexData[kMaxInputs], indexData;
+  uint64_t indexAddress = 0;
   uint32_t inputCount = 0, vertexCount = 0, indexCount = 0;
   uint32_t flags = 0, argb = 0;
   int32_t rect[4] = {};
@@ -161,7 +109,8 @@ struct Frame {
   std::vector<uint8_t> blob;
   std::vector<Cmd> cmds;
   uint32_t presentInterval = 1;
-  void Clear() { blob.clear(); cmds.clear(); }
+  size_t bufferBytes = 0; // conservative accounting, including references shared by draws
+  void Clear() { blob.clear(); cmds.clear(); bufferBytes = 0; }
 };
 size_t Append(Frame& f, const void* p, size_t n) {
   size_t at = (f.blob.size() + 15) & ~size_t(15);
@@ -180,12 +129,16 @@ std::atomic<uint64_t> g_frames{0}, g_draws{0}, g_skipped{0}, g_recordedBytes{0};
 std::atomic<double> g_lastFrameMs{0};
 std::vector<uint32_t> g_srcIndices;
 std::vector<uint16_t> g_triIndices;
+buffers::Cache g_bufferSnapshots;
+std::atomic<bool> g_vertexHalf{false};
+bool ReferenceBuffers() { static bool value = std::getenv("NIER_BUFFER_REFERENCE") != nullptr; return value; }
+
 
 // Teto do quadro em construção: se o jogo desenha muito sem Present (ex.: tela de carregamento), o quadro
 // pendente é descartado em vez de crescer sem limite (cada realocação copiaria centenas de MB).
 std::atomic<uint64_t> g_droppedFrames{0};
 void GuardBuilding() {
-  if (g_building.blob.size() < (192u << 20) && g_building.cmds.size() < 100000) return;
+  if (g_building.blob.size() + g_building.bufferBytes < (192u << 20) && g_building.cmds.size() < 100000) return;
   if (g_droppedFrames.fetch_add(1) < 5)
     std::fprintf(stderr, "[nier-gl] quadro sem Present descartado: %zu comandos, %zu MB\n", g_building.cmds.size(), g_building.blob.size() >> 20);
   g_building.Clear();
@@ -598,6 +551,43 @@ void ApplyFixedState(const uint8_t* state) {
   glColorMask(mask & 1, (mask >> 1) & 1, (mask >> 2) & 1, (mask >> 3) & 1);
 }
 
+// GL objects belong exclusively to the render thread. A serial identifies an
+// immutable snapshot, not a guest address that the CPU can overwrite later.
+struct CachedBuffer { GLuint id; size_t bytes; std::weak_ptr<const buffers::Payload> data; uint64_t used; };
+std::unordered_map<uint64_t, CachedBuffer> g_bufferObjects;
+size_t g_bufferObjectBytes = 0;
+uint64_t g_bufferHits = 0, g_bufferUploads = 0, g_bufferUploadBytes = 0;
+void BindSnapshot(GLenum target, const buffers::Ref& data) {
+  auto it = g_bufferObjects.find(data->serial);
+  if (it == g_bufferObjects.end()) {
+    GLuint id; glGenBuffers(1, &id); glBindBuffer(target, id);
+    glBufferData(target, GLsizeiptr(data->bytes.size()), data->bytes.data(), GL_STATIC_DRAW);
+    it = g_bufferObjects.emplace(data->serial, CachedBuffer{id, data->bytes.size(), data, g_frames.load()}).first;
+    g_bufferObjectBytes += data->bytes.size(); ++g_bufferUploads; g_bufferUploadBytes += data->bytes.size();
+  } else { glBindBuffer(target, it->second.id); ++g_bufferHits; }
+  it->second.used = g_frames.load();
+}
+void TrimBufferObjects(bool all = false) {
+  for (auto it = g_bufferObjects.begin(); it != g_bufferObjects.end();) {
+    if (all || it->second.data.expired()) {
+      glDeleteBuffers(1, &it->second.id); g_bufferObjectBytes -= it->second.bytes;
+      it = g_bufferObjects.erase(it);
+    } else ++it;
+  }
+  // Evict only between frames: no attribute in an unfinished draw loses its VBO.
+  if (g_bufferObjectBytes > (64u << 20)) {
+    std::vector<std::pair<uint64_t, uint64_t>> order;
+    for (auto& [key, value] : g_bufferObjects) order.push_back({value.used, key});
+    std::sort(order.begin(), order.end());
+    for (auto [age, key] : order) {
+      if (g_bufferObjectBytes <= (64u << 20)) break;
+      auto it = g_bufferObjects.find(key);
+      glDeleteBuffers(1, &it->second.id); g_bufferObjectBytes -= it->second.bytes; g_bufferObjects.erase(it);
+    }
+  }
+}
+
+bool g_bufferAuditReference = false; // render-thread-only diagnostic
 void ReplayDraw(const Frame& f, const Cmd& c) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
@@ -631,17 +621,36 @@ void ReplayDraw(const Frame& f, const Cmd& c) {
   glActiveTexture(GL_TEXTURE0);
   auto t2 = Clock::now();
   g_pState += Ms(t1, t2);
-  glBindBuffer(GL_ARRAY_BUFFER, g_vertexBuffer);
-  size_t bytes = size_t(c.vertexCount) * 16;
-  glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(bytes * c.inputCount), nullptr, GL_STREAM_DRAW);
-  for (uint32_t i = 0; i < c.inputCount; ++i) {
-    glBufferSubData(GL_ARRAY_BUFFER, GLintptr(bytes * i), GLsizeiptr(bytes), f.blob.data() + c.inputs[i]);
-    glEnableVertexAttribArray(i);
-    glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, reinterpret_cast<void*>(bytes * i));
+  if (!ReferenceBuffers() && !g_bufferAuditReference) {
+    for (uint32_t i = 0; i < c.inputCount; ++i) {
+      const auto& data = c.vertexData[i];
+      BindSnapshot(GL_ARRAY_BUFFER, data);
+      glEnableVertexAttribArray(i);
+      glVertexAttribPointer(i, data->layout.components, data->layout.type,
+                            data->layout.normalized ? GL_TRUE : GL_FALSE, data->layout.bytes, nullptr);
+    }
+    for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
+    BindSnapshot(GL_ELEMENT_ARRAY_BUFFER, c.indexData);
+  } else {
+    glBindBuffer(GL_ARRAY_BUFFER, g_vertexBuffer);
+    size_t bytes = size_t(c.vertexCount) * 16;
+    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(bytes * c.inputCount), nullptr, GL_STREAM_DRAW);
+    for (uint32_t i = 0; i < c.inputCount; ++i) {
+      const void* source = f.blob.data() + c.inputs[i];
+      static std::vector<float> reference;
+      if (c.vertexData[i]) {
+        const auto& data = *c.vertexData[i]; reference.resize(size_t(c.vertexCount) * 4);
+        ConvertInput(data.input, data.raw.data(), data.endian, 0, c.vertexCount, reference.data());
+        source = reference.data();
+      }
+      glBufferSubData(GL_ARRAY_BUFFER, GLintptr(bytes * i), GLsizeiptr(bytes), source);
+      glEnableVertexAttribArray(i);
+      glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, reinterpret_cast<void*>(bytes * i));
+    }
+    for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(c.indexCount * 2), c.indexData ? c.indexData->raw.data() : f.blob.data() + c.indices, GL_STREAM_DRAW);
   }
-  for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_indexBuffer);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(c.indexCount * 2), f.blob.data() + c.indices, GL_STREAM_DRAW);
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
   glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, nullptr);
@@ -691,6 +700,75 @@ void ReplayResolve(const Frame& f, const Cmd& c) {
     glClearDepthf(1.0f);
     glClear(((c.flags & 0x100) ? GL_COLOR_BUFFER_BIT : 0) | ((c.flags & 0x200) ? GL_DEPTH_BUFFER_BIT : 0));
   }
+}
+
+// Opt-in frozen-command image audit. Two reference replays must first agree;
+// otherwise temporal framebuffer/texture dependencies make this test inconclusive.
+void AuditBufferImage(const Frame& work) {
+  static const char* output = std::getenv("NIER_BUFFER_AUDIT");
+  if (!output || ReferenceBuffers()) return;
+  static auto start = Clock::now(); static bool done = false;
+  if (done || Ms(start, Clock::now()) < 70000) return;
+  size_t sceneDraws = 0;
+  for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++sceneDraws;
+  if (sceneDraws < 50) return;
+  auto originalTarget = g_targets.find(g_mainTarget);
+  if (originalTarget == g_targets.end()) return;
+  const auto& target = originalTarget->second;
+  std::vector<uint8_t> originalMain(size_t(target.w) * target.h * 4), finalMain;
+  glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
+  glReadPixels(0, 0, target.w, target.h, GL_RGBA, GL_UNSIGNED_BYTE, originalMain.data()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
+  size_t litPixels = 0;
+  for (size_t i = 0; i < originalMain.size(); i += 4)
+    litPixels += std::max({originalMain[i], originalMain[i + 1], originalMain[i + 2]}) > 24;
+  if (litPixels * 20 < originalMain.size() / 4) return; // wait past black fades/credits
+  done = true;
+  auto replay = [&](bool reference, const char* label) {
+    g_bufferAuditReference = reference; g_mainTarget = 0;
+    g_pendingCopies.clear();
+    for (auto& [key, target] : g_targets) target.clearedFrame = ~0ull;
+    for (const auto& c : work.cmds) {
+      if (c.kind == Kind::Draw) ReplayDraw(work, c);
+      else if (c.kind == Kind::Resolve) ReplayResolve(work, c);
+    }
+    g_bufferAuditReference = false;
+    std::vector<uint8_t> pixels;
+    auto readTargets = [&](const auto& targets, const char* kind) {
+      for (const auto& [key, target] : targets) {
+        if (!target.fbo || target.w < 1 || target.h < 1) continue;
+        std::vector<uint8_t> rgba(size_t(target.w) * target.h * 4);
+        glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
+        glReadPixels(0, 0, target.w, target.h, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
+        if (kind[0] == 'c' && key == g_mainTarget) finalMain = rgba;
+        const uint64_t header[] = {key, uint64_t(target.w), uint64_t(target.h)};
+        const auto* raw = reinterpret_cast<const uint8_t*>(header);
+        pixels.insert(pixels.end(), raw, raw + sizeof header);
+        pixels.insert(pixels.end(), rgba.begin(), rgba.end());
+        if (label) {
+          char suffix[128]; std::snprintf(suffix, sizeof suffix, "/buffer-%s-%s-%016llx.ppm", label, kind, (unsigned long long)key);
+          std::string name = std::string(output) + suffix;
+          if (FILE* file = std::fopen(name.c_str(), "wb")) {
+            std::fprintf(file, "P6\n%d %d\n255\n", target.w, target.h);
+            for (int y = target.h - 1; y >= 0; --y) for (int x = 0; x < target.w; ++x)
+              std::fwrite(rgba.data() + (size_t(y) * target.w + x) * 4, 1, 3, file);
+            std::fclose(file);
+          }
+        }
+      }
+    };
+    readTargets(g_targets, "color"); readTargets(g_resolved, "resolve");
+    return pixels;
+  };
+  auto ref0 = replay(true, nullptr), ref1 = replay(true, "reference"), candidate = replay(false, "candidate"), ref2 = replay(true, nullptr);
+  size_t differences = 0;
+  if (ref1.size() == candidate.size())
+    for (size_t i = 0; i < ref1.size(); ++i) differences += ref1[i] != candidate[i];
+  bool stable = !ref1.empty() && ref0 == ref1 && ref1 == ref2 && originalMain == finalMain;
+  bool equal = stable && ref1 == candidate;
+  std::fprintf(stderr, "[nier-buffer-audit] %s frame %llu scene_draws %zu targets %zu bytes %zu differences %zu stable_reference %d original_lit_pixels %zu GL 0x%x\n",
+               equal ? "PASS" : stable ? "FAIL" : "INCONCLUSIVE", (unsigned long long)g_frames.load(), sceneDraws,
+               g_targets.size() + g_resolved.size(), ref1.size(), differences, int(stable), litPixels, glGetError()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
+
 }
 
 void PresentToWindow() {
@@ -752,6 +830,11 @@ void RenderThread() {
     SDL_GL_SetSwapInterval(1);
   }
   CreateBlit();
+  const char* extensions = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
+  std::string extensionList = std::string(" ") + (extensions ? extensions : "") + " ";
+  g_vertexHalf.store(extensionList.find(" GL_OES_vertex_half_float ") != std::string::npos);
+  std::fprintf(stderr, "[nier-buffers] cache %s; vertex_half_float %d; CPU/GL cache budget 64 MiB each\n",
+               ReferenceBuffers() ? "reference/off" : "on", int(g_vertexHalf.load()));
   GLint vsUniforms = 0, fsUniforms = 0;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);
   glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);
@@ -789,6 +872,7 @@ void RenderThread() {
     }
     g_copiesSkipped += uint32_t(g_pendingCopies.size());
     g_pendingCopies.clear();
+    AuditBufferImage(work);
     if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }
     auto tp = Clock::now();
     g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
@@ -812,18 +896,24 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f) glFinish(GPU) %.2f\n",
                      g_pTarget / 120, g_pState / 120, g_pBuffers / 120, g_pDraw / 120, g_pResolve / 120, g_resolves / 120.0, g_resolveCopies / 120.0, g_copiesDone / 120.0, g_copiesSkipped / 120.0, g_pFinish / 120);
       g_copiesDone = g_copiesSkipped = 0;
+      std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
+                   (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
+                   (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
+                   (unsigned long long)g_bufferUploads, (unsigned long long)g_bufferUploadBytes, g_bufferObjectBytes);
       g_pTarget = g_pState = g_pBuffers = g_pDraw = g_pFinish = g_pResolve = 0; g_resolves = g_resolveCopies = 0;
       g_textureMs = g_sigMs = g_decodeMs = g_uploadMs = g_replayMs = g_swapMs = 0;
     }
     {
       std::lock_guard lock(g_queueMutex);
       work.Clear();
+      TrimBufferObjects();
       g_inflight.blob.swap(work.blob);
       g_inflight.cmds.swap(work.cmds);
       g_hasInflight = false;
     }
     g_queueCv.notify_all();
   }
+  TrimBufferObjects(true);
   SDL_GL_MakeCurrent(g_window, nullptr);
 }
 
@@ -855,6 +945,12 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count,
       if (!base) { RecordSkip("stream de vértice sem memória"); return false; }
       base += size_t(first) * in.stride * 4;
     }
+    if (!ReferenceBuffers()) {
+      c.vertexData[i] = g_bufferSnapshots.Vertex(in, base, endian, count, g_vertexHalf.load());
+      if (!c.vertexData[i]) { RecordSkip("formato de vfetch não suportado"); return false; }
+      g_building.bufferBytes += c.vertexData[i]->raw.size() + c.vertexData[i]->bytes.size();
+      continue;
+    }
     c.inputs[i] = Append(g_building, nullptr, size_t(count) * 16);
     if (!ConvertInput(in, base, endian, 0, count, reinterpret_cast<float*>(g_building.blob.data() + c.inputs[i]))) {
       RecordSkip("formato de vfetch não suportado");
@@ -883,7 +979,13 @@ void TraceDraw(const Cmd& c, const uint8_t* state, uint32_t primitive, uint32_t 
                BE32(Field(state, 0x294C)), BE32(Field(state, kColorControl)), BE32(Field(state, 0x28DC)));
   for (uint32_t i = 0; i < c.inputCount; ++i) {
     const auto& in = c.vs->inputs[i];
+    float decoded[8] = {};
     const float* v = reinterpret_cast<const float*>(g_building.blob.data() + c.inputs[i]);
+    if (c.vertexData[i]) {
+      const auto& data = *c.vertexData[i];
+      ConvertInput(data.input, data.raw.data(), data.endian, 0, std::min(2u, c.vertexCount), decoded);
+      v = decoded;
+    }
     std::fprintf(stderr, "[nier-trace]   a%u slot %u fmt %u off %u stride %u v0 (%g %g %g %g) v1 (%g %g %g %g)\n", i, in.slot, in.format, in.offset, in.stride,
                  v[0], v[1], v[2], v[3], c.vertexCount > 1 ? v[4] : 0, c.vertexCount > 1 ? v[5] : 0, c.vertexCount > 1 ? v[6] : 0, c.vertexCount > 1 ? v[7] : 0);
   }
@@ -955,6 +1057,7 @@ void Shutdown() {
   if (g_context) SDL_GL_DestroyContext(g_context);
   if (g_window) SDL_DestroyWindow(g_window);
   g_context = nullptr; g_window = nullptr;
+  g_building.Clear(); g_inflight.Clear(); g_bufferSnapshots.Clear();
 }
 
 bool Enabled() { return g_enabled.load(std::memory_order_relaxed); }
@@ -984,6 +1087,7 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     bool is32 = BE32(object) & 0x80000000u;
     uint32_t address = BE32(object + 0x18), bytes = is32 ? 4 : 2;
     uint32_t physical = (address & 0x1FFFFFFF) + (address >= 0xE0000000 ? 0x1000 : 0);  // heap 0xE0000000
+    c.indexAddress = uint64_t(physical) + uint64_t(startIndex) * bytes;
     const uint8_t* src = Physical(physical + startIndex * bytes, count * bytes);
     if (!src) { RecordSkip("index buffer ilegível"); return; }
     uint32_t lo = 0xFFFFFFFF, hi = 0;
@@ -1014,7 +1118,11 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
-  c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers()) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  else {
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount);
+    g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
+  }
   g_recordedBytes = g_building.blob.size();
   g_building.cmds.push_back(c);
 }
@@ -1053,7 +1161,11 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
   if (!SnapshotInputs(c, g_building.blob.data() + c.state, 0, vertexCount, data, stride)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, vertexCount, false);
   c.indexCount = uint32_t(g_triIndices.size());
-  c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers()) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  else {
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount);
+    g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
+  }
   g_building.cmds.push_back(c);
 }
 

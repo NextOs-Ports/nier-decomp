@@ -1,0 +1,407 @@
+{
+  "stage": "X1-H2 buffers",
+  "host_before": {
+    "source": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/reference/console.log",
+    "criteria": ">=150 draws at sampled frame; exclude audit window; 120-frame averages",
+    "median_ms": {
+      "target": 0.375,
+      "state_texture": 3.11,
+      "state_without_texture": 0.6649999999999998,
+      "texture": 2.4450000000000003,
+      "texture_hash": 2.2199999999999998,
+      "buffers": 5.045,
+      "draw": 13.965,
+      "resolve": 38.275,
+      "gpu": 5.404999999999999,
+      "draw_gpu": 20.46
+    },
+    "windows": [
+      {
+        "frame": 3360,
+        "draws": 151,
+        "texture": 8.64,
+        "texture_hash": 2.39,
+        "target": 0.68,
+        "state_texture": 9.9,
+        "buffers": 5.91,
+        "draw": 14.6,
+        "resolve": 48.78,
+        "resolves": 25.1,
+        "copies_requested": 25.1,
+        "copies_done": 23.1,
+        "copies_skipped": 2.0,
+        "gpu": 9.7,
+        "state_without_texture": 1.2599999999999998,
+        "draw_gpu": 24.299999999999997
+      },
+      {
+        "frame": 3600,
+        "draws": 198,
+        "texture": 2.45,
+        "texture_hash": 2.15,
+        "target": 0.42,
+        "state_texture": 3.11,
+        "buffers": 5.08,
+        "draw": 13.33,
+        "resolve": 44.0,
+        "resolves": 25.0,
+        "copies_requested": 25.0,
+        "copies_done": 23.0,
+        "copies_skipped": 2.0,
+        "gpu": 5.71,
+        "state_without_texture": 0.6599999999999997,
+        "draw_gpu": 19.04
+      },
+      {
+        "frame": 3720,
+        "draws": 191,
+        "texture": 2.28,
+        "texture_hash": 2.12,
+        "target": 0.31,
+        "state_texture": 2.77,
+        "buffers": 4.09,
+        "draw": 9.79,
+        "resolve": 32.55,
+        "resolves": 25.0,
+        "copies_requested": 25.0,
+        "copies_done": 23.0,
+        "copies_skipped": 2.0,
+        "gpu": 5.1,
+        "state_without_texture": 0.4900000000000002,
+        "draw_gpu": 14.889999999999999
+      },
+      {
+        "frame": 3960,
+        "draws": 190,
+        "texture": 2.44,
+        "texture_hash": 2.29,
+        "target": 0.33,
+        "state_texture": 3.11,
+        "buffers": 5.01,
+        "draw": 17.39,
+        "resolve": 31.28,
+        "resolves": 25.0,
+        "copies_requested": 25.0,
+        "copies_done": 23.0,
+        "copies_skipped": 2.0,
+        "gpu": 4.49,
+        "state_without_texture": 0.6699999999999999,
+        "draw_gpu": 21.880000000000003
+      }
+    ]
+  },
+  "host_after": {
+    "source": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/candidate/console.log",
+    "criteria": ">=150 draws at sampled frame; exclude audit window; 120-frame averages",
+    "median_ms": {
+      "target": 0.44999999999999996,
+      "state_texture": 3.3899999999999997,
+      "state_without_texture": 0.7649999999999999,
+      "texture": 2.585,
+      "texture_hash": 2.315,
+      "buffers": 1.065,
+      "draw": 14.555,
+      "resolve": 45.535,
+      "gpu": 5.42,
+      "draw_gpu": 19.884999999999998
+    },
+    "windows": [
+      {
+        "frame": 3600,
+        "draws": 163,
+        "texture": 2.49,
+        "texture_hash": 2.21,
+        "target": 0.51,
+        "state_texture": 3.22,
+        "buffers": 1.11,
+        "draw": 11.56,
+        "resolve": 41.69,
+        "resolves": 25.0,
+        "copies_requested": 25.0,
+        "copies_done": 23.0,
+        "copies_skipped": 2.0,
+        "gpu": 6.72,
+        "state_without_texture": 0.73,
+        "draw_gpu": 18.28
+      },
+      {
+        "frame": 3720,
+        "draws": 199,
+        "texture": 2.64,
+        "texture_hash": 2.23,
+        "target": 0.48,
+        "state_texture": 3.36,
+        "buffers": 1.04,
+        "draw": 14.92,
+        "resolve": 54.26,
+        "resolves": 25.0,
+        "copies_requested": 25.0,
+        "copies_done": 23.0,
+        "copies_skipped": 2.0,
+        "gpu": 7.17,
+        "state_without_texture": 0.7199999999999998,
+        "draw_gpu": 22.09
+      },
+      {
+        "frame": 3840,
+        "draws": 191,
+        "texture": 2.81,
+        "texture_hash": 2.4,
+        "target": 0.55,
+        "state_texture": 3.59,
+        "buffers": 1.19,
+        "draw": 15.4,
+        "resolve": 61.45,
+        "resolves": 25.0,
+        "copies_requested": 25.0,
+        "copies_done": 23.0,
+        "copies_skipped": 2.0,
+        "gpu": 7.44,
+        "state_without_texture": 0.7799999999999998,
+        "draw_gpu": 22.84
+      },
+      {
+        "frame": 4200,
+        "draws": 191,
+        "texture": 2.18,
+        "texture_hash": 2.06,
+        "target": 0.42,
+        "state_texture": 2.85,
+        "buffers": 1.14,
+        "draw": 16.27,
+        "resolve": 59.85,
+        "resolves": 25.0,
+        "copies_requested": 25.0,
+        "copies_done": 23.0,
+        "copies_skipped": 2.0,
+        "gpu": 5.22,
+        "state_without_texture": 0.6699999999999999,
+        "draw_gpu": 21.49
+      },
+      {
+        "frame": 4320,
+        "draws": 208,
+        "texture": 2.54,
+        "texture_hash": 2.13,
+        "target": 0.35,
+        "state_texture": 3.7,
+        "buffers": 0.77,
+        "draw": 19.53,
+        "resolve": 36.26,
+        "resolves": 25.1,
+        "copies_requested": 25.1,
+        "copies_done": 23.1,
+        "copies_skipped": 2.0,
+        "gpu": 5.62,
+        "state_without_texture": 1.1600000000000001,
+        "draw_gpu": 25.150000000000002
+      },
+      {
+        "frame": 4440,
+        "draws": 172,
+        "texture": 2.63,
+        "texture_hash": 2.51,
+        "target": 0.42,
+        "state_texture": 3.42,
+        "buffers": 1.03,
+        "draw": 14.19,
+        "resolve": 40.37,
+        "resolves": 28.0,
+        "copies_requested": 28.0,
+        "copies_done": 25.0,
+        "copies_skipped": 3.0,
+        "gpu": 1.07,
+        "state_without_texture": 0.79,
+        "draw_gpu": 15.26
+      },
+      {
+        "frame": 4560,
+        "draws": 164,
+        "texture": 2.51,
+        "texture_hash": 2.4,
+        "target": 0.42,
+        "state_texture": 3.26,
+        "buffers": 0.96,
+        "draw": 11.93,
+        "resolve": 38.23,
+        "resolves": 28.0,
+        "copies_requested": 28.0,
+        "copies_done": 25.0,
+        "copies_skipped": 3.0,
+        "gpu": 1.0,
+        "state_without_texture": 0.75,
+        "draw_gpu": 12.93
+      },
+      {
+        "frame": 4680,
+        "draws": 172,
+        "texture": 2.67,
+        "texture_hash": 2.55,
+        "target": 0.54,
+        "state_texture": 3.52,
+        "buffers": 1.09,
+        "draw": 13.07,
+        "resolve": 49.38,
+        "resolves": 28.0,
+        "copies_requested": 28.0,
+        "copies_done": 25.0,
+        "copies_skipped": 3.0,
+        "gpu": 1.41,
+        "state_without_texture": 0.8500000000000001,
+        "draw_gpu": 14.48
+      }
+    ]
+  },
+  "audit": "[nier-buffer-audit] PASS frame 3672 scene_draws 156 targets 22 bytes 14955532 differences 0 stable_reference 1 original_lit_pixels 356557 GL 0x0",
+  "tests": "480 GLES2 images / 491520 fetches pixel-exact; ASan+UBSan passed; unsampled mutation, descriptor, eviction, lifetime, IBO passed",
+  "gate": "python3 tools/render/check_leve.py --diff origin/main: OK (origin/main 0afac7c)",
+  "host_binary_sha256": "efb9441042bc16a7ff45dda0aec2c2e7b10c53da421107c3d1412bff210efcdc",
+  "arm64": {
+    "librexruntime.so": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/arm64/librexruntime.so",
+      "sha256": "b79e167a30178221b0f700c7abe82660c18599dcc1754a6536b681e6de5b5041"
+    },
+    "nier": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/arm64/nier",
+      "sha256": "33c4bd8ccd0e52ded48f11605b7b7395e526c3e3d77b797fe2a1b1ef566ab87f"
+    },
+    "librexgpu-null.so": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/arm64/librexgpu-null.so",
+      "sha256": "725f4ed69a861b68d9f5c56f6258de0337ebe5d0395db864f1c49bd81ae02eef"
+    }
+  },
+  "source_sha256": {
+    "port/render/renderer.cpp": "cfb0bef54af10b59db90be5be6988a87d9ada69192973cc5eeccac40bdaccdfd",
+    "port/render/vertex_cache.h": "641b2e607f0e39f94a0a60bc2ab14dc6863be1dd736a50416a2db1aed7f593e1",
+    "port/tests/vertex_cache_test.cpp": "8742f650a7989423eda0fb50559289950d2261a110d1b02bdae17b53812bdd29"
+  },
+  "images": [
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000000b80280.ppm",
+      "sha256": "ef4c0b42cc1a487701d6784eee0213c5a9d002c90b6788806bc2cb3ad9289ea5",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000002d00410.ppm",
+      "sha256": "6ad469a7756af38b9ab040f899c932d0af2a8012de117d6d8ad01c1c6bbf36fe",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000002d00500.ppm",
+      "sha256": "9daa7a4cfb365de4cae36425942ddfaaddf7f9f7132d41f0b722e68198bab283",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000005a00230.ppm",
+      "sha256": "e78a3d0e61763dbd8d9f4f16044571e95f8531d49e7978a6358e3c5826db7c8e",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006800140.ppm",
+      "sha256": "e73a272691cf02e3c4f587db96d0ad50797faa8b408f3bfe138238f9eadf4f8b",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006c000a0.ppm",
+      "sha256": "628ee37f678109015324cc03e78921dd4a4f2a6e1f8657a04c41ab2742b73238",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006d00050.ppm",
+      "sha256": "7b99f2d0967fc309a5c1a62d30a5950aa61eca8771a8a7ada2ddb2dc18fa7dcd",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006d40050.ppm",
+      "sha256": "478b4a4cecbbb3dbee7a30524e4a481a4116d6a20ea9976e7dbc8c05da39cb9f",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006d60050.ppm",
+      "sha256": "478b4a4cecbbb3dbee7a30524e4a481a4116d6a20ea9976e7dbc8c05da39cb9f",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006d70050.ppm",
+      "sha256": "478b4a4cecbbb3dbee7a30524e4a481a4116d6a20ea9976e7dbc8c05da39cb9f",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006d80050.ppm",
+      "sha256": "478b4a4cecbbb3dbee7a30524e4a481a4116d6a20ea9976e7dbc8c05da39cb9f",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-color-0000000006d90050.ppm",
+      "sha256": "478b4a4cecbbb3dbee7a30524e4a481a4116d6a20ea9976e7dbc8c05da39cb9f",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-11052000050002d0.ppm",
+      "sha256": "775e41cb3368a7a4a294c55a6a9d26209b944f9cd1700de8a53efd27ba9e2d05",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1deee00002800168.ppm",
+      "sha256": "858c4fd9ff8325a4a7bd2cc522613da93f5ddd75d3ce0a346fe04e50dba68312",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1e72c00000080008.ppm",
+      "sha256": "d0acb7a259b5cb4c6458ed8f8e3ee9c43dc081b61fec352d6cb4c24477e47b64",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1eaca00002000200.ppm",
+      "sha256": "152cf7be82ec6e974e7e01e347cac6c6d646dc9321c8cca795a8699b6c998696",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1ebca00001000100.ppm",
+      "sha256": "91f9e54e1e0eebf48d26f388914e28ad5dcacafae2f93f19e5be8a894c801ff8",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1ec0a00000800080.ppm",
+      "sha256": "0650fb9a1a559ee52fb47199349c069d2b54df9b98e22749a015b954033d7503",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1ec25000050002d0.ppm",
+      "sha256": "4ca2fde999dab0d4a73c15e67dcdc801cd70690804fdd07c5d5b566000435bc1",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1efbd000050002d0.ppm",
+      "sha256": "775e41cb3368a7a4a294c55a6a9d26209b944f9cd1700de8a53efd27ba9e2d05",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1f355000050002d0.ppm",
+      "sha256": "81ae0036664c27403cbbd11452c95bb8842ce2b9be949f6183dbcf37c7638671",
+      "reference_equal": true
+    },
+    {
+      "file": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h2-buffers/audit-visible/buffer-candidate-resolve-1f6ed000050002d0.ppm",
+      "sha256": "93e8a52fa01c4f9fd7f137d199c7bc2c2f94b8dc9f7746db0b032b7185adf7d8",
+      "reference_equal": true
+    }
+  ],
+  "mali_before_reported_by_coordinator_ms": {
+    "resolve": 551,
+    "buffers": 134,
+    "textures": 47,
+    "texture_hash": 17,
+    "state_including_texture": 138,
+    "draw": 82,
+    "gpu_finish": 98
+  },
+  "mali_after_ms": null,
+  "limits": [
+    "Host llvmpipe GLES2, not Mali performance certification.",
+    "Scene windows vary; other host work was concurrent. Median component timing is indicative, not an isolated FPS claim.",
+    "Audit compares 22 color/resolve targets from one immutable real 3D frame with the original displayed target and stable float replays; does not certify all game scenes.",
+    "Matched arrays/raw values validated under final optimized equality helper; bounded-frame accounting added after performance collection.",
+    "Texture/resolve/shader implementation preserved; global check_leve remains pending C1, incremental gate passes."
+  ]
+}
