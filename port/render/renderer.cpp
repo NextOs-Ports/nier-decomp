@@ -1247,6 +1247,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
   for (auto& r : g_drawRemap) r.reset();  // só UploadVertexTextures liga um remapeamento para ESTE desenho
+  for (auto& u : g_transientUsed) u = false;  // idem para os streams deformados na CPU
   if (rd.skip) return;  // nível de bloom mantido do quadro anterior
   Target& drawTarget = rd.key ? DirectTarget(rd.key, rd.w, rd.h) : CurrentTarget(state);
   if (rd.key) { ++g_directDraws; if (rd.passStart) drawTarget.from3D = false; if (!c.up) drawTarget.from3D = true; }
