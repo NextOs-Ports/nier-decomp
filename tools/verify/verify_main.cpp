@@ -335,6 +335,30 @@ int main(int argc, char** argv) {
         std::string k = "f" + std::to_string(n);
         if (spec.count(k)) { bool fl; double fv = 0; gen_value(spec[k], rng, fl, fv); fpr(in, n)->f64 = fv; }
       }
+      // Caminhos de ponteiros: "@r3.0.10896=ptr" grava, em (ld32(r3+0))+10896, um valor gerado.
+      // Cada passo intermediário recebe um ponteiro válido para a área de teste.
+      for (auto& [key, arg] : spec) {
+        if (key.empty() || key[0] != '@') continue;
+        std::vector<std::string> parts; size_t q = 1, dot;
+        while ((dot = key.find('.', q)) != std::string::npos) { parts.push_back(key.substr(q, dot - q)); q = dot + 1; }
+        parts.push_back(key.substr(q));
+        uint32_t cur = parts[0] == "r13" ? kTls + 0x100 : gpr(in, atoi(parts[0].c_str() + 1))->u32;
+        auto in_area = [&](uint32_t a, std::vector<uint8_t>*& v, uint32_t& off) {
+          if (a >= kScratch && a + 4 <= kScratch + kScratchSize) { v = &s; off = a - kScratch; return true; }
+          if (a >= kTls && a + 4 <= kTls + kTlsSize) { v = &t; off = a - kTls; return true; }
+          return false; };
+        bool okp = true;
+        for (size_t k = 1; k < parts.size() && okp; ++k) {
+          uint32_t addr = cur + (uint32_t)strtoul(parts[k].c_str(), nullptr, 0);
+          std::vector<uint8_t>* v; uint32_t off;
+          if (!in_area(addr, v, off)) { okp = false; break; }
+          uint32_t val;
+          if (k + 1 < parts.size()) val = scratch_ptr(rng, 16);
+          else { bool fl; double fv; val = (uint32_t)gen_value(arg, rng, fl, fv); }
+          uint32_t be = __builtin_bswap32(val); std::memcpy(&(*v)[off], &be, 4);
+          cur = val;
+        }
+      }
       State a = run(e.orig, in, s, t, st);
       State b = run(e.decomp, in, s, t, st);
       err = diff(a, b, callargs);

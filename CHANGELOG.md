@@ -4,6 +4,7 @@
 
 - Executável ARM64 rodou no Mali-450 (.164): abriu e leu os dois CPK, 56 trocas de quadro por segundo com GPU nula, ~357 MiB de memória, 61→63 °C.
 - Esqueleto do renderizador GLES2 próprio (MIT): thread dona do contexto, render interno 854x480, mipmaps em texturas estáticas, decodificação Xenos e ganchos nos 6 pontos do D3D.
+- Reconstruída e verificada a espera ativa da CPU pela GPU do D3D (`0x82579D50`), a função mais quente do boot. No port, a pausa dela cede o núcleo em vez de girar.
 - Comparador agora cobre chamadas virtuais: destinos falsos registram alvo e argumentos, e a sequência de chamadas também é comparada. 4 funções verificadas.
 - Primeiras 3 funções com decompilação verificada (204 bytes), provadas pelo novo comparador `tools/verify`: a reconstrução roda contra a tradução do original em 2.000 estados aleatórios. Teste de mutação confirmou que o comparador reprova erro de comparação, de limite e de deslocamento.
 - Boot no PC provado: o jogo abre e lê `LAYER1.CPK`/`LAYER2.CPK`, roda o laço principal com mais de 900 trocas de quadro em 20 s e não deixa import pendente. O passo de tempo da lógica vem do relógio real (`mftb`), e a soma bate com o tempo de parede em 0,007%.

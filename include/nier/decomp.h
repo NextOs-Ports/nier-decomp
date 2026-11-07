@@ -42,6 +42,17 @@ inline void call_virtual(PPCContext& __restrict ctx, uint8_t* base, uint32_t obj
 }  // namespace nier::guest
 #endif
 
+// Pausa curta numa espera ativa do guest. No console era `db16cyc` (só atraso,
+// sem efeito em memória ou registradores); no port cede o núcleo ao sistema.
+#include <sched.h>
+namespace nier::host {
+inline void spin_pause() {
+#ifndef NIER_VERIFY
+  sched_yield();
+#endif
+}
+}  // namespace nier::host
+
 #ifdef NIER_VERIFY
 #define NIER_DECOMP(name) extern "C" void decomp_##name([[maybe_unused]] PPCContext& __restrict ctx, [[maybe_unused]] uint8_t* base)
 #else
