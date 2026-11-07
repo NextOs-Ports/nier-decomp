@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 18: templates de leitura de bit de campo, endereço de objeto global, valor limitado e item de lista, e a variante de 144 bytes do template de pool; 101 instâncias provadas.
 - Lote 17: lotes 17 e 18 de bibliotecas do X1 (saídas PCM, seletores, provas também em ARM64/QEMU). O comparador agora intercepta exit/abort do runtime durante as execuções.
 - Lote 16: mais templates de construtor, encaminhamento e busca (com deslocamentos do rlwinm extraídos por instância) e lote 16 de bibliotecas do X1. HANDOFF reescrito com o estado da rodada.
 - GAMEPLAY NO PC com o renderizador GLES2 próprio: abertura do prólogo (cidade em ruínas sob neve) e controle do personagem com HUD e tutorial. Lote 15 de reconstrução (mais templates de ciclo de vida de objetos) e lotes 7–14 de bibliotecas do X1 (CRT numérico, trigonometria, áudio PCM/ADPCM/mixagem).

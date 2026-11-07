@@ -253,3 +253,30 @@ inline void make_node(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t a
   ctx.r3.u64 = node;
 }
 }  // namespace nier::lifecycle
+
+namespace nier::lifecycle {
+// Bit/campo de uma palavra: rlwinm(campo, sh, mb, me).
+inline void field_bits(PPCContext& ctx, uint8_t* base, uint32_t off, uint32_t sh, uint32_t mb, uint32_t me) {
+  ctx.r3.u64 = rlwinm(ld32(base, ctx.r3.u32 + off), sh, mb, me);
+}
+// Endereço de um objeto global (lis/addi: sinal estendido no registrador de 64 bits).
+inline void global_address(PPCContext& ctx, uint32_t addr) { ctx.r3.s64 = static_cast<int32_t>(addr); }
+// Campo limitado a [0, max] somado a uma base.
+inline void clamped_plus(PPCContext& ctx, uint8_t* base, uint32_t off, int32_t max, int32_t add) {
+  int32_t v = static_cast<int32_t>(ld32(base, ctx.r3.u32 + off));
+  if (v <= 0) v = 0; else if (v >= max) v = max;
+  ctx.r3.u64 = static_cast<uint64_t>(static_cast<int64_t>(v) + add);
+}
+// Item `index` de uma lista de ponteiros (quantidade em +count_off, itens a partir de
+// +first*4); devolve o campo +field do item, ou 0.
+inline void list_item_field(PPCContext& ctx, uint8_t* base, uint32_t count_off, int32_t first, uint32_t field,
+                            int32_t missing = 0) {
+  const uint32_t self = ctx.r3.u32;
+  const int32_t index = static_cast<int32_t>(ctx.r4.u32);
+  if (index >= 0 && index < static_cast<int32_t>(ld32(base, self + count_off))) {
+    const uint32_t item = ld32(base, self + static_cast<uint32_t>(index + first) * 4);
+    if (item != 0) { ctx.r3.u64 = ld32(base, item + field); return; }
+  }
+  ctx.r3.s64 = missing;   // valor de "não achou" (li: com sinal)
+}
+}  // namespace nier::lifecycle

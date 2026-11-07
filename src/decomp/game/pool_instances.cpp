@@ -63,6 +63,10 @@ NIER_VERIFY_SPEC(sub_82147A88, 0x82147A88, "r3=ptr r4=ptr @r4.0=ptr @r4.0.104=ra
 NIER_DECOMP(sub_8214B568) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {4288, 4292, 4296}, {4304, 4308, 4316, 4320}); }
 NIER_VERIFY_SPEC(sub_8214B568, 0x8214B568, "r3=ptr r4=ptr @r4.0=ptr @r4.0.4296=range:0..0xFFFFFFFF @r4.0.4288=ptr @r4.0.4292=ptr @r3.4316=ptr");
 
+// sub_8214C510 (144 bytes) — build144
+NIER_DECOMP(sub_8214C510) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 1760, 1764, {7104, 7108, 0, 7120}); }
+NIER_VERIFY_SPEC(sub_8214C510, 0x8214C510, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+
 // sub_8214C6D8 (128 bytes) — take
 NIER_DECOMP(sub_8214C6D8) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {1760, 1764, 1768}, {7104, 7108, 7116, 7120}); }
 NIER_VERIFY_SPEC(sub_8214C6D8, 0x8214C6D8, "r3=ptr @r3.7116=ptr @r3.7108=ptr");
@@ -70,6 +74,10 @@ NIER_VERIFY_SPEC(sub_8214C6D8, 0x8214C6D8, "r3=ptr @r3.7116=ptr @r3.7108=ptr");
 // sub_8214C758 (176 bytes) — release
 NIER_DECOMP(sub_8214C758) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {1760, 1764, 1768}, {7104, 7108, 7116, 7120}); }
 NIER_VERIFY_SPEC(sub_8214C758, 0x8214C758, "r3=ptr r4=ptr @r4.0=ptr @r4.0.1768=range:0..0xFFFFFFFF @r4.0.1760=ptr @r4.0.1764=ptr @r3.7116=ptr");
+
+// sub_8214D768 (144 bytes) — build144
+NIER_DECOMP(sub_8214D768) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 1760, 1764, {28416, 28420, 0, 28432}); }
+NIER_VERIFY_SPEC(sub_8214D768, 0x8214D768, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_8214D8E0 (128 bytes) — take
 NIER_DECOMP(sub_8214D8E0) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {1760, 1764, 1768}, {28416, 28420, 28428, 28432}); }
@@ -79,6 +87,10 @@ NIER_VERIFY_SPEC(sub_8214D8E0, 0x8214D8E0, "r3=ptr @r3.28428=ptr @r3.28420=ptr")
 NIER_DECOMP(sub_8214D960) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {1760, 1764, 1768}, {28416, 28420, 28428, 28432}); }
 NIER_VERIFY_SPEC(sub_8214D960, 0x8214D960, "r3=ptr r4=ptr @r4.0=ptr @r4.0.1768=range:0..0xFFFFFFFF @r4.0.1760=ptr @r4.0.1764=ptr @r3.28428=ptr");
 
+// sub_8214EB10 (144 bytes) — build144
+NIER_DECOMP(sub_8214EB10) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 704, 708, {720, 724, 0, 736}); }
+NIER_VERIFY_SPEC(sub_8214EB10, 0x8214EB10, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+
 // sub_8214ECA8 (128 bytes) — take
 NIER_DECOMP(sub_8214ECA8) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {704, 708, 712}, {720, 724, 732, 736}); }
 NIER_VERIFY_SPEC(sub_8214ECA8, 0x8214ECA8, "r3=ptr @r3.732=ptr @r3.724=ptr");
@@ -86,6 +98,10 @@ NIER_VERIFY_SPEC(sub_8214ECA8, 0x8214ECA8, "r3=ptr @r3.732=ptr @r3.724=ptr");
 // sub_8214ED28 (176 bytes) — release
 NIER_DECOMP(sub_8214ED28) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {704, 708, 712}, {720, 724, 732, 736}); }
 NIER_VERIFY_SPEC(sub_8214ED28, 0x8214ED28, "r3=ptr r4=ptr @r4.0=ptr @r4.0.712=range:0..0xFFFFFFFF @r4.0.704=ptr @r4.0.708=ptr @r3.732=ptr");
+
+// sub_8214FCD0 (144 bytes) — build144
+NIER_DECOMP(sub_8214FCD0) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 1216, 1220, {1232, 1236, 0, 1248}); }
+NIER_VERIFY_SPEC(sub_8214FCD0, 0x8214FCD0, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_8214FE68 (128 bytes) — take
 NIER_DECOMP(sub_8214FE68) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {1216, 1220, 1224}, {1232, 1236, 1244, 1248}); }
@@ -95,6 +111,10 @@ NIER_VERIFY_SPEC(sub_8214FE68, 0x8214FE68, "r3=ptr @r3.1244=ptr @r3.1236=ptr");
 NIER_DECOMP(sub_8214FEE8) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {1216, 1220, 1224}, {1232, 1236, 1244, 1248}); }
 NIER_VERIFY_SPEC(sub_8214FEE8, 0x8214FEE8, "r3=ptr r4=ptr @r4.0=ptr @r4.0.1224=range:0..0xFFFFFFFF @r4.0.1216=ptr @r4.0.1220=ptr @r3.1244=ptr");
 
+// sub_82150E90 (144 bytes) — build144
+NIER_DECOMP(sub_82150E90) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 2240, 2244, {2256, 2260, 0, 2272}); }
+NIER_VERIFY_SPEC(sub_82150E90, 0x82150E90, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+
 // sub_82151028 (128 bytes) — take
 NIER_DECOMP(sub_82151028) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {2240, 2244, 2248}, {2256, 2260, 2268, 2272}); }
 NIER_VERIFY_SPEC(sub_82151028, 0x82151028, "r3=ptr @r3.2268=ptr @r3.2260=ptr");
@@ -102,6 +122,10 @@ NIER_VERIFY_SPEC(sub_82151028, 0x82151028, "r3=ptr @r3.2268=ptr @r3.2260=ptr");
 // sub_821510A8 (176 bytes) — release
 NIER_DECOMP(sub_821510A8) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {2240, 2244, 2248}, {2256, 2260, 2268, 2272}); }
 NIER_VERIFY_SPEC(sub_821510A8, 0x821510A8, "r3=ptr r4=ptr @r4.0=ptr @r4.0.2248=range:0..0xFFFFFFFF @r4.0.2240=ptr @r4.0.2244=ptr @r3.2268=ptr");
+
+// sub_82152490 (144 bytes) — build144
+NIER_DECOMP(sub_82152490) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 144, 148, {1440, 1444, 0, 1456}); }
+NIER_VERIFY_SPEC(sub_82152490, 0x82152490, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_82152608 (128 bytes) — take
 NIER_DECOMP(sub_82152608) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {144, 148, 152}, {1440, 1444, 1452, 1456}); }
@@ -127,6 +151,10 @@ NIER_VERIFY_SPEC(sub_82156FA0, 0x82156FA0, "r3=ptr r4=ptr @r4.0=ptr @r4.0.184=ra
 NIER_DECOMP(sub_82158688) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {176, 180, 184}, {768, 772, 780, 784}); }
 NIER_VERIFY_SPEC(sub_82158688, 0x82158688, "r3=ptr r4=ptr @r4.0=ptr @r4.0.184=range:0..0xFFFFFFFF @r4.0.176=ptr @r4.0.180=ptr @r3.780=ptr");
 
+// sub_82159688 (144 bytes) — build144
+NIER_DECOMP(sub_82159688) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 176, 180, {3072, 3076, 0, 3088}); }
+NIER_VERIFY_SPEC(sub_82159688, 0x82159688, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+
 // sub_82159800 (128 bytes) — take
 NIER_DECOMP(sub_82159800) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {176, 180, 184}, {3072, 3076, 3084, 3088}); }
 NIER_VERIFY_SPEC(sub_82159800, 0x82159800, "r3=ptr @r3.3084=ptr @r3.3076=ptr");
@@ -134,6 +162,10 @@ NIER_VERIFY_SPEC(sub_82159800, 0x82159800, "r3=ptr @r3.3084=ptr @r3.3076=ptr");
 // sub_82159880 (176 bytes) — release
 NIER_DECOMP(sub_82159880) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {176, 180, 184}, {3072, 3076, 3084, 3088}); }
 NIER_VERIFY_SPEC(sub_82159880, 0x82159880, "r3=ptr r4=ptr @r4.0=ptr @r4.0.184=range:0..0xFFFFFFFF @r4.0.176=ptr @r4.0.180=ptr @r3.3084=ptr");
+
+// sub_8215A7F8 (144 bytes) — build144
+NIER_DECOMP(sub_8215A7F8) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 176, 180, {12288, 12292, 0, 12304}); }
+NIER_VERIFY_SPEC(sub_8215A7F8, 0x8215A7F8, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_8215A970 (128 bytes) — take
 NIER_DECOMP(sub_8215A970) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {176, 180, 184}, {12288, 12292, 12300, 12304}); }
@@ -143,6 +175,10 @@ NIER_VERIFY_SPEC(sub_8215A970, 0x8215A970, "r3=ptr @r3.12300=ptr @r3.12292=ptr")
 NIER_DECOMP(sub_8215A9F0) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {176, 180, 184}, {12288, 12292, 12300, 12304}); }
 NIER_VERIFY_SPEC(sub_8215A9F0, 0x8215A9F0, "r3=ptr r4=ptr @r4.0=ptr @r4.0.184=range:0..0xFFFFFFFF @r4.0.176=ptr @r4.0.180=ptr @r3.12300=ptr");
 
+// sub_82168F48 (144 bytes) — build144
+NIER_DECOMP(sub_82168F48) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 6368, 6372, {25536, 25540, 0, 25552}); }
+NIER_VERIFY_SPEC(sub_82168F48, 0x82168F48, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+
 // sub_82169110 (128 bytes) — take
 NIER_DECOMP(sub_82169110) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {6368, 6372, 6376}, {25536, 25540, 25548, 25552}); }
 NIER_VERIFY_SPEC(sub_82169110, 0x82169110, "r3=ptr @r3.25548=ptr @r3.25540=ptr");
@@ -151,6 +187,10 @@ NIER_VERIFY_SPEC(sub_82169110, 0x82169110, "r3=ptr @r3.25548=ptr @r3.25540=ptr")
 NIER_DECOMP(sub_82169190) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {6368, 6372, 6376}, {25536, 25540, 25548, 25552}); }
 NIER_VERIFY_SPEC(sub_82169190, 0x82169190, "r3=ptr r4=ptr @r4.0=ptr @r4.0.6376=range:0..0xFFFFFFFF @r4.0.6368=ptr @r4.0.6372=ptr @r3.25548=ptr");
 
+// sub_8216A190 (144 bytes) — build144
+NIER_DECOMP(sub_8216A190) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 3296, 3300, {26496, 26500, 0, 26512}); }
+NIER_VERIFY_SPEC(sub_8216A190, 0x8216A190, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+
 // sub_8216A308 (128 bytes) — take
 NIER_DECOMP(sub_8216A308) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {3296, 3300, 3304}, {26496, 26500, 26508, 26512}); }
 NIER_VERIFY_SPEC(sub_8216A308, 0x8216A308, "r3=ptr @r3.26508=ptr @r3.26500=ptr");
@@ -158,6 +198,10 @@ NIER_VERIFY_SPEC(sub_8216A308, 0x8216A308, "r3=ptr @r3.26508=ptr @r3.26500=ptr")
 // sub_8216A388 (176 bytes) — release
 NIER_DECOMP(sub_8216A388) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {3296, 3300, 3304}, {26496, 26500, 26508, 26512}); }
 NIER_VERIFY_SPEC(sub_8216A388, 0x8216A388, "r3=ptr r4=ptr @r4.0=ptr @r4.0.3304=range:0..0xFFFFFFFF @r4.0.3296=ptr @r4.0.3300=ptr @r3.26508=ptr");
+
+// sub_8216B530 (144 bytes) — build144
+NIER_DECOMP(sub_8216B530) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 8, 12, {80, 84, 0, 96}); }
+NIER_VERIFY_SPEC(sub_8216B530, 0x8216B530, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_821909F0 (244 bytes) — init_mulli
 NIER_DECOMP(sub_821909F0) { pool_init_storage(base, ctx.r3.u32, 224, 212); }
@@ -178,6 +222,10 @@ NIER_VERIFY_SPEC(sub_822192D0, 0x822192D0, "r3=ptr @r3.20=ptr @r3.12=ptr");
 // sub_8225E808 (176 bytes) — release
 NIER_DECOMP(sub_8225E808) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {40, 44, 48}, {8, 12, 20, 24}); }
 NIER_VERIFY_SPEC(sub_8225E808, 0x8225E808, "r3=ptr r4=ptr @r4.0=ptr @r4.0.48=range:0..0xFFFFFFFF @r4.0.40=ptr @r4.0.44=ptr @r3.20=ptr");
+
+// sub_82268B18 (144 bytes) — build144
+NIER_DECOMP(sub_82268B18) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 36, 40, {8, 12, 0, 24}); }
+NIER_VERIFY_SPEC(sub_82268B18, 0x82268B18, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_82268DF8 (176 bytes) — release
 NIER_DECOMP(sub_82268DF8) { pool_release(base, ctx.r3.u32, ctx.r4.u32, {36, 40, 44}, {8, 12, 20, 24}); }
@@ -230,6 +278,10 @@ NIER_VERIFY_SPEC(sub_8232B6F8, 0x8232B6F8, "r3=ptr @r3.20=ptr @r3.12=ptr");
 // sub_8232B778 (128 bytes) — take
 NIER_DECOMP(sub_8232B778) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {8, 12, 16}, {8, 12, 20, 24}); }
 NIER_VERIFY_SPEC(sub_8232B778, 0x8232B778, "r3=ptr @r3.20=ptr @r3.12=ptr");
+
+// sub_82348838 (144 bytes) — build144
+NIER_DECOMP(sub_82348838) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 12, 16, {8, 12, 0, 24}); }
+NIER_VERIFY_SPEC(sub_82348838, 0x82348838, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_82358280 (284 bytes) — init_rlw
 NIER_DECOMP(sub_82358280) { pool_init_storage(base, ctx.r3.u32, 96, 88); }
@@ -330,6 +382,10 @@ NIER_VERIFY_SPEC(sub_823A41D0, 0x823A41D0, "r3=ptr r4=ptr @r4.0=ptr @r4.0.12=ran
 // sub_823A47D0 (244 bytes) — init_mulli
 NIER_DECOMP(sub_823A47D0) { pool_init_storage(base, ctx.r3.u32, 112, 100); }
 NIER_VERIFY_SPEC(sub_823A47D0, 0x823A47D0, "r3=ptr r3=ptr @r3.0=range:0..6 @r3.4=ptr");
+
+// sub_823A48C8 (144 bytes) — build144
+NIER_DECOMP(sub_823A48C8) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 96, 100, {8, 12, 0, 24}); }
+NIER_VERIFY_SPEC(sub_823A48C8, 0x823A48C8, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
 
 // sub_823A4B80 (128 bytes) — take
 NIER_DECOMP(sub_823A4B80) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {96, 100, 104}, {8, 12, 20, 24}); }

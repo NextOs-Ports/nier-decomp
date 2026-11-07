@@ -21,7 +21,8 @@ REF = {'dtor_vtable_delete': (0x824DEAB8, 76), 'ctor_base_field_vtable': (0x8226
        'dtor_vtable_free': (0x82106118, 72), 'dtor_body_free': (0x82497AA8, 76),
        'forward_member_then_self': (0x8226AC18, 76), 'ctor_base_memset': (0x8226B490, 96),
        'member_pair_virtual_then': (0x8226BA98, 92), 'find_then_resolve': (0x82175360, 116),
-}
+       'field_bits': (0x82269EE0, 12), 'global_address': (0x8210F920, 12), 'clamped_plus': (0x821B5F10, 44),
+       'list_item_field': (0x823B62B8, 76)}
 # dtor_two_members e make_node (templates no cabeçalho) chamam código do runtime que encerra o
 # processo do comparador fora do caminho interceptado; ficam fora até isso ser resolvido.
 # chain3_global e static_init (templates no cabeçalho) chamam inicialização real do CRT/runtime,
@@ -39,6 +40,25 @@ for fn in inv:
         if n != rn: continue
         w = words(a, n)
         if shape(w) != refs[kind]: continue
+        if kind in ('field_bits', 'global_address', 'clamped_plus', 'list_item_field'):
+            hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+            if kind == 'field_bits':
+                args = f'{s16(w[0])}, {(w[1] >> 11) & 31}, {(w[1] >> 6) & 31}, {(w[1] >> 1) & 31}'
+                if (w[1] >> 21) & 31 != 3: break
+                spec = 'r3=ptr'; call = f'field_bits(ctx, base, {args})'
+            elif kind == 'global_address':
+                if (w[0] >> 21) & 31 != (w[1] >> 16) & 31 or (w[1] >> 21) & 31 != 3: break
+                call = f'global_address(ctx, 0x{hi_lo(0, 1):08X})'; spec = ''
+            elif kind == 'clamped_plus':
+                if s16(w[3]) != s16(w[5]) or s16(w[6]) != s16(w[9]): break
+                call = f'clamped_plus(ctx, base, {s16(w[0])}, {s16(w[3])}, {s16(w[6])})'; spec = 'r3=ptr'
+            else:
+                call = f'list_item_field(ctx, base, {s16(w[2])}, {s16(w[10])}, {s16(w[15])}, {s16(w[17])})'
+                spec = 'r3=ptr r4=range:0xFFFFFFFF..8'
+            out.append(f'// sub_{a:08X} ({n} bytes) — {kind}\n'
+                       f'NIER_DECOMP(sub_{a:08X}) {{ {call}; }}\n'
+                       f'NIER_VERIFY_SPEC(sub_{a:08X}, 0x{a:08X}, "{spec}");\n')
+            break
         frame = -s16(w[4] if kind in ('dtor_allocator_delete', 'dtor_body_free', 'forward_member_then_self',
                                       'find_then_resolve', 'make_node') else
                      (w[2] if kind in ('chain3_global', 'static_init') else w[3]))
