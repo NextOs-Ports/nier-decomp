@@ -7,6 +7,14 @@ secs=${4:-90}
 [ "$secs" -le 300 ] || { echo "limite da casa: no máximo 300 s" >&2; exit 2; }
 shift 3; [ $# -gt 0 ] && shift
 mkdir -p "$out/capturas" "$out/shaders" "$out/user" "$out/cache"
+# O link do host copia a librexruntime.so do SDK do Rayman (sem os patches NieR: teclado padrão "Nier", perfil
+# local). Sem eles o nome é recusado para sempre ("Please enter another name"). Usa a do X1 quando faltar o patch.
+x1lib=/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/host/librexruntime.so
+if ! strings "$build/librexruntime.so" 2>/dev/null | grep -q default_keyboard_text; then
+  if [ -f "$x1lib" ] && strings "$x1lib" | grep -q default_keyboard_text; then
+    cp -a "$x1lib" "$build/librexruntime.so"; echo "run_host: librexruntime.so sem patch NieR; copiada a do X1 ($(sha256sum "$x1lib" | cut -c1-12))" >&2
+  else echo "run_host: AVISO: librexruntime.so sem patch do teclado e sem lib do X1" >&2; fi
+fi
 export NIER_NATIVE_RENDER=1
 export NIER_GLES2_CAPTURE="$out/capturas"
 export NIER_GLES2_SHADERS="$out/shaders"

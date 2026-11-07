@@ -151,31 +151,54 @@ void RecordSkip(const char* reason) {
 }
 
 // ---------------------------------------------------------------- GL (thread de render)
-struct Target { GLuint texture = 0, fbo = 0, depth = 0; int w = 0, h = 0; uint64_t clearedFrame = ~0ull; uint64_t drew3DFrame = ~0ull; bool from3D = false; };
+struct Target {
+  GLuint texture = 0, fbo = 0, depth = 0; int w = 0, h = 0; uint64_t clearedFrame = ~0ull; uint64_t drew3DFrame = ~0ull; bool from3D = false;
+  // Resolve sem cópia (C1-G0): depois de um Resolve de tela cheia a textura do alvo passa ao destino (troca de
+  // texturas entre FBOs, ping-pong) e `holder` guarda a chave em g_resolved onde está o conteúdo mais recente;
+  // um desenho novo no alvo zera `holder`. Passes menores (bloom) desenham direto no FBO do destino.
+  uint64_t holder = 0;
+  bool shared = false;  // textura/FBO emprestados de outro destino (mesmo conteúdo): nunca apagar nem desenhar nela
+};
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
 uint64_t g_mainTarget = 0;
 // Resolve preguiçoso (Mali: cada glCopyTexSubImage esvazia o tile e custa ms): a cópia só acontece se a
 // textura destino for amostrada ou antes de o alvo de origem ser alterado; sem uso no quadro, é descartada.
-struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; };
+GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
+GLint g_blitRect = -1, g_blitFlip = -1;
+bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
+struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; bool srcResolved; };
 std::vector<PendingCopy> g_pendingCopies;
 std::set<uint64_t> g_frameSampled, g_everSampled;
-std::map<uint64_t, uint32_t> g_resolveSeen;  // quantas vezes cada destino foi resolvido  // texturas amostradas no quadro (olhando à frente) e alguma vez
 uint32_t g_copiesDone = 0, g_copiesSkipped = 0;
+// Cópia parcial de Resolve = quad com a textura de origem desenhado no FBO do destino (blit pela GPU, como o
+// Rayman no mesmo .164). Sem glGet (no Mali sincroniza o pipeline) e sem glCopyTexSubImage (grava e relê a
+// tela). O desenho seguinte religa FBO/programa/estado por conta própria (ReplayDraw/CurrentTarget).
 void DoCopy(const PendingCopy& p) {
-  auto s = g_targets.find(p.src); auto d = g_resolved.find(p.dst);
-  if (s == g_targets.end() || d == g_resolved.end()) return;
-  GLint fbo = 0, tex = 0;
-  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
-  glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
-  glBindFramebuffer(GL_FRAMEBUFFER, s->second.fbo);
-  glBindTexture(GL_TEXTURE_2D, d->second.texture);
-  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, p.x0, p.y0, std::min(p.w, s->second.w - p.x0), std::min(p.h, s->second.h - p.y0));
-  d->second.from3D = s->second.drew3DFrame == g_frames.load();
-  glBindTexture(GL_TEXTURE_2D, GLuint(tex));
-  glBindFramebuffer(GL_FRAMEBUFFER, GLuint(fbo));
+  auto& srcMap = p.srcResolved ? g_resolved : g_targets;
+  auto s = srcMap.find(p.src); auto d = g_resolved.find(p.dst);
+  if (s == srcMap.end() || d == g_resolved.end() || !s->second.texture || !d->second.fbo) return;
+  Target& src = s->second; Target& dst = d->second;
+  glBindFramebuffer(GL_FRAMEBUFFER, dst.fbo);
+  glViewport(0, 0, dst.w, dst.h);
+  glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
+  glDepthMask(GL_FALSE);
+  glColorMask(1, 1, 1, 1);
+  glUseProgram(g_blitProgram);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, src.texture);
+  glUniform4f(g_blitRect, float(p.w) / src.w, float(p.h) / src.h, float(p.x0) / src.w, float(p.y0) / src.h);
+  glUniform1f(g_blitFlip, 0.0f);
+  glBindBuffer(GL_ARRAY_BUFFER, g_blitBuffer);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  for (uint32_t i = 1; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  dst.from3D = src.drew3DFrame == g_frames.load();
   ++g_copiesDone;
+  if (GlProfile()) { static int n = 0; if (n++ < 12) std::fprintf(stderr, "[nier-perfil] cópia parcial: origem %dx%d%s janela %d,%d %dx%d -> destino %dx%d (chave %016llX)\n", src.w, src.h, p.srcResolved ? " (resolvida)" : "", p.x0, p.y0, p.w, p.h, dst.w, dst.h, (unsigned long long)p.dst); }
 }
+uint32_t g_aliases = 0, g_directDraws = 0, g_directPasses = 0;
 void FlushCopiesFrom(uint64_t src) {  // antes de alterar o alvo de origem
   for (size_t i = 0; i < g_pendingCopies.size();) {
     if (g_pendingCopies[i].src == src) { DoCopy(g_pendingCopies[i]); g_pendingCopies.erase(g_pendingCopies.begin() + i); }
@@ -186,7 +209,6 @@ void FlushCopyTo(uint64_t dst) {  // antes de amostrar a textura destino
   for (size_t i = 0; i < g_pendingCopies.size(); ++i)
     if (g_pendingCopies[i].dst == dst) { DoCopy(g_pendingCopies[i]); g_pendingCopies.erase(g_pendingCopies.begin() + i); return; }
 }
-GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
 std::map<std::string, uint32_t> g_skipReasons;
 bool g_depth24 = false;
 
@@ -198,7 +220,7 @@ void Skip(const char* reason) {
 GLuint CompileShader(GLenum type, const char* source, const char* name) {
   GLuint s = glCreateShader(type);
   glShaderSource(s, 1, &source, nullptr);
-  glCompileShader(s);
+  glCompileShader(s);  // LEVE_OK: compilar só na 1ª vez do programa (cache g_programs por chave VS/PS) e no init do blit
   GLint ok = 0;
   glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
   if (!ok) {
@@ -210,14 +232,17 @@ GLuint CompileShader(GLenum type, const char* source, const char* name) {
 }
 
 void CreateBlit() {
-  const char* vs = "attribute vec2 p; varying vec2 uv; void main(){ uv = vec2(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5); gl_Position = vec4(p, 0.0, 1.0); }";
+  // r = (escala.xy, deslocamento.xy) da janela de origem em UV; flip = 1 desvira (apresentação), 0 copia reto (Resolve).
+  const char* vs = "attribute vec2 p; varying vec2 uv; uniform vec4 r; uniform float flip; void main(){ vec2 q = p * 0.5 + 0.5; q.y = mix(q.y, 1.0 - q.y, flip); uv = q * r.xy + r.zw; gl_Position = vec4(p, 0.0, 1.0); }";
   const char* fs = "precision mediump float; varying vec2 uv; uniform sampler2D t; void main(){ gl_FragColor = vec4(texture2D(t, uv).rgb, 1.0); }";
   GLuint v = CompileShader(GL_VERTEX_SHADER, vs, "blit"), f = CompileShader(GL_FRAGMENT_SHADER, fs, "blit");
   g_blitProgram = glCreateProgram();
   glAttachShader(g_blitProgram, v); glAttachShader(g_blitProgram, f);
   glBindAttribLocation(g_blitProgram, 0, "p");
-  glLinkProgram(g_blitProgram);
+  glLinkProgram(g_blitProgram);  // LEVE_OK: inicialização (CreateBlit, uma vez)
   glDeleteShader(v); glDeleteShader(f);
+  g_blitRect = glGetUniformLocation(g_blitProgram, "r");
+  g_blitFlip = glGetUniformLocation(g_blitProgram, "flip");
   const float quad[] = {-1, -1, 1, -1, -1, 1, 1, 1};
   glGenBuffers(1, &g_blitBuffer);
   glBindBuffer(GL_ARRAY_BUFFER, g_blitBuffer);
@@ -228,11 +253,16 @@ void CreateBlit() {
   g_depth24 = ext && std::strstr(ext, "GL_OES_depth24");
 }
 
-void CreateTarget(Target& t, int w, int h, bool withDepth) {
-  if (t.texture) glDeleteTextures(1, &t.texture);
-  if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
-  if (t.depth) glDeleteRenderbuffers(1, &t.depth);
+void ReleaseTarget(Target& t) {
+  if (!t.shared) {
+    if (t.texture) glDeleteTextures(1, &t.texture);
+    if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
+    if (t.depth) glDeleteRenderbuffers(1, &t.depth);
+  }
   t = Target{};
+}
+void CreateTarget(Target& t, int w, int h, bool withDepth) {
+  ReleaseTarget(t);
   t.w = w; t.h = h;
   glGenTextures(1, &t.texture);
   glBindTexture(GL_TEXTURE_2D, t.texture);
@@ -264,7 +294,26 @@ uint32_t PhysicalOf(uint32_t base) { return (base & 0x1FFFFFFF) + (base >= 0xE00
 uint64_t TexKey(const xenos::TextureFetch& t) { return uint64_t(PhysicalOf(t.base)) << 32 | uint64_t(t.width) << 16 | t.height; }
 
 // Alvo de cor atual do guest (chave RB_SURFACE_INFO/RB_COLOR_INFO), na resolução interna.
-Target& CurrentTarget(const uint8_t* state) {
+// Limpeza única por quadro de um alvo (cor e profundidade), com o FBO já ligado.
+void ClearOncePerFrame(Target& t) {
+  if (t.clearedFrame == g_frames.load()) return;
+  t.clearedFrame = g_frames.load();
+  glDisable(GL_SCISSOR_TEST);
+  glDepthMask(GL_TRUE);
+  glColorMask(1, 1, 1, 1);
+  glClearDepthf(1.0f);
+  glClearColor(0, 0, 0, 1);
+  glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+}
+// FBO próprio do destino de Resolve (passe desenhado direto, sem cópia): tamanho do destino na escala interna.
+Target& DirectTarget(uint64_t key, int w, int h) {
+  Target& t = g_resolved[key];
+  if (t.w != w || t.h != h || !t.depth || t.shared) CreateTarget(t, w, h, true);
+  glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
+  ClearOncePerFrame(t);
+  return t;
+}
+Target& CurrentTarget(const uint8_t* state, bool forDraw = true) {
   uint32_t surface = BE32(Field(state, kSurfaceInfo)), color = BE32(Field(state, kColorInfo));
   uint64_t key = uint64_t(color & 0xF0FFF) << 16 | (surface & 0x3FFF);
   uint32_t guestPitch = std::max<uint32_t>(surface & 0x3FFF, 1);
@@ -272,25 +321,21 @@ Target& CurrentTarget(const uint8_t* state) {
   if (!g_pendingCopies.empty()) FlushCopiesFrom(key);
   Target& t = g_targets[key];
   if (t.w != w || t.h != h) CreateTarget(t, w, h, true);
+  if (forDraw) t.holder = 0;  // o conteúdo mais novo volta a ser a textura do próprio alvo
   if ((key & 0x3FFF) > (g_mainTarget & 0x3FFF)) g_mainTarget = key;
   glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
   // O ClearF do 9328 ainda não foi localizado e os Resolve do jogo não pedem limpeza (flags 0/4):
   // cor e profundidade são limpas na 1ª vez do alvo em cada quadro (sem isso, passes aditivos que
   // realimentam a tela resolvida saturam para branco).
-  if (t.clearedFrame != g_frames.load()) {
-    t.clearedFrame = g_frames.load();
-    glDisable(GL_SCISSOR_TEST);
-    glDepthMask(GL_TRUE);
-    glColorMask(1, 1, 1, 1);
-    glClearDepthf(1.0f);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-  }
+  ClearOncePerFrame(t);
   return t;
 }
 
 // ---- texturas
-struct Texture { GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; GLenum glFormat = 0; };
+// Conferência de mudança com recuo (regime ≤ 1 ms/quadro na Mali): textura que não muda é conferida a cada
+// 2, 4, … 64 quadros; a que já mudou alguma vez, no máximo a cada 8 (texto novo aparece em < 0,3 s a 30 fps);
+// a que muda sempre (planos de vídeo) volta a ser conferida todo quadro.
+struct Texture { GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; GLenum glFormat = 0; uint64_t nextCheck = 0; uint32_t stable = 0; };
 std::unordered_map<uint64_t, Texture> g_textures;
 std::vector<uint8_t> g_pixels;
 GLuint g_white = 0;
@@ -329,7 +374,6 @@ GLuint White() {
 
 double g_pResolve = 0; uint32_t g_resolves = 0, g_resolveCopies = 0;
 double g_pTarget = 0, g_pState = 0, g_pBuffers = 0, g_pDraw = 0, g_pFinish = 0;
-bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
 double Ms(Clock::time_point a, Clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); }
 double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs = 0, g_swapMs = 0;
 std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
@@ -347,6 +391,13 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
     if (!g_pendingCopies.empty()) FlushCopyTo(key);
     return r->second.texture;
   }
+  if (t.format == xenos::k248) {
+    // Profundidade resolvida (mapa de sombra 1024x1024 / cena 1280x720): o Resolve de profundidade não é
+    // emulado; branco = "sem sombra" nos PS que comparam. Não é desenho pulado.
+    static bool once = false;
+    if (!once) { once = true; std::fprintf(stderr, "[nier-gl] textura de profundidade (fmt 22) %ux%u amostrada: branco (sem sombra)\n", t.width, t.height); }
+    return White();
+  }
   if (!xenos::Supported(t.format) || t.dimension != 1) {
     static std::map<uint32_t, uint32_t> seen;
     uint32_t k = t.format | t.dimension << 8;
@@ -355,7 +406,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   }
   Texture& tex = g_textures[key ^ uint64_t(t.format) << 58];
   uint64_t frame = g_frames.load();
-  if (tex.id && tex.checkedFrame == frame) return tex.id;
+  if (tex.id && (tex.checkedFrame == frame || frame < tex.nextCheck)) return tex.id;
   tex.checkedFrame = frame;
   uint32_t bpe = xenos::BytesPerElement(t.format);
   bool block = xenos::Block(t.format);
@@ -367,7 +418,12 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   uint64_t sig = Signature(t.base, span, t.format == xenos::k8 && tex.uploads >= 2);
   auto td = Clock::now();
   g_sigMs += std::chrono::duration<double, std::milli>(td - ts).count();
-  if (tex.id && sig == tex.signature) return tex.id;
+  if (tex.id && sig == tex.signature) {
+    tex.stable = std::min<uint32_t>(tex.stable + 1, tex.uploads > 1 ? 3 : 6);
+    tex.nextCheck = frame + (1ull << tex.stable);
+    return tex.id;
+  }
+  tex.stable = 0; tex.nextCheck = frame + 1;
   if (t.format == xenos::k8) { static int n = 0; if (n++ < 4) std::fprintf(stderr, "[nier-k8] %ux%u swizzle %03X endian %u tiled %d\n", t.width, t.height, t.swizzle, t.endian, int(t.tiled)); }
   // k8 com swizzle identidade (planos de vídeo): caminho rápido direto para LUMINANCE_ALPHA.
   td = Clock::now();
@@ -414,7 +470,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   // Mali-450: textura minificada sem mipmap satura a banda e segura a CPU (medido no Rayman).
   bool pot = (t.width & (t.width - 1)) == 0 && (t.height & (t.height - 1)) == 0;
   if (g_config.mipmaps && pot && tex.uploads == 1 && (t.width > 16 || t.height > 16)) {
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glGenerateMipmap(GL_TEXTURE_2D);  // LEVE_OK: só no 1º envio da textura (tex.uploads == 1), textura estática POT
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
   } else {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -434,6 +490,7 @@ struct Program {
   std::vector<std::pair<int, GLint>> bools;    // (índice, local)
   std::vector<std::pair<int, GLint>> samplers; // (fetch slot, local nx_size) — unidade = ordem
   int vcCount = 256, pcCount = 256;
+  std::vector<float> lastVc, lastPc;  // último banco enviado: glUniform4fv só quando muda (estado ≤ 3 ms na Mali)
 };
 std::unordered_map<uint64_t, Program> g_programs;
 
@@ -451,7 +508,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
   for (uint32_t i = 0; i < vs->inputs.size() && i < kMaxInputs; ++i) glBindAttribLocation(p.id, i, ("a" + std::to_string(i)).c_str());
-  glLinkProgram(p.id);
+  glLinkProgram(p.id);  // LEVE_OK: ligar só na 1ª vez do programa (cache g_programs)
   glDeleteShader(v); glDeleteShader(f);
   GLint ok = 0;
   glGetProgramiv(p.id, GL_LINK_STATUS, &ok);
@@ -496,7 +553,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
 
 std::vector<float> g_constants;
 // Envia as constantes na ordem compactada (GuestShader::constMap); literais por índice original.
-void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s) {
+void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s, std::vector<float>& last) {
   if (location < 0) return;
   size_t n = std::min<size_t>(size_t(count), s->constMap.size());
   g_constants.resize(n * 4);
@@ -506,6 +563,8 @@ void UploadConstants(GLint location, int count, const uint8_t* bank, const Guest
     if (reg >= 256 - literals) std::memcpy(&g_constants[j * 4], &s->literals[(reg - (256 - literals)) * 4], 16);
     else for (int c = 0; c < 4; ++c) g_constants[j * 4 + c] = BEF(bank + reg * 16 + 4 * c);
   }
+  if (last.size() == g_constants.size() && std::memcmp(last.data(), g_constants.data(), g_constants.size() * 4) == 0) return;
+  last = g_constants;
   glUniform4fv(location, GLsizei(n), g_constants.data());
 }
 
@@ -588,10 +647,12 @@ void TrimBufferObjects(bool all = false) {
 }
 
 bool g_bufferAuditReference = false; // render-thread-only diagnostic
-void ReplayDraw(const Frame& f, const Cmd& c) {
+struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; };
+void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
-  Target& drawTarget = CurrentTarget(state);
+  Target& drawTarget = rd.key ? DirectTarget(rd.key, rd.w, rd.h) : CurrentTarget(state);
+  if (rd.key) { ++g_directDraws; if (rd.passStart) drawTarget.from3D = false; if (!c.up) drawTarget.from3D = true; }
   if (!c.up) drawTarget.drew3DFrame = g_frames.load();
   auto t1 = Clock::now();
   g_pTarget += Ms(t0, t1);
@@ -600,8 +661,8 @@ void ReplayDraw(const Frame& f, const Cmd& c) {
   Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up);
   if (!p) { Skip("programa não compilou/linkou"); return; }
   glUseProgram(p->id);
-  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs);
-  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps);
+  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc);
+  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps, p->lastPc);
   for (auto [b, loc] : p->bools) glUniform1i(loc, (BE32(Field(state, kBoolConstants + 4 * (b >> 5))) >> (b & 31)) & 1);
   uint32_t colorControl = BE32(Field(state, kColorControl));
   if (p->alphaFunc >= 0) glUniform1i(p->alphaFunc, (colorControl & 8) ? int(colorControl & 7) : 7);
@@ -661,7 +722,65 @@ uint64_t TargetKeyOf(const uint8_t* state) {
   uint32_t surface = BE32(Field(state, kSurfaceInfo)), color = BE32(Field(state, kColorInfo));
   return uint64_t(color & 0xF0FFF) << 16 | (surface & 0x3FFF);
 }
-void ReplayResolve(const Frame& f, const Cmd& c) {
+// Janela do Resolve em unidades do guest: retângulo (left, top, right, bottom) ou o tamanho do destino.
+void ResolveRect(const Cmd& c, const xenos::TextureFetch& t, int& x0, int& y0, int& w, int& h) {
+  if (c.hasRect) { x0 = c.rect[0]; y0 = c.rect[1]; w = c.rect[2] - c.rect[0]; h = c.rect[3] - c.rect[1]; }
+  else { x0 = 0; y0 = 0; w = int(t.width); h = int(t.height); }
+}
+// Pré-passagem do quadro (C1-G0): descobre os passes cujo Resolve cobre exatamente um destino menor que o alvo,
+// a partir de (0,0), com todos os desenhos do passe dentro desse retângulo; esses desenhos vão direto ao FBO
+// do destino e o Resolve vira apenas marcação. Dois Resolve seguidos do mesmo alvo sem desenho entre eles
+// cancelam o redirecionamento (o segundo precisaria do conteúdo no alvo).
+std::vector<Redirect> g_redirects;
+std::vector<uint8_t> g_resolveDirect;
+void PlanDirectPasses(const Frame& f) {
+  g_redirects.assign(f.cmds.size(), Redirect{});
+  g_resolveDirect.assign(f.cmds.size(), 0);
+  static bool off = std::getenv("NIER_NO_DIRECT_RESOLVE") != nullptr;
+  if (off) return;
+  std::map<uint64_t, std::vector<size_t>> open;  // alvo -> desenhos desde o último Resolve desse alvo
+  float s = Scale();
+  for (size_t i = 0; i < f.cmds.size(); ++i) {
+    const Cmd& c = f.cmds[i];
+    if (c.kind == Kind::Draw) { open[TargetKeyOf(f.blob.data() + c.state)].push_back(i); continue; }
+    if (c.kind != Kind::Resolve) continue;
+    const uint8_t* state = f.blob.data() + c.state;
+    uint64_t srcKey = TargetKeyOf(state);
+    auto& draws = open[srcKey];
+    if (c.fetch != SIZE_MAX && !draws.empty()) {
+      auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
+      int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
+      uint32_t guestPitch = std::max<uint32_t>(BE32(Field(state, kSurfaceInfo)) & 0x3FFF, 1);
+      bool smaller = t.width < guestPitch || t.height < 720;
+      bool ok = x0 == 0 && y0 == 0 && w == int(t.width) && h == int(t.height) && smaller && t.width >= 8 && t.height >= 8;
+      // próximo comando do mesmo alvo não pode ser outro Resolve sem desenho entre eles
+      for (size_t j = i + 1; ok && j < f.cmds.size(); ++j) {
+        const Cmd& n = f.cmds[j];
+        if (n.kind == Kind::Skip) continue;
+        uint64_t k = TargetKeyOf(f.blob.data() + n.state);
+        if (k != srcKey) continue;
+        if (n.kind == Kind::Resolve) ok = false;
+        break;
+      }
+      for (size_t d : draws) {
+        if (!ok) break;
+        const uint8_t* st = f.blob.data() + f.cmds[d].state;
+        float xs = std::fabs(BEF(Field(st, kViewport))), xo = BEF(Field(st, kViewport + 4));
+        float ys = std::fabs(BEF(Field(st, kViewport + 8))), yo = BEF(Field(st, kViewport + 12));
+        if (xo - xs < -0.5f || yo - ys < -0.5f || xo + xs > w + 0.5f || yo + ys > h + 0.5f) ok = false;
+      }
+      if (ok) {
+        uint64_t key = TexKey(t);
+        int tw = std::max(1, int(t.width * s)), th = std::max(1, int(t.height * s));
+        for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0};
+        g_resolveDirect[i] = 1;
+        ++g_directPasses;
+      }
+    }
+    draws.clear();
+  }
+}
+void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
   const uint8_t* state = f.blob.data() + c.state;
   uint64_t srcKey = TargetKeyOf(state);
   bool clears = c.flags & 0x300;
@@ -669,29 +788,67 @@ void ReplayResolve(const Frame& f, const Cmd& c) {
   if (c.fetch != SIZE_MAX) {
     auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
     static bool noCopy = std::getenv("NIER_NO_RESOLVE_COPY") != nullptr;  // diagnóstico
-    if (t.width >= 8 && t.height >= 8 && !noCopy) {
+    uint64_t key = TexKey(t);
+    if (direct) {
+      // o passe já foi desenhado no FBO do destino (PlanDirectPasses); o alvo não recebe o conteúdo
+      Target& src = g_targets[srcKey];
+      src.holder = key;
+    } else if (t.width >= 8 && t.height >= 8 && !noCopy) {
       ++g_resolveCopies;
-      uint64_t key = TexKey(t);
-      Target& dst = g_resolved[key];
-      int w = std::max(1, int(t.width * s)), h = std::max(1, int(t.height * s));
-      if (dst.w != w || dst.h != h) CreateTarget(dst, w, h, false);
-      int x0 = c.hasRect ? int(c.rect[0] * s) : 0, y0 = c.hasRect ? int(c.rect[1] * s) : 0;
+      int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
+      auto srcIt = g_targets.find(srcKey);
+      if (srcIt == g_targets.end()) return;
+      Target& src = srcIt->second;
+      int dw = std::max(1, int(t.width * s)), dh = std::max(1, int(t.height * s));
       // substitui pendência anterior do mesmo destino (a antiga nunca foi usada)
       for (size_t i = 0; i < g_pendingCopies.size(); ++i)
         if (g_pendingCopies[i].dst == key) { g_pendingCopies.erase(g_pendingCopies.begin() + i); ++g_copiesSkipped; break; }
-      // Copia se amostrado neste quadro, já amostrado antes, ou nas 3 primeiras vezes do destino (pode ser
-      // amostrado em quadros seguintes: com a GPU nula, a memória do guest não tem o conteúdo).
-      if (g_frameSampled.count(key) || g_everSampled.count(key) || g_resolveSeen[key]++ < 3) {
-        g_pendingCopies.push_back({srcKey, key, x0, y0, w, h});
-        FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
-      } else {
-        ++g_copiesSkipped;      // ninguém amostra este destino: a cópia é pulada
+      bool full = x0 == 0 && y0 == 0 && w == int(t.width) && h == int(t.height) && dw == src.w && dh == src.h;
+      if (full && !src.holder) {
+        // Tela cheia: o destino fica com a própria textura do alvo (sem cópia); o alvo segue com a textura antiga
+        // do destino (ping-pong) e o próximo desenho nele limpa/sobrescreve como antes.
+        FlushCopiesFrom(srcKey);
+        Target& dst = g_resolved[key];
+        // destino com FBO completo (cor+profundidade) para a troca ser de FBO inteiro: zero chamadas GL
+        if (dst.w != dw || dst.h != dh || !dst.texture || !dst.depth || dst.shared) CreateTarget(dst, dw, dh, true);
+        std::swap(src.texture, dst.texture);
+        std::swap(src.fbo, dst.fbo);
+        std::swap(src.depth, dst.depth);
+        // a textura que volta ao alvo vai ser desenhada: destinos que a emprestavam deixam de valer
+        for (auto& [k, r] : g_resolved) if (r.shared && r.texture == src.texture) r = Target{};
+        dst.from3D = src.drew3DFrame == g_frames.load();
+        src.holder = key;
+        ++g_aliases;
+      } else if (src.holder && src.holder != key) {
+        // conteúdo está numa textura resolvida (alias/passe direto anterior)
+        Target& holder = g_resolved[src.holder];
+        Target& dst = g_resolved[key];
+        if (full && holder.w == dw && holder.h == dh && holder.texture) {
+          // mesma tela inteira para um segundo destino: empresta a textura (sem cópia)
+          ReleaseTarget(dst);
+          dst = holder; dst.shared = true; dst.holder = 0;
+          ++g_aliases;
+        } else {
+          if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
+          if (g_frameSampled.count(key) || g_everSampled.count(key)) DoCopy(PendingCopy{src.holder, key, int(x0 * s), int(y0 * s), dw, dh, true});
+          else ++g_copiesSkipped;
+        }
+      } else if (!src.holder) {
+        Target& dst = g_resolved[key];
+        if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
+        // Retângulo parcial: copia só se o destino for amostrado (neste quadro ou alguma vez).
+        if (g_frameSampled.count(key) || g_everSampled.count(key)) {
+          g_pendingCopies.push_back({srcKey, key, int(x0 * s), int(y0 * s), dw, dh, false});
+          FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
+        } else {
+          ++g_copiesSkipped;      // ninguém amostra este destino: a cópia é pulada
+        }
       }
     }
   }
   // Resolve com limpeza (D3DRESOLVE_CLEARRENDERTARGET 0x100 / CLEARDEPTHSTENCIL 0x200, a confirmar).
   if (clears) {
-    Target& src = CurrentTarget(state);
+    Target& src = CurrentTarget(state, false);
     glBindFramebuffer(GL_FRAMEBUFFER, src.fbo);
     glDisable(GL_SCISSOR_TEST);
     glColorMask(1, 1, 1, 1);
@@ -727,9 +884,11 @@ void AuditBufferImage(const Frame& work) {
     g_bufferAuditReference = reference; g_mainTarget = 0;
     g_pendingCopies.clear();
     for (auto& [key, target] : g_targets) target.clearedFrame = ~0ull;
-    for (const auto& c : work.cmds) {
-      if (c.kind == Kind::Draw) ReplayDraw(work, c);
-      else if (c.kind == Kind::Resolve) ReplayResolve(work, c);
+    for (size_t i = 0; i < work.cmds.size(); ++i) {  // mesmo plano de Resolve do quadro (g_redirects/g_resolveDirect)
+      const Cmd& c = work.cmds[i];
+      bool planned = i < g_redirects.size();
+      if (c.kind == Kind::Draw) ReplayDraw(work, c, planned ? g_redirects[i] : Redirect{});
+      else if (c.kind == Kind::Resolve) ReplayResolve(work, c, planned && g_resolveDirect[i] != 0);
     }
     g_bufferAuditReference = false;
     std::vector<uint8_t> pixels;
@@ -786,7 +945,11 @@ void PresentToWindow() {
     glViewport((ww - pw) / 2, (wh - ph) / 2, pw, ph);
     glUseProgram(g_blitProgram);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, it->second.texture);
+    GLuint shown = it->second.texture;
+    if (it->second.holder) if (auto h = g_resolved.find(it->second.holder); h != g_resolved.end() && h->second.texture) shown = h->second.texture;
+    glBindTexture(GL_TEXTURE_2D, shown);
+    glUniform4f(g_blitRect, 1, 1, 0, 0);
+    glUniform1f(g_blitFlip, 1.0f);
     glBindBuffer(GL_ARRAY_BUFFER, g_blitBuffer);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -802,7 +965,7 @@ void PresentToWindow() {
       lastShot = Clock::now();
       std::vector<uint8_t> px(size_t(ww) * wh * 4);
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
-      glReadPixels(0, 0, ww, wh, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+      glReadPixels(0, 0, ww, wh, GL_RGBA, GL_UNSIGNED_BYTE, px.data());  // LEVE_OK: captura de prova opt-in (NIER_GLES2_CAPTURE), nunca em entrega
       static unsigned shot = 0;
       std::string target = capture;
       if (target.size() < 4 || target.compare(target.size() - 4, 4, ".ppm") != 0) {  // diretório: numeradas
@@ -836,8 +999,8 @@ void RenderThread() {
   std::fprintf(stderr, "[nier-buffers] cache %s; vertex_half_float %d; CPU/GL cache budget 64 MiB each\n",
                ReferenceBuffers() ? "reference/off" : "on", int(g_vertexHalf.load()));
   GLint vsUniforms = 0, fsUniforms = 0;
-  glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);
-  glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);
+  glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
+  glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
                g_config.renderWidth, g_config.renderHeight, vsUniforms, fsUniforms, int(g_depth24));
@@ -865,15 +1028,17 @@ void RenderThread() {
         }
     }
     auto tr = Clock::now();
-    for (const Cmd& c : work.cmds) {
-      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
+    PlanDirectPasses(work);
+    for (size_t i = 0; i < work.cmds.size(); ++i) {
+      const Cmd& c = work.cmds[i];
+      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
-      else { ++g_draws; ++frameDraws; ReplayDraw(work, c); }
+      else { ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]); }
     }
     g_copiesSkipped += uint32_t(g_pendingCopies.size());
     g_pendingCopies.clear();
     AuditBufferImage(work);
-    if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }
+    if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }  // LEVE_OK: perfil opt-in (NIER_GL_PROFILE) para medir a GPU
     auto tp = Clock::now();
     g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
     PresentToWindow();
@@ -886,16 +1051,16 @@ void RenderThread() {
     {
       std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
                    (unsigned long long)n, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
-                   g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, glGetError());
+                   g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, GlProfile() ? glGetError() : 0u);  // LEVE_OK: glGetError só no perfil opt-in
       if (!g_skipReasons.empty()) {
         std::string line;
         for (auto& [r, n] : g_skipReasons) line += " | " + r + ": " + std::to_string(n);
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f) glFinish(GPU) %.2f\n",
-                     g_pTarget / 120, g_pState / 120, g_pBuffers / 120, g_pDraw / 120, g_pResolve / 120, g_resolves / 120.0, g_resolveCopies / 120.0, g_copiesDone / 120.0, g_copiesSkipped / 120.0, g_pFinish / 120);
-      g_copiesDone = g_copiesSkipped = 0;
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos) glFinish(GPU) %.2f\n",
+                     g_pTarget / 120, g_pState / 120, g_pBuffers / 120, g_pDraw / 120, g_pResolve / 120, g_resolves / 120.0, g_resolveCopies / 120.0, g_copiesDone / 120.0, g_copiesSkipped / 120.0, g_aliases / 120.0, g_directPasses / 120.0, g_directDraws / 120.0, g_pFinish / 120);
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
