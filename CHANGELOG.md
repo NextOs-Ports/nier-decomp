@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 17: lotes 17 e 18 de bibliotecas do X1 (saídas PCM, seletores, provas também em ARM64/QEMU). O comparador agora intercepta exit/abort do runtime durante as execuções.
 - Lote 16: mais templates de construtor, encaminhamento e busca (com deslocamentos do rlwinm extraídos por instância) e lote 16 de bibliotecas do X1. HANDOFF reescrito com o estado da rodada.
 - GAMEPLAY NO PC com o renderizador GLES2 próprio: abertura do prólogo (cidade em ruínas sob neve) e controle do personagem com HUD e tutorial. Lote 15 de reconstrução (mais templates de ciclo de vida de objetos) e lotes 7–14 de bibliotecas do X1 (CRT numérico, trigonometria, áudio PCM/ADPCM/mixagem).
 - Lote 14: templates de construtor e destrutor C++ (destrutor com delete, com alocador global e construtor com base). Das 152 instâncias localizadas, contam só as que executaram em ao menos 500 tentativas sem falha. Comparador com limite de tempo por execução e tratamento de divisão por zero. Lotes 5 e 6 de áudio do X1 (PCM, ADPCM, filtro, filas).

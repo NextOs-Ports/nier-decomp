@@ -6516,6 +6516,105 @@
    "error": ""
   },
   {
+   "name": "sub_824BECB0",
+   "address": "0x824BECB0",
+   "size": 292,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BEDD8",
+   "address": "0x824BEDD8",
+   "size": 380,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BEF58",
+   "address": "0x824BEF58",
+   "size": 400,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BF0E8",
+   "address": "0x824BF0E8",
+   "size": 484,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BF2D0",
+   "address": "0x824BF2D0",
+   "size": 464,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BF4A0",
+   "address": "0x824BF4A0",
+   "size": 400,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BF630",
+   "address": "0x824BF630",
+   "size": 400,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BF7C0",
+   "address": "0x824BF7C0",
+   "size": 368,
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BF930",
+   "address": "0x824BF930",
+   "size": 132,
+   "source": "src/decomp/xdk/audio_dispatch.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824BFAB0",
    "address": "0x824BFAB0",
    "size": 172,
@@ -6531,6 +6630,17 @@
    "address": "0x824BFB60",
    "size": 240,
    "source": "src/decomp/xdk/audio_filter.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BFC50",
+   "address": "0x824BFC50",
+   "size": 52,
+   "source": "src/decomp/xdk/audio_dispatch.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
