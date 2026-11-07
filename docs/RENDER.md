@@ -188,3 +188,15 @@ O roteiro aceita `Ns:botão` (segundos desde o 1º quadro). Diagnósticos:
 3. 2 PS escrevem profundidade (sem `gl_FragDepth` na Mali).
 4. Texturas de cenário claras demais: conferir formatos e ETC1.
 5. Medir a cena 3D na Mali com roteiro por tempo (`Ns:`, `nier-build/c1/roteiro-f4.txt`), depois que o X1 deixar o perfil conectado no aparelho como no PC.
+
+## Desempenho na Mali-450 (C1, 07/11 tarde) — o que o renderizador faz e os controles
+
+Medição: `NIER_GL_PROFILE=1` imprime a cada 120 quadros ou 5 s (`[nier-perfil]`): ms por etapa, Resolve (alias/diretos/cópias), binds de FBO, discards, alvos criados, vec4 enviados (VC/PC e ossos), índices por passe (cor/sombra/pré-passe/pós/recepção de sombra) e o top 10 de desenhos por índices. Trava `tools/render/check_leve.py` (sem glGet/cópia de tela/leitura/sync no caminho por quadro).
+
+- **Resolve sem cópia**: tela cheia = troca de FBO inteiro (alias/ping-pong); passe menor que o alvo desenha direto no FBO do destino; Resolve seguido de mais desenho no mesmo alvo copia por quad blit (`g_resolveKeep`); Resolve repetido da mesma cena referencia a cópia (`sharedFrom`/`lastCopy`), nada é recriado por quadro.
+- **Cache de estado GL na CPU** (FBO, programa, textura por unidade, estado fixo, atributos); uniformes por faixa que mudou; bools/alpha/nx_size só quando mudam.
+- **Texturas**: formatos Xenos (DXT1/3/5, DXN, CTX1, 1555, 2-10-10-10, 8_8, 16/half/float4…); conferência de mudança com recuo exponencial; profundidade como textura (OES_depth_texture) com alias do Resolve de profundidade.
+- **Shaders**: `r[]` vira `r0..rN`; programa sem o bloco de alpha test quando o estado o desliga (sem `discard`); textura no VS (paleta de ossos) emulada por janela de uniformes com ossos remapeados por malha; tradutor privado emite programa linear sem `if (!done)`.
+- **Padrões na Mali** (GL_RENDERER contém "Mali"; no PC `NIER_MALI_LIKE=1`): interno 640x360 (`NIER_RENDER_WIDTH` manda, nunca < 640); discard desligado (`NIER_DISCARD=1` liga); pré-passe de profundidade pulado (`NIER_PREPASS=1` religa; EQUAL→LEQUAL); mapa de sombra e recepção de sombra pulados, máscara em branco (`NIER_SHADOW=1` religa); opacos consecutivos ordenados por programa (`NIER_NO_SORT=1`); bloom < `NIER_BLOOM_MIN` px em quadros alternados (padrão 0 = desligado: deixava rastro).
+- **Piso medido (PC Mali-like, gameplay do prólogo)**: cor ≈ 540 mil índices (≈180 mil triângulos) em ~107 desenhos, tudo cenário (maior desenho 53 004 idx / 28 882 vtx, VS 7887BD com 27 operações); sombra/pré-passe/pós ≈ 0. Abaixo disso só com corte por distância (precisa da câmera) — decisão do coordenador.
+- **A/B**: `NIER_NO_KEEP` (gameplay fica preta: a cópia é necessária), `NIER_NO_CLEAR_ALIAS`, `NIER_STRIP_AS_LIST`, `NIER_VT_K=220` (orçamento de ossos da Mali no PC), `NIER_NO_DIRECT_RESOLVE`, `NIER_NO_RESOLVE_COPY`.

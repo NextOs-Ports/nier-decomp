@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <regex>
 #include <set>
 #include <mutex>
 #include <string>
@@ -37,6 +38,7 @@
 
 namespace nier::render {
 namespace {
+using namespace std::string_literals;
 using Clock = std::chrono::steady_clock;
 using namespace nier::d3d;
 
@@ -76,13 +78,35 @@ const uint8_t* Physical(uint32_t address, uint32_t size) {
 using buffers::ConvertInput;
 
 // Primitivas do guest -> lista de triângulos (índices relativos ao 1º vértice convertido).
+GLenum g_triMode = GL_TRIANGLES;  // modo GL escolhido pelo último Triangulate (tira ou lista, o mais barato)
 bool Triangulate(uint32_t primitive, const std::vector<uint32_t>& src, std::vector<uint16_t>& dst) {
   dst.clear();
+  g_triMode = GL_TRIANGLES;
   auto add = [&](uint32_t a, uint32_t b, uint32_t c) { if (a != b && b != c && a != c) { dst.push_back(uint16_t(a)); dst.push_back(uint16_t(b)); dst.push_back(uint16_t(c)); } };
   switch (primitive) {
     case 4: for (size_t i = 0; i + 2 < src.size(); i += 3) add(src[i], src[i + 1], src[i + 2]); return true;
     case 5: for (size_t i = 2; i < src.size(); ++i) add(src[0], src[i - 1], src[i]); return true;
-    case 6: { size_t start = 0; for (size_t i = 0; i < src.size(); ++i) { if (src[i] == 0xFFFFFFFFu) { start = i + 1; continue; } if (i < start + 2) continue; if ((i - start) & 1) add(src[i - 1], src[i - 2], src[i]); else add(src[i - 2], src[i - 1], src[i]); } return true; }
+    case 6: {
+      // Tira com reinício (0xFFFFFFFF): sai como UMA tira GL; a emenda usa vértices repetidos (degenerados) e
+      // mantém a paridade do enrolamento (número par de índices entre sub-tiras).
+      static bool asList = std::getenv("NIER_STRIP_AS_LIST") != nullptr;  // A/B
+      // custo: tira = soma(len) + 3 por emenda; lista = 3*(len-2) por sub-tira. Tiras curtas (quads) saem em lista.
+      size_t stripCost = 0, listCost = 0, subs = 0;
+      for (size_t i = 0; i < src.size();) { size_t j = i; while (j < src.size() && src[j] != 0xFFFFFFFFu) ++j; if (j - i >= 3) { stripCost += j - i + (subs ? 3 : 0); listCost += 3 * (j - i - 2); ++subs; } i = j + 1; }
+      if (asList || listCost <= stripCost) { size_t start = 0; for (size_t i = 0; i < src.size(); ++i) { if (src[i] == 0xFFFFFFFFu) { start = i + 1; continue; } if (i < start + 2) continue; if ((i - start) & 1) add(src[i - 1], src[i - 2], src[i]); else add(src[i - 2], src[i - 1], src[i]); } return true; }
+      bool first = true;
+      for (size_t i = 0; i < src.size();) {
+        size_t j = i; while (j < src.size() && src[j] != 0xFFFFFFFFu) ++j;
+        if (j - i >= 3) {
+          if (!first) { dst.push_back(dst.back()); dst.push_back(uint16_t(src[i])); if (dst.size() & 1) dst.push_back(uint16_t(src[i])); }
+          for (size_t k = i; k < j; ++k) dst.push_back(uint16_t(src[k]));
+          first = false;
+        }
+        i = j + 1;
+      }
+      g_triMode = GL_TRIANGLE_STRIP;
+      return true;
+    }
     case 13: for (size_t i = 0; i + 3 < src.size(); i += 4) { add(src[i], src[i + 1], src[i + 2]); add(src[i], src[i + 2], src[i + 3]); } return true;
     case 8: for (size_t i = 0; i + 2 < src.size(); i += 3) { add(src[i], src[i + 1], src[i + 2]); /* rect list: 4º vértice implícito */ } return true;
     default: return false;
@@ -108,6 +132,8 @@ struct Cmd {
   int32_t rect[4] = {};
   bool hasRect = false;
   bool up = false;  // BeginVertices (2D/UI); falso = DrawVertices/DrawIndexedVertices
+  uint8_t prim = 0;         // primitiva Xenos original (perfil)
+  GLenum mode = GL_TRIANGLES;  // tiras da Xenos viram GL_TRIANGLE_STRIP (reinício = triângulos degenerados): 1/3 dos índices
 };
 struct Frame {
   std::vector<uint8_t> blob;
@@ -193,6 +219,12 @@ void InvalidateGl() { g_gl = GlCache{}; }
 uint64_t g_vec4Sent = 0, g_vtVec4Sent = 0, g_indicesDrawn = 0, g_programsLinked = 0, g_programSwitches = 0;
 uint64_t g_idxByClass[5] = {}, g_drawsByClass[5] = {}, g_skippedPrepass = 0, g_skippedShadow = 0, g_skippedReceive = 0;
 bool g_mali = false;
+struct TopDraw { uint32_t indices, vertices; uint8_t prim, cls; uint32_t vs, ps; int vsOps; };
+std::vector<TopDraw> g_topDraws;  // só no perfil: desenhos da janela, para o top 10 por índices
+uint8_t g_drawClassCurrent = 0;
+uint64_t g_culledDraws = 0, g_culledIndices = 0, g_cullEval = 0, g_cullNoPattern = 0, g_cullNoData = 0;
+struct Aabb { float lo[3], hi[3]; bool ok; };
+std::unordered_map<uint64_t, Aabb> g_aabb;  // serial do atributo de posição -> AABB
 bool g_skipPrepass = false, g_skipShadow = false, g_sortByProgram = false;
 uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
 void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; ++g_fboBinds; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
@@ -581,6 +613,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
 }
 
 // ---- programas
+struct CullInfo { bool ok = false; int row[4] = {-1, -1, -1, -1}; int posInput = -1; };
 struct Program {
   GLuint id = 0;
   GLint vc = -1, pc = -1, alphaFunc = -1, alphaRef = -1, wideScale = -1;
@@ -595,6 +628,8 @@ struct Program {
   // Textura no VS (paleta de ossos 1024x1 float4): janela de texels em uniformes VT<t>[k], VT<t>_p = (largura, base)
   struct Vtf { int slot; GLint loc, params; int k; };
   std::vector<Vtf> vtf;
+  int vsOps = 0;      // operações (vr/sr) no VS final, para o perfil
+  CullInfo cull;      // MVP e atributo de posição reconhecidos (descarte por AABB)
 };
 // Substitui o stub "nx_sample<t> devolve 0" do tradutor por busca num array de uniformes (a Mali-450 não tem
 // textura no vértice). k texels cabem no orçamento de uniformes do VS depois das constantes VC.
@@ -652,6 +687,50 @@ std::string ScalarizeRegisters(const std::string& src) {
   }
   return out + res;
 }
+// Saídas v<i> do VS que o PS não lê: as atribuições saem do VS (o compilador descarta o cálculo morto; a Mali GP
+// deixa de escrever varyings inúteis).
+std::string StripUnusedVaryings(const std::string& src, uint8_t psInputMask) {
+  static bool keep = std::getenv("NIER_KEEP_VARYINGS") != nullptr;
+  if (keep || psInputMask == 0xFF) return src;
+  std::string out; out.reserve(src.size());
+  size_t at = 0;
+  while (at < src.size()) {
+    size_t end = src.find('\n', at); if (end == std::string::npos) end = src.size();
+    std::string_view line(src.data() + at, end - at);
+    bool drop = false;
+    size_t p = line.find_first_not_of(' ');
+    if (p != std::string_view::npos && p + 1 < line.size() && line[p] == 'v' && std::isdigit(uint8_t(line[p + 1])) && (p + 2 == line.size() || line[p + 2] == '.' || line[p + 2] == ' ')) {
+      int v = line[p + 1] - '0';
+      size_t eq = line.find(" = ", p);
+      if (v < 8 && eq != std::string_view::npos && !((psInputMask >> v) & 1)) drop = true;
+    }
+    if (!drop) { out.append(line); out.push_back('\n'); }
+    at = end + 1;
+  }
+  return out;
+}
+// Descarte por volume no CPU: reconhece no VS traduzido "opos.c = dot(VC[k].s, r[n].s)" nas 4 componentes e
+// "r[n].xyz = a<m>.xyz, w = 1" (posição = atributo m); as 4 linhas VC[k] (índices compactados) são a MVP.
+CullInfo ParseCull(const std::string& src) {
+  CullInfo ci;
+  static const std::regex opos(R"(vec4 va = VC\[(\d+)\]\.(\w+);\n\s*vec4 vb = r\[(\d+)\]\.(\w+);\n\s*vec4 vr = vec4\(dot\(va, vb\)\);\n\s*opos\.([xyzw]) = vr\.)");
+  int reg = -1;
+  for (auto it = std::sregex_iterator(src.begin(), src.end(), opos); it != std::sregex_iterator(); ++it) {
+    const auto& m = *it;
+    if (m[2].str() != m[4].str()) return ci;  // swizzles diferentes: o dot não é o produto direto
+    int r = std::stoi(m[3].str());
+    if (reg >= 0 && r != reg) return ci;
+    reg = r;
+    ci.row["xyzw"s.find(m[5].str()[0])] = std::stoi(m[1].str());
+  }
+  if (reg < 0 || ci.row[0] < 0 || ci.row[1] < 0 || ci.row[2] < 0 || ci.row[3] < 0) return ci;
+  std::regex pos("r\\[" + std::to_string(reg) + "\\]\\.x = a(\\d+)\\.x;\\n\\s*r\\[" + std::to_string(reg) + "\\]\\.y = a(\\d+)\\.y;\\n\\s*r\\[" + std::to_string(reg) + "\\]\\.z = a(\\d+)\\.z;\\n\\s*r\\[" + std::to_string(reg) + "\\]\\.w = 1\\.0;");
+  std::smatch m;
+  if (!std::regex_search(src, m, pos) || m[1].str() != m[2].str() || m[1].str() != m[3].str()) return ci;
+  ci.posInput = std::stoi(m[1].str());
+  ci.ok = true;
+  return ci;
+}
 Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true) {
   uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2);
   auto it = g_programs.find(key);
@@ -663,7 +742,10 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
   std::string psSource = ScalarizeRegisters(alphaTest ? ps->source : StripAlphaTest(ps->source));
   std::vector<std::pair<int, int>> vtfSlots;
-  std::string vsSource = ScalarizeRegisters(vs->textureMask ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source);
+  std::string vsSource = ScalarizeRegisters(StripUnusedVaryings(vs->textureMask ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source, flat ? 0xFF : ps->inputMask));
+  p.cull = ParseCull(vs->source);
+  for (size_t at = 0; (at = vsSource.find(" vr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
+  for (size_t at = 0; (at = vsSource.find(" sr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
   GLuint v = CompileShader(GL_VERTEX_SHADER, vsSource.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : psSource.c_str(), pn);
   if (!v || !f) { if (v) glDeleteShader(v); if (f) glDeleteShader(f); return nullptr; }
   p.id = glCreateProgram();
@@ -1000,11 +1082,72 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
     if (vt.params >= 0) glUniform2f(vt.params, float(t.width), float(base));
   }
 }
+// Descarte no CPU: AABB do VBO de posição (1x por serial) × MVP do desenho (constantes do estado). Fora do
+// frustum (os 8 cantos atrás do mesmo plano) ou < 2 px na tela (todos os cantos à frente) = não desenha.
+bool CullDraw(const Frame& f, const Cmd& c) {
+  static bool off = std::getenv("NIER_NO_CULL_AABB") != nullptr;
+  if (off || !c.vs || !c.ps) return false;
+  static std::unordered_map<uint64_t, CullInfo> infos;  // por VS (o alpha test do PS não muda o VS)
+  auto ci = infos.find(c.vs->key);
+  if (ci == infos.end()) ci = infos.emplace(c.vs->key, ParseCull(c.vs->source)).first;
+  const CullInfo& cull = ci->second;
+  if (!cull.ok) { ++g_cullNoPattern; return false; }
+  int pi = cull.posInput;
+  if (pi < 0 || uint32_t(pi) >= c.inputCount || !c.vertexData[pi]) { ++g_cullNoData; return false; }
+  ++g_cullEval;
+  const auto& data = c.vertexData[pi];
+  auto it = g_aabb.find(data->serial);
+  if (it == g_aabb.end()) {
+    Aabb a{{1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, false};
+    static std::vector<float> tmp; tmp.resize(size_t(c.vertexCount) * 4);
+    if (ConvertInput(data->input, data->raw.data(), data->endian, 0, c.vertexCount, tmp.data()) && c.vertexCount > 0) {
+      for (uint32_t v = 0; v < c.vertexCount; ++v) for (int k = 0; k < 3; ++k) { float x = tmp[v * 4 + k]; a.lo[k] = std::min(a.lo[k], x); a.hi[k] = std::max(a.hi[k], x); }
+      a.ok = std::isfinite(a.lo[0]) && std::isfinite(a.hi[0]) && std::isfinite(a.lo[1]) && std::isfinite(a.hi[1]) && std::isfinite(a.lo[2]) && std::isfinite(a.hi[2]);
+    }
+    it = g_aabb.emplace(data->serial, a).first;
+  }
+  const Aabb& a = it->second;
+  if (!a.ok) return false;
+  const uint8_t* state = f.blob.data() + c.state;
+  float m[4][4];
+  size_t literals = c.vs->literals.size() / 4;
+  for (int r = 0; r < 4; ++r) {
+    int k = cull.row[r];
+    if (k < 0 || size_t(k) >= c.vs->constMap.size()) return false;
+    size_t reg = c.vs->constMap[k];
+    if (reg >= 256 - literals) return false;
+    for (int cc = 0; cc < 4; ++cc) m[r][cc] = BEF(Field(state, kVertexConstants + reg * 16 + 4 * cc));
+  }
+  int outside[6] = {};  // -x +x -y +y -z +z (clip D3D: -w<=x<=w, -w<=y<=w, 0<=z<=w)
+  float sx0 = 1e30f, sx1 = -1e30f, sy0 = 1e30f, sy1 = -1e30f; bool allFront = true;
+  for (int i = 0; i < 8; ++i) {
+    float v[4] = {(i & 1) ? a.hi[0] : a.lo[0], (i & 2) ? a.hi[1] : a.lo[1], (i & 4) ? a.hi[2] : a.lo[2], 1.0f};
+    float cl[4];
+    for (int r = 0; r < 4; ++r) cl[r] = m[r][0] * v[0] + m[r][1] * v[1] + m[r][2] * v[2] + m[r][3] * v[3];
+    float w = cl[3];
+    if (cl[0] < -w) ++outside[0]; if (cl[0] > w) ++outside[1];
+    if (cl[1] < -w) ++outside[2]; if (cl[1] > w) ++outside[3];
+    if (cl[2] < 0) ++outside[4]; if (cl[2] > w) ++outside[5];
+    if (w <= 1e-6f) allFront = false;
+    else { float x = cl[0] / w, y = cl[1] / w; sx0 = std::min(sx0, x); sx1 = std::max(sx1, x); sy0 = std::min(sy0, y); sy1 = std::max(sy1, y); }
+  }
+  for (int k = 0; k < 6; ++k) if (outside[k] == 8) return true;
+  if (allFront) {
+    float px = (sx1 - sx0) * 0.5f * float(g_config.renderWidth), py = (sy1 - sy0) * 0.5f * float(g_config.renderHeight);
+    if (px < 2.0f && py < 2.0f) return true;
+    // LOD por área (só com autorização do dono): NIER_CULL_AREA=<fração da tela>, ex. 0.01 = desenhos de cenário
+    // cuja caixa projetada cobre menos de 1 % da tela não são desenhados. Padrão 0 = desligado.
+    static float areaFrac = std::getenv("NIER_CULL_AREA") ? float(std::atof(std::getenv("NIER_CULL_AREA"))) : 0.0f;
+    if (areaFrac > 0 && px * py < areaFrac * float(g_config.renderWidth) * float(g_config.renderHeight)) return true;
+  }
+  return false;
+}
 struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; bool skip = false; };
 uint32_t g_bloomSkips = 0;
 void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
+  for (auto& r : g_drawRemap) r.reset();  // só UploadVertexTextures liga um remapeamento para ESTE desenho
   if (rd.skip) return;  // nível de bloom mantido do quadro anterior
   Target& drawTarget = rd.key ? DirectTarget(rd.key, rd.w, rd.h) : CurrentTarget(state);
   if (rd.key) { ++g_directDraws; if (rd.passStart) drawTarget.from3D = false; if (!c.up) drawTarget.from3D = true; }
@@ -1089,7 +1232,8 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
   g_indicesDrawn += c.indexCount;
-  glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
+  if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
+  glDrawElements(c.mode, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -1551,7 +1695,9 @@ void RenderThread() {
           if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
           continue;
         }
+        if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
         g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
+        g_drawClassCurrent = cls;
         ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
       }
     }
@@ -1585,12 +1731,25 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f), recepção de sombra %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu, recepção %llu\n",
-                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), g_idxByClass[4] / double(W), g_drawsByClass[4] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow, (unsigned long long)g_skippedReceive);
+        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f), recepção de sombra %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu, recepção %llu; descartados por AABB %llu desenhos / %llu índices (avaliados %llu, sem padrão MVP %llu, sem dados %llu)\n",
+                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), g_idxByClass[4] / double(W), g_drawsByClass[4] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow, (unsigned long long)g_skippedReceive, (unsigned long long)g_culledDraws, (unsigned long long)g_culledIndices, (unsigned long long)g_cullEval, (unsigned long long)g_cullNoPattern, (unsigned long long)g_cullNoData);
+      if (GlProfile() && !g_topDraws.empty()) {
+        std::vector<TopDraw> top = g_topDraws;
+        std::partial_sort(top.begin(), top.begin() + std::min<size_t>(10, top.size()), top.end(), [](const TopDraw& a, const TopDraw& b) { return a.indices > b.indices; });
+        static const char* cls[] = {"cor", "sombra", "pre-passe", "pos", "recepcao"};
+        std::string line;
+        for (size_t i = 0; i < top.size() && i < 10; ++i) { char b[112]; std::snprintf(b, sizeof b, " | %u idx %u vtx prim %u %s vs %06X (%d ops) ps %06X", top[i].indices, top[i].vertices, top[i].prim, cls[top[i].cls], top[i].vs, top[i].vsOps, top[i].ps); line += b; }
+        std::fprintf(stderr, "[nier-perfil] top 10 desenhos da janela (%zu desenhos):%s\n", g_topDraws.size(), line.c_str());
+        std::partial_sort(top.begin(), top.begin() + std::min<size_t>(10, top.size()), top.end(), [](const TopDraw& a, const TopDraw& b) { return uint64_t(a.vertices) * a.vsOps > uint64_t(b.vertices) * b.vsOps; });
+        line.clear();
+        for (size_t i = 0; i < top.size() && i < 10; ++i) { char b[112]; std::snprintf(b, sizeof b, " | %u vtx x %d ops vs %06X %s", top[i].vertices, top[i].vsOps, top[i].vs, cls[top[i].cls]); line += b; }
+        std::fprintf(stderr, "[nier-perfil] top 10 VS por vértices x operações:%s\n", line.c_str());
+        g_topDraws.clear();
+      }
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
                      g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = g_cullEval = g_cullNoPattern = g_cullNoData = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
@@ -1821,6 +1980,8 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
+  c.prim = uint8_t(primitive);
+  c.mode = g_triMode;
   if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
     c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
@@ -1864,6 +2025,8 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
   if (!SnapshotInputs(c, g_building.blob.data() + c.state, 0, vertexCount, data, stride)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, vertexCount, false);
   c.indexCount = uint32_t(g_triIndices.size());
+  c.prim = uint8_t(primitive);
+  c.mode = g_triMode;
   if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
     c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
