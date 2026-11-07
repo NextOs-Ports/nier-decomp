@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <cstring>
 #include <random>
+#include <map>
+#include <string>
 #include <vector>
 using namespace nier::guest;
 #define PAIR(n) extern "C" void __imp__sub_##n(PPCContext&,uint8_t*); extern "C" void decomp_sub_##n(PPCContext&,uint8_t*);
@@ -32,7 +34,7 @@ int main(int argc,char** argv) {
     for(unsigned bit=0;bit<52;++bit)for(uint64_t sign:{0ull,0x8000000000000000ull})values.push_back(sign|0x7ff0000000000000ull|(1ull<<bit));
     std::mt19937_64 random(0x825d8e50);for(unsigned i=0;i<1000;++i)values.push_back(random());
     const Function functions[]{ENTRY(825D8E50),ENTRY(825D8F30),ENTRY(825D9010),ENTRY(825D9108),ENTRY(825D9AC0),ENTRY(825D4568)};
-    unsigned tested=0,failed=0;
+    unsigned tested=0,failed=0;std::map<std::pair<std::string,int>,unsigned> failures;
     for(const auto& function:functions)for(int mode:{FE_TONEAREST,FE_DOWNWARD,FE_UPWARD,FE_TOWARDZERO})
       for(unsigned selector=0;selector<2;++selector)for(uint64_t input:values) {
         PPCContext a{},b{};a.r1.u64=b.r1.u64=sp;a.r3.u64=b.r3.u64=0x123456789abcdef0ull;a.r4.u64=b.r4.u64=selector;
@@ -41,9 +43,10 @@ int main(int argc,char** argv) {
         std::fesetround(mode);function.original(a,base);std::memcpy(expected.data(),base+sp,64);
         std::memset(base+sp,0xa5,64);std::fesetround(mode);function.native(b,base);++tested;
         if(a.r3.u64!=b.r3.u64 || a.f1.u64!=b.f1.u64 || a.r1.u64!=b.r1.u64 ||std::memcmp(expected.data(),base+sp,64)) {
-          ++failed;if(failed<=100)std::printf("FAIL %s mode=%d selector=%u input=%016llx f1=%016llx/%016llx\n",
+          ++failed;const unsigned group=++failures[{function.name,mode}];if(group<=5)std::printf("FAIL %s mode=%d selector=%u input=%016llx f1=%016llx/%016llx\n",
             function.name,mode,selector,(unsigned long long)input,(unsigned long long)a.f1.u64,(unsigned long long)b.f1.u64);
         }
       }
+    for(const auto& [group,count]:failures)std::printf("MISMATCH %s mode=%d count=%u\n",group.first.c_str(),group.second,count);
     std::fesetround(FE_TONEAREST);std::printf("CRT approximations: %u cases, %u failed\n",tested,failed);return failed?1:0;
 }

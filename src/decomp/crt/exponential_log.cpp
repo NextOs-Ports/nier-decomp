@@ -11,9 +11,7 @@ int64_t rounded_integer(double value) {
     constexpr int64_t minimum=std::numeric_limits<int64_t>::min();
     if(std::isnan(value))return minimum;
     if(value>0x1p63)return std::numeric_limits<int64_t>::max();
-    const double rounded=std::nearbyint(value);
-    if(rounded>=0x1p63 || rounded<=-0x1p63)return minimum;
-    return int64_t(rounded);
+    return simde_mm_cvtsd_si64(simde_mm_load_sd(&value));
 }
 }
 NIER_DECOMP(sub_825D9AC0) {

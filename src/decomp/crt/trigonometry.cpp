@@ -11,9 +11,10 @@ int64_t integral(double value,bool truncate=false) {
     constexpr int64_t minimum=std::numeric_limits<int64_t>::min();
     if(std::isnan(value))return minimum;
     if(value>0x1p63)return std::numeric_limits<int64_t>::max();
-    const double rounded=truncate?std::trunc(value):std::nearbyint(value);
-    if(rounded>=0x1p63 || rounded<=-0x1p63)return minimum;
-    return int64_t(rounded);
+    // Preserve the SDK's per-target conversion semantics (its ARM SIMDe
+    // fallback uses round(), whereas x86 cvtsd follows MXCSR).
+    const auto input=simde_mm_load_sd(&value);
+    return truncate?simde_mm_cvttsd_si64(input):simde_mm_cvtsd_si64(input);
 }
 double sine_polynomial(const uint8_t* base,double remainder) {
     constexpr uint32_t table=0x8278e590;
@@ -32,6 +33,14 @@ double inverse_rational(const uint8_t* base,double square,double reduced) {
 }
 void inverse(PPCContext& ctx,uint8_t* base,uint32_t selector,bool single) {
     ctx.fpscr.disableFlushMode();constexpr uint32_t table=0x8278e608;
+    const uint64_t magnitude_bits=ctx.f1.u64&0x7fffffffffffffffull;
+    if(magnitude_bits>0x7ff0000000000000ull) {
+        // Preserve the variant's NaN sign (asin negative, acos positive).
+        // Host FMA lowering/register allocation can otherwise change it.
+        ctx.f1.u64=magnitude_bits|0x0008000000000000ull;
+        if(!selector)ctx.f1.u64|=0x8000000000000000ull;
+        return;
+    }
     const double input=ctx.f1.f64,magnitude=std::fabs(input),threshold=ldf(base,table+12);
     double square,reduced;uint32_t index=selector;
     if(!(magnitude<=threshold)) {
