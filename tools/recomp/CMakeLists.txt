@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.25)
+project(nier_prepare LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 23)
+find_package(rexglue 0.10 REQUIRED CONFIG)
+add_executable(nier_dump_pe dump_pe.cpp)
+target_link_libraries(nier_dump_pe PRIVATE rex::runtime)
+rexglue_apply_target_settings(nier_dump_pe)
