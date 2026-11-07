@@ -1,6 +1,6 @@
 --- a/src/system/xthread.cpp
 +++ b/src/system/xthread.cpp
-@@ -899,7 +899,10 @@
+@@ -899,6 +899,9 @@
        thread_->set_affinity_mask(uint64_t(1) << cpu_index);
      }
    } else {
@@ -11,4 +11,3 @@
 +    }
    }
  }
- 
