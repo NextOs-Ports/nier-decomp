@@ -19,3 +19,42 @@ teste de quatro threads/8.000 trocas: cada token aparece uma vez entre retornos
 e valor final. O teste não é uma prova formal de todas as interleavings.
 
 Provas/JSONs ficam privados; o coordenador integra os resultados no painel.
+
+## Lote X1-5 — PCM e formatos de áudio
+
+Onze helpers da camada de áudio passaram em 2.000 casos cada, sem falhas.
+A posição no caminho XAudio e a semântica dos formatos foram identificadas;
+não atribuímos um nome de middleware/PDB não comprovado.
+
+Os sete leitores cobrem PCM unsigned8, signed16 BE, 20 bits em contêiner
+24 LE/32 BE, 24 bits em contêiner24 LE/32 BE e signed32 BE. A conversão para
+float mantém o arredondamento intermediário e as palavras empacotadas que duas
+rotinas deixam em r3. 560 casos suplementares passaram com quatro modos de
+arredondamento, extremos/midpoints, bits descartados e ponteiros com word alto.
+
+Duas conversões de cabeçalho preservam a ordem de acessos e os campos que o
+original deixa zerados; não foram convertidas em construtores WAVEFORMATEX
+completos. Duas rotinas ADPCM preservam o cálculo de samples/bloco, o resultado
+de 16 bits, a contagem de blocos/padding e a convenção do oráculo para divisão
+por zero. Os parâmetros do teste também incluem cabeçalhos inválidos para
+conferir esses retornos, sem afirmar que sejam formatos reproduzíveis.
+
+## Lote X1-6 — filtro e estruturas de áudio
+
+Nove rotinas passaram em 2.000 casos cada, sem falhas de acesso. O filtro de
+variável de estado foi reconstruído por suas duas integrações (low/band),
+coeficientes frequency/damping e saídas low/band/high/notch. A ordem dos FMAs e
+os arredondamentos single intermediários foram conservados. Os dados de teste
+usam amostras/estados finitos normalizados, coeficientes variados e 0–32 samples.
+
+Também foram verificados: inicialização dos treze buckets (incluindo campos
+que não devem ser zerados), lookup com chaves presentes nas duas posições de
+cada bucket, retirada de payload com reciclagem de nó, seleção de modo pendente,
+marcação de acesso, máscaras de canais XMA/extended/default e seleção das seis
+entradas de conversão PCM. O lookup mantém a pré-condição de chave existente;
+não inventa recuperação para a desreferência nula do original fora desse domínio.
+
+210 casos extras passaram: fila vazia/um/dois nós e payload zero, tags de
+formato/channels/flags, escolhas suportadas e rejeitadas, e filtro sob quatro
+modos FP. A prova é de resultados/ABI/memória; não substitui audição no jogo ou
+uma prova formal de estabilidade do filtro para coeficientes arbitrários.
