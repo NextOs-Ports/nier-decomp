@@ -17,7 +17,11 @@ def bl_target(pc, w):
 def shape(w): return tuple((x & 0xFC000003) if (x >> 26) == 18 and x & 1 else (x if (x >> 26) in (16, 18) else x & 0xFFFF0000) for x in w)
 
 REF = {'dtor_vtable_delete': (0x824DEAB8, 76), 'ctor_base_field_vtable': (0x8226C400, 72),
-       'dtor_allocator_delete': (0x8214E970, 108)}
+       'dtor_allocator_delete': (0x8214E970, 108), 'forward_swapped_virtual': (0x821C7330, 28),
+       'dtor_vtable_free': (0x82106118, 72), 'dtor_body_free': (0x82497AA8, 76),
+       'forward_member_then_self': (0x8226AC18, 76)}
+# chain3_global e static_init (templates no cabeçalho) chamam inicialização real do CRT/runtime,
+# que não roda com estado aleatório no comparador; ficam fora até haver prova específica.
 refs = {k: shape(words(a, n)) for k, (a, n) in REF.items()}
 done = set()
 for f in (root / 'src/decomp').rglob('*.cpp'):
@@ -31,7 +35,9 @@ for fn in inv:
         if n != rn: continue
         w = words(a, n)
         if shape(w) != refs[kind]: continue
-        frame = -s16(w[4] if kind == 'dtor_allocator_delete' else w[3])
+        frame = -s16(w[4] if kind in ('dtor_allocator_delete', 'dtor_body_free', 'forward_member_then_self') else
+                     (w[2] if kind in ('chain3_global', 'static_init') else w[3]))
+        hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
         if kind == 'dtor_vtable_delete':
             vt = ((s16(w[4]) << 16) + s16(w[6])) & 0xFFFFFFFF
             args = f'{frame}, 0x{vt:08X}, {s16(w[11])}, 0x{bl_target(a + 48, w[12]):08X}'
@@ -40,6 +46,23 @@ for fn in inv:
             vt = ((s16(w[7]) << 16) + s16(w[9])) & 0xFFFFFFFF
             args = f'{frame}, 0x{bl_target(a + 24, w[6]):08X}, {s16(w[4])}, {s16(w[10])}, 0x{vt:08X}'
             spec = 'r3=ptr'
+        elif kind == 'forward_swapped_virtual':
+            args = f'{s16(w[4]) // 4}'; spec = 'r3=ptr r4=obj'
+        elif kind == 'dtor_vtable_free':
+            args = f'{frame}, 0x{hi_lo(4, 6):08X}, 0x{bl_target(a + 44, w[11]):08X}'; spec = 'r3=ptr r4=range:0..1'
+        elif kind == 'dtor_body_free':
+            args = f'{frame}, 0x{bl_target(a + 28, w[7]):08X}, 0x{bl_target(a + 44, w[11]):08X}'; spec = 'r3=ptr r4=range:0..1'
+        elif kind == 'forward_member_then_self':
+            args = f'{frame}, {s16(w[8])}, 0x{bl_target(a + 36, w[9]):08X}, 0x{bl_target(a + 48, w[12]):08X}'
+            spec = 'r3=ptr f1=f32'
+        elif kind == 'chain3_global':
+            args = (f'{frame}, {s16(w[4])}, {s16(w[3])}, 0x{bl_target(a + 20, w[5]):08X}, 0x{bl_target(a + 24, w[6]):08X}, '
+                    f'0x{hi_lo(7, 9):08X}, 0x{bl_target(a + 40, w[10]):08X}')
+            spec = 'r3=ptr'
+        elif kind == 'static_init':
+            args = (f'{frame}, 0x{hi_lo(3, 4):08X}, 0x{bl_target(a + 20, w[5]):08X}, 0x{hi_lo(6, 7):08X}, '
+                    f'0x{bl_target(a + 32, w[8]):08X}')
+            spec = ''
         else:
             args = (f'{frame}, 0x{bl_target(a + 28, w[7]):08X}, 0x{bl_target(a + 48, w[12]):08X}, {s16(w[17]) // 4}, '
                     f'{s16(w[11])}, {s16(w[15])}')

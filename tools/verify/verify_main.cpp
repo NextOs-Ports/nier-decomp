@@ -331,6 +331,7 @@ int main(int argc, char** argv) {
   struct sigaction sa{}; sa.sa_sigaction = on_segv; sa.sa_flags = SA_SIGINFO | SA_NODEFER;
   sigaction(SIGSEGV, &sa, nullptr); sigaction(SIGBUS, &sa, nullptr);
   sigaction(SIGFPE, &sa, nullptr); sigaction(SIGILL, &sa, nullptr);   // divisão por zero etc. contam como falha
+  sigaction(SIGTRAP, &sa, nullptr); sigaction(SIGABRT, &sa, nullptr); // armadilhas e asserções do jogo também
   struct sigaction al{}; al.sa_handler = on_alarm; al.sa_flags = SA_NODEFER; sigaction(SIGALRM, &al, nullptr);
 
   FILE* out = fopen(getenv("NIER_OUT") ? getenv("NIER_OUT") : "/dev/stdout", "w");

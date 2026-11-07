@@ -57,3 +57,75 @@ inline void dtor_allocator_delete(PPCContext& ctx, uint8_t* base, uint32_t frame
 }
 }  // namespace nier::lifecycle
 using namespace nier::lifecycle;
+
+namespace nier::lifecycle {
+// Encaminhador estilo "visitor": chama o método `slot` do objeto em r4 com (r4, r3).
+inline void forward_swapped_virtual(PPCContext& ctx, uint8_t* base, uint32_t slot) {
+  const uint64_t self = ctx.r3.u64;
+  const uint32_t other = ctx.r4.u32;
+  ctx.r3.u64 = ctx.r4.u64;
+  ctx.r4.u64 = self;
+  call_virtual(ctx, base, other, slot);
+}
+
+// Destrutor com delete sem tamanho: restaura a vtable; se flags & 1, delete(this).
+inline void dtor_vtable_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vtable, uint32_t op_delete) {
+  const uint32_t self = ctx.r3.u32;
+  st32(base, self, vtable);
+  if (ctx.r4.u32 & 1) {
+    GuestFrame f(ctx, base, frame);
+    call_guest(ctx, base, op_delete);
+  }
+  ctx.r3.u64 = self;
+}
+
+// Destrutor com delete: corpo do destrutor e, se flags & 1, delete(this).
+inline void dtor_body_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t dtor, uint32_t op_delete) {
+  const uint32_t self = ctx.r3.u32;
+  const uint32_t flags = ctx.r4.u32;
+  GuestFrame f(ctx, base, frame);
+  call_guest(ctx, base, dtor);
+  if (flags & 1) {
+    ctx.r3.u64 = self;
+    call_guest(ctx, base, op_delete);
+  }
+  ctx.r3.u64 = self;
+}
+
+// Encaminhador com float: first(campo, this), depois second(this, f1 original).
+inline void forward_member_then_self(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t member_off,
+                                     uint32_t first, uint32_t second) {
+  const uint64_t self = ctx.r3.u64;
+  const uint64_t f1 = ctx.f1.u64;
+  GuestFrame f(ctx, base, frame);
+  ctx.r4.u64 = self;
+  ctx.r3.u64 = ld32(base, static_cast<uint32_t>(self) + member_off);
+  call_guest(ctx, base, first);
+  ctx.r3.u64 = self;
+  ctx.f1.u64 = f1;
+  call_guest(ctx, base, second);
+}
+
+// Cadeia: a(this + off, arg) → b(resultado) → c(global, resultado de b). Devolve o de c.
+inline void chain3_global(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t off, uint32_t arg, uint32_t a,
+                          uint32_t b, uint32_t global, uint32_t c) {
+  GuestFrame f(ctx, base, frame);
+  ctx.r4.u64 = arg;
+  ctx.r3.u64 = ctx.r3.u64 + static_cast<int64_t>(off);
+  call_guest(ctx, base, a);
+  call_guest(ctx, base, b);
+  ctx.r4.u64 = ctx.r3.u64;
+  ctx.r3.s64 = static_cast<int32_t>(global);
+  call_guest(ctx, base, c);
+}
+
+// Inicializador estático: construtor(objeto global) e registro do destrutor (atexit).
+inline void static_init(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t obj, uint32_t ctor, uint32_t arg2,
+                        uint32_t reg) {
+  GuestFrame f(ctx, base, frame);
+  ctx.r3.s64 = static_cast<int32_t>(obj);
+  call_guest(ctx, base, ctor);
+  ctx.r3.s64 = static_cast<int32_t>(arg2);
+  call_guest(ctx, base, reg);
+}
+}  // namespace nier::lifecycle
