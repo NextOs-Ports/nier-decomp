@@ -35,6 +35,12 @@ Instância reprovada não entra no jogo; o gerador pode mantê-la no arquivo (fi
 3. Pós-build: `check_overrides.py <elf> <lista.txt> --nm llvm-nm --json ...` exige `sub_X`
    forte em endereço diferente de `__imp__sub_X` para cada nome; falha = build vermelho.
 
+A última rodada fornecida revoga qualquer reprovação, inclusive menos de 500 execuções
+válidas. Os símbolos `REX_HOOK_RAW` de `port/render/d3d_hooks.cpp` são reservados para o
+renderer: não viram overrides de decomp, mesmo quando verificados. Assim a captura e o
+estado do render são preservados sem símbolos fortes duplicados. A4 tem 3.215 funções
+aprovadas e 3.214 overrides ativos; `sub_8256BB90` continua no hook do render.
+
 Bisseção se o jogo quebrar: `-DNIER_DECOMP_OVERRIDES_LIST=<arquivo com sub_X por linha>` ou
 `-DNIER_DECOMP_EXCLUDE=<arquivo>`; `-DNIER_DECOMP_RUNS=a.json;b.json` soma rodadas ainda
 não integradas em `progress/functions.json`.

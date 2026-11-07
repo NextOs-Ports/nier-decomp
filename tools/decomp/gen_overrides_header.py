@@ -10,7 +10,7 @@ Uso: gen_overrides_header.py <functions.json> <saida.h> [--run rodada.json ...] 
   --only: arquivo com um sub_X por linha; só esses entram (subconjunto para A/B).
   --exclude: idem, para tirar funções específicas.
 """
-import argparse, json, pathlib, sys
+import argparse, json, pathlib, re, sys
 
 ap = argparse.ArgumentParser()
 ap.add_argument('inventory'); ap.add_argument('output')
@@ -23,10 +23,18 @@ for r in a.run:
     d = json.load(open(r))
     for x in d['results']:
         if x['pass']: names.add(x['name'])
-        elif x['name'] in names and 'poucas' not in x['error']: names.discard(x['name'])
+        else: names.discard(x['name'])
 def read_list(p): return {l.strip() for l in open(p) if l.strip() and not l.startswith('#')}
 if a.only: names &= read_list(a.only)
 if a.exclude: names -= read_list(a.exclude)
+# Hooks fortes do render precisam manter captura/estado e sua chamada ao original.
+# Não substituir silenciosamente o hook nem produzir dois símbolos fortes no link.
+hooks_file = pathlib.Path(__file__).resolve().parents[2] / 'port/render/d3d_hooks.cpp'
+hooks = set(re.findall(r'REX_HOOK_RAW\((sub_[0-9A-F]{8})\)', hooks_file.read_text()))
+reserved = names & hooks
+if reserved:
+    print('preservados hooks do render: ' + ', '.join(sorted(reserved)), file=sys.stderr)
+names -= hooks
 out = ['// GERADO por tools/decomp/gen_overrides_header.py — não editar.',
        f'// {len(names)} reconstruções verificadas substituem o código recompilado.',
        '#pragma once']
