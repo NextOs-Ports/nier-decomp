@@ -17943,11 +17943,15 @@
    "address": 2182434184,
    "size": 2444,
    "name": "sub_82154D88",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 2444,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/emitter_update.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182436632,
@@ -18105,11 +18109,15 @@
    "address": 2182441448,
    "size": 788,
    "name": "sub_821569E8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 788,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/particle_visibility.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182442240,
