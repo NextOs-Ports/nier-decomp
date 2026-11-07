@@ -1069,25 +1069,31 @@ bool CpuSkinDraw(const Frame& f, const Cmd& c, Program& p, const uint8_t* state)
   static std::vector<uint8_t> have; have.assign(256, 0);
   const uint32_t n = c.vertexCount;
   for (uint32_t v = 0; v < n * 4; ++v) { int b = int((*idx)[v]); if (b >= 0 && b < 256 && !have[b]) { have[b] = 1; for (int k = 0; k < 12 && (4 * b + 2) < int(t.width); ++k) { uint8_t e[4]; std::memcpy(e, pal + (4 * b) * 16 + 4 * k, 4); xenos::Swap(e, 4, t.endian); std::memcpy(&rows[size_t(4 * b) * 4 + k], e, 4); } } }
-  auto skin = [&](const std::vector<float>& src, std::vector<float>& dst, bool point) {
-    dst.resize(size_t(n) * 4);
-    for (uint32_t v = 0; v < n; ++v) {
-      const float* q = &src[size_t(v) * 4];
-      float px = q[0], py = q[1], pz = q[2], pw = point ? 1.0f : 0.0f;
-      float ox = 0, oy = 0, oz = 0;
-      for (int k = 0; k < 4; ++k) {
-        float w = (*wgt)[size_t(v) * 4 + k]; if (w == 0.0f) continue;
-        int b = int((*idx)[size_t(v) * 4 + k]); if (b < 0 || b > 255) continue;
-        const float* m = &rows[size_t(4 * b) * 4];
-        ox += w * (m[0] * px + m[1] * py + m[2] * pz + m[3] * pw);
-        oy += w * (m[4] * px + m[5] * py + m[6] * pz + m[7] * pw);
-        oz += w * (m[8] * px + m[9] * py + m[10] * pz + m[11] * pw);
-      }
-      float* o = &dst[size_t(v) * 4]; o[0] = ox; o[1] = oy; o[2] = oz; o[3] = q[3];
+  // Uma mistura de matriz por vértice (Σ w_b M_b, 3 linhas) aplicada a todos os streams (posição com w=1, direções
+  // com w=0). Vetores de 4 floats do GCC: NEON no A53, SSE no PC.
+  typedef float v4f __attribute__((vector_size(16)));
+  std::vector<const std::vector<float>*> srcs; std::vector<int> outs; std::vector<bool> points;
+  for (int i : posIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) return false; srcs.push_back(src); outs.push_back(i); points.push_back(true); }
+  for (int i : dirIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) continue; srcs.push_back(src); outs.push_back(i); points.push_back(false); }
+  for (int i : outs) { g_skinOut[i].resize(size_t(n) * 4); g_transientUsed[i] = true; }
+  const float* W = wgt->data(); const float* I = idx->data();
+  for (uint32_t v = 0; v < n; ++v) {
+    v4f r0 = {0, 0, 0, 0}, r1 = r0, r2 = r0;
+    for (int k = 0; k < 4; ++k) {
+      float w = W[size_t(v) * 4 + k]; if (w == 0.0f) continue;
+      int b = int(I[size_t(v) * 4 + k]); if (b < 0 || b > 255) continue;
+      const float* m = &rows[size_t(4 * b) * 4];
+      v4f m0, m1, m2; std::memcpy(&m0, m, 16); std::memcpy(&m1, m + 4, 16); std::memcpy(&m2, m + 8, 16);
+      r0 += w * m0; r1 += w * m1; r2 += w * m2;
     }
-  };
-  for (int i : posIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) return false; skin(*src, g_skinOut[i], true); g_transientUsed[i] = true; }
-  for (int i : dirIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) continue; skin(*src, g_skinOut[i], false); g_transientUsed[i] = true; }
+    for (size_t sIdx = 0; sIdx < srcs.size(); ++sIdx) {
+      const float* q = &(*srcs[sIdx])[size_t(v) * 4];
+      v4f pv = {q[0], q[1], q[2], points[sIdx] ? 1.0f : 0.0f};
+      v4f a0 = r0 * pv, a1 = r1 * pv, a2 = r2 * pv;
+      float* o = &g_skinOut[outs[sIdx]][size_t(v) * 4];
+      o[0] = a0[0] + a0[1] + a0[2] + a0[3]; o[1] = a1[0] + a1[1] + a1[2] + a1[3]; o[2] = a2[0] + a2[1] + a2[2] + a2[3]; o[3] = q[3];
+    }
+  }
   g_skinMs += Ms(t0, Clock::now()); g_skinnedVertices += n; ++g_skinnedDraws;
   if (!p.identityUploaded) {
     static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
