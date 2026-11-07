@@ -599,7 +599,7 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
     size_t at = out.find(stub);
     if (at == std::string::npos) continue;
     std::string repl = "uniform vec4 VT" + n + "[" + std::to_string(k) + "];\nuniform vec2 VT" + n + "_p;\n"
-      "vec4 nx_sample" + n + "(vec2 uv) { int i = int(floor(uv.x * VT" + n + "_p.x + 0.001)) - int(VT" + n + "_p.y); i = nx_clamp_int(i, 0, " + std::to_string(k - 1) + "); return VT" + n + "[i]; }\n";
+      "vec4 nx_sample" + n + "(vec2 uv) { return VT" + n + "[int(clamp(uv.x * VT" + n + "_p.x + 0.001 - VT" + n + "_p.y, 0.0, " + std::to_string(k - 1) + ".0))]; }\n";
     out.replace(at, stub.size(), repl);
     slots.push_back({t, k});
   }
