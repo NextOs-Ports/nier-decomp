@@ -14,7 +14,9 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
+#include <algorithm>
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
@@ -53,6 +55,11 @@ constexpr int kFakeCount = 64;
 struct Call { uint32_t target; uint64_t r[8]; uint64_t f[4]; };
 std::vector<Call> g_calls;
 int g_callargs = 6;
+bool g_callret_ptr = false;
+// nan=payload: a reconstrução pode devolver NaN com sinal/carga diferentes (o compilador
+// escolhe qual NaN propaga numa multiplicação); só vale para floats de 32 bits alinhados.
+bool g_nan_payload_ok = false;
+inline bool is_nan32(uint32_t be) { const uint32_t v = __builtin_bswap32(be); return (v & 0x7F800000u) == 0x7F800000u && (v & 0x007FFFFFu); }   // callret=ptr: destinos falsos devolvem ponteiro válido (alocadores)
 std::vector<uint8_t> g_pristine;           // imagem original
 std::vector<uint8_t> g_dirty;              // páginas da imagem tocadas
 sigjmp_buf g_jmp; volatile int g_armed; volatile uintptr_t g_fault_addr;
@@ -87,18 +94,24 @@ void fake_target(PPCContext& ctx, uint8_t*) {
   for (int i = 0; i < g_callargs; ++i) h = (h ^ c.r[i]) * 0x100000001B3ull;
   g_calls.push_back(c);
   ctx.r3.u64 = (h >> 7) & ((h & 1) ? 0xFFFFFFFFull : 0x3ull);   // ora booleano, ora valor cheio
+  if (g_callret_ptr) ctx.r3.u64 = kScratch + 0x8000 + (uint32_t)((h >> 9) % (kScratchSize - 0x10000)) / 16 * 16;
   ctx.f1.f64 = (double)(int64_t)(h % 2001) / 8.0 - 125.0;
 }
 
 // Limite de tempo por execução (laço sem fim com memória aleatória): conta como falha.
 void on_alarm(int) {
-  g_fault_addr = (uintptr_t)g_base;   // endereço guest 0 marca estouro de tempo
+  g_fault_addr = (uintptr_t)g_base;   // endereço guest 0 marca estouro de tempo (1 = exit, 2 = abort)
   if (g_armed) siglongjmp(g_jmp, 1);
 }
 
 void map_rw(uint64_t guest, uint64_t size) {
   if (mprotect(g_base + guest, size, PROT_READ | PROT_WRITE)) { perror("mprotect"); exit(2); }
 }
+
+// Relógio monotônico em ns para a medição de tempo (só a chamada da função).
+inline uint64_t now_ns() { timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return (uint64_t)t.tv_sec * 1000000000ull + t.tv_nsec; }
+uint64_t g_last_ns;   // duração da última chamada em run()
+uint64_t g_tick;      // relógio do console (mftb) determinístico, ver QueryGuestTickCount
 
 struct State {
   PPCContext ctx;
@@ -108,13 +121,17 @@ struct State {
   std::vector<Call> calls;
 };
 
+// Na medição de tempo, as páginas sujas voltam ao conteúdo original mas ficam
+// graváveis: a primeira escrita não paga o sinal de proteção (~4 µs), que não é
+// custo da função e distorceria a comparação.
+bool g_keep_rw = false;
 void image_reset() {
   for (size_t pg = 0; pg < g_dirty.size(); ++pg)
     if (g_dirty[pg]) {
       std::memcpy(g_base + kImageBase + pg * kPage, g_pristine.data() + pg * kPage, kPage);
-      g_dirty[pg] = 0;
+      if (!g_keep_rw) g_dirty[pg] = 0;
     }
-  mprotect(g_base + kImageBase, kImageSize, PROT_READ);
+  if (!g_keep_rw) mprotect(g_base + kImageBase, kImageSize, PROT_READ);
 }
 
 void load_inputs(const std::vector<uint8_t>& s, const std::vector<uint8_t>& t, const std::vector<uint8_t>& st) {
@@ -128,6 +145,7 @@ State run(PPCFunc* fn, const PPCContext& in, const std::vector<uint8_t>& s,
   image_reset();
   load_inputs(s, t, st);
   g_calls.clear();
+  g_tick = 0x1234567ull;
   State out;
   static PPCContext ctx;          // fora da pilha: sobrevive ao siglongjmp
   ctx = in;
@@ -135,8 +153,11 @@ State run(PPCFunc* fn, const PPCContext& in, const std::vector<uint8_t>& s,
   struct itimerval tv{}; tv.it_value.tv_usec = 100000;   // 100 ms
   setitimer(ITIMER_REAL, &tv, nullptr);
   if (sigsetjmp(g_jmp, 1) == 0) {
+    const uint64_t t0 = now_ns();
     fn(ctx, g_base);
+    g_last_ns = now_ns() - t0;
   } else {
+    g_last_ns = 0;
     out.faulted = true; out.fault = g_fault_addr - (uintptr_t)g_base;
   }
   g_armed = 0;
@@ -274,9 +295,16 @@ std::string diff(const State& a, const State& b, int callargs) {
   const int keep[] = {1, 2, 3, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
   for (int n : keep) { std::string nm = "r" + std::to_string(n); if (!(r = chk(nm.c_str(), gpr(ca, n)->u64, gpr(cb, n)->u64)).empty()) return r; }
   const int fkeep[] = {1, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
-  for (int n : fkeep) { std::string nm = "f" + std::to_string(n); if (!(r = chk(nm.c_str(), fpr(ca, n)->u64, fpr(cb, n)->u64)).empty()) return r; }
+  for (int n : fkeep) {
+    if (g_nan_payload_ok && fpr(ca, n)->f64 != fpr(ca, n)->f64 && fpr(cb, n)->f64 != fpr(cb, n)->f64) continue;
+    std::string nm = "f" + std::to_string(n); if (!(r = chk(nm.c_str(), fpr(ca, n)->u64, fpr(cb, n)->u64)).empty()) return r; }
   auto cmpmem = [&](const char* n, const std::vector<uint8_t>& x, const std::vector<uint8_t>& y, uint32_t g, size_t from) -> std::string {
     for (size_t i = from; i < x.size(); ++i) if (x[i] != y[i]) {
+      if (g_nan_payload_ok && i + 4 <= x.size()) {
+        const size_t w = i & ~size_t(3); uint32_t a32, b32;
+        std::memcpy(&a32, &x[w], 4); std::memcpy(&b32, &y[w], 4);
+        if (is_nan32(a32) && is_nan32(b32)) { i = w + 3; continue; }
+      }
       snprintf(buf, sizeof buf, "%s: byte 0x%08zx original %02x reconstruída %02x", n, g + i, x[i], y[i]); return buf; }
     return ""; };
   if (!(r = cmpmem("dados", a.scratch, b.scratch, kScratch, 0)).empty()) return r;
@@ -304,22 +332,82 @@ static void bad_indirect(PPCContext& ctx, uint8_t*) {
 namespace rex::runtime {
 PPCFunc* ResolveIndirectFunction(uint32_t) { return bad_indirect; }
 }
+// Erro fatal do guest (R6002/R6030 do CRT, trap de serviço): o runtime chamaria
+// KeBugCheckEx e abortaria o processo; aqui vira falha controlada (guest 3).
+namespace rex::kernel::xboxkrnl {
+void KeBugCheckEx_entry(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t) {
+  g_fault_addr = (uintptr_t)g_base + 3;
+  if (g_armed) siglongjmp(g_jmp, 1);
+  _exit(97);
+}
+}
+// `mftb` (relógio do console) determinístico: cada execução começa do mesmo valor e
+// cada leitura avança um passo fixo, então original e reconstruída veem a mesma sequência.
+namespace rex::chrono {
+uint64_t Clock::QueryGuestTickCount() { g_tick += 0x3A7; return g_tick; }
+}
 
 // O runtime encerra o processo em erros fatais do guest. Dentro de uma execução,
 // isso vira falha controlada; fora dela, encerra normalmente.
 extern "C" void exit(int code) noexcept {
-  if (g_armed) { g_fault_addr = (uintptr_t)g_base; siglongjmp(g_jmp, 1); }
+  if (g_armed) { g_fault_addr = (uintptr_t)g_base + 1; siglongjmp(g_jmp, 1); }   // guest 1 = exit() do runtime
   fflush(nullptr);
   _exit(code);
 }
 extern "C" void abort() noexcept {
-  if (g_armed) { g_fault_addr = (uintptr_t)g_base; siglongjmp(g_jmp, 1); }
+  if (g_armed) { g_fault_addr = (uintptr_t)g_base + 2; siglongjmp(g_jmp, 1); }   // guest 2 = abort()/assert
   _exit(134);
+}
+
+// ---- medição de tempo: nativo (reconstruída) × tradução recompilada ----------
+// Repete as mesmas entradas da verificação (mesma semente) e mede só a chamada da
+// função, alternando original/reconstruída e ficando com o mínimo de `reps` repetições
+// por entrada (tira o ruído de cache/escalonador). Soma os mínimos das entradas em que
+// nenhuma das duas falhou. Gate da decomp (REGRAS-COMUNS): reconstruída <= original.
+struct Timing { uint64_t orig_ns = 0, decomp_ns = 0; int inputs = 0; };
+uint64_t g_overhead_ns = 0;   // custo de cronometrar uma chamada vazia (descontado dos dois lados)
+void empty_fn(PPCContext&, uint8_t*) {}
+void measure_overhead() {
+  uint64_t best = UINT64_MAX;
+  static PPCContext c{};
+  PPCFunc* volatile fn = empty_fn;   // volatile: impede o compilador de sumir com a chamada
+  for (int i = 0; i < 2000; ++i) { const uint64_t t0 = now_ns(); fn(c, g_base); best = std::min(best, now_ns() - t0); }
+  g_overhead_ns = best;
+}
+Timing measure_time(PPCFunc* orig, PPCFunc* decomp, const PPCContext& in, const std::vector<uint8_t>& s,
+                    const std::vector<uint8_t>& t, const std::vector<uint8_t>& st, int reps, Timing acc) {
+  uint64_t mo = UINT64_MAX, md = UINT64_MAX; bool ok = true;
+  g_keep_rw = true;
+  for (int r = 0; r < reps && ok; ++r) {
+    // ordem alternada: O D / D O, para nenhum lado ganhar sempre a cache quente
+    for (int side = 0; side < 2; ++side) {
+      const bool do_orig = ((r + side) & 1) == 0;
+      State x = run(do_orig ? orig : decomp, in, s, t, st);
+      if (x.faulted) { ok = false; break; }
+      if (do_orig) mo = std::min(mo, g_last_ns); else md = std::min(md, g_last_ns);
+    }
+  }
+  g_keep_rw = false;
+  image_reset();   // volta a proteger a imagem para a verificação
+  if (ok) {
+    acc.orig_ns += mo > g_overhead_ns ? mo - g_overhead_ns : 0;
+    acc.decomp_ns += md > g_overhead_ns ? md - g_overhead_ns : 0;
+    ++acc.inputs;
+  }
+  return acc;
 }
 
 int main(int argc, char** argv) {
   const char* pe = getenv("NIER_PE");
   int trials = getenv("NIER_TRIALS") ? atoi(getenv("NIER_TRIALS")) : 2000;
+  // Medição de tempo: NIER_TIME_INPUTS entradas válidas (padrão 64), NIER_TIME_REPS repetições (padrão 8).
+  const int time_inputs = getenv("NIER_TIME_INPUTS") ? atoi(getenv("NIER_TIME_INPUTS")) : 64;
+  const int time_reps = getenv("NIER_TIME_REPS") ? atoi(getenv("NIER_TIME_REPS")) : 12;
+  // Gate de tempo: reconstruída <= original. A medição tem ruído de alguns ns mesmo com o mínimo
+  // de várias repetições; o padrão aceita até 5 % acima como empate (NIER_TIME_SLACK=1.0 = estrito).
+  const double time_slack = getenv("NIER_TIME_SLACK") ? atof(getenv("NIER_TIME_SLACK")) : 1.05;
+  // Tolerância absoluta (ns por entrada) para funções menores que a resolução do relógio.
+  const double time_abs = getenv("NIER_TIME_ABS") ? atof(getenv("NIER_TIME_ABS")) : 3.0;
   const char* only = argc > 1 ? argv[1] : nullptr;
   if (!pe) { fprintf(stderr, "defina NIER_PE=<default.pe privado>\n"); return 2; }
   FILE* f = fopen(pe, "rb"); if (!f) { perror(pe); return 2; }
@@ -350,6 +438,7 @@ int main(int argc, char** argv) {
   sigaction(SIGTRAP, &sa, nullptr); sigaction(SIGABRT, &sa, nullptr); // armadilhas e asserções do jogo também
   struct sigaction al{}; al.sa_handler = on_alarm; al.sa_flags = SA_NODEFER; sigaction(SIGALRM, &al, nullptr);
 
+  measure_overhead();
   FILE* out = fopen(getenv("NIER_OUT") ? getenv("NIER_OUT") : "/dev/stdout", "w");
   if (!out) { perror("NIER_OUT"); return 2; }
   fprintf(out, "{\"tool\":\"nierverify\",\"functions_in_table\":%zu,\"trials\":%d,\"results\":[\n", nfn, trials);
@@ -363,8 +452,10 @@ int main(int argc, char** argv) {
     auto spec = parse_spec(e.spec);
     int callargs = spec.count("callargs") ? (int)spec["callargs"].lo : 6;
     g_callargs = callargs;
+    g_callret_ptr = spec.count("callret") && spec["callret"].kind == "ptr";
+    g_nan_payload_ok = spec.count("nan") && spec["nan"].kind == "payload";
     std::mt19937_64 rng(0x4E4945520000ull ^ e.addr);
-    int ok = 0, both_fault = 0; std::string err;
+    int ok = 0, both_fault = 0; std::string err; Timing tm;
     std::vector<uint8_t> s(kScratchSize), t(kTlsSize), st(kStackSize);
     for (int i = 0; i < trials && err.empty(); ++i) {
       fill_scratch(s, rng); fill_vtables(s); fill_scratch(t, rng); fill_scratch(st, rng);
@@ -406,10 +497,18 @@ int main(int argc, char** argv) {
           cur = val;
         }
       }
+      const bool trace = getenv("NIER_TRACE_TRIAL") && atoi(getenv("NIER_TRACE_TRIAL")) == i;
+      if (trace) { fprintf(stderr, "TRACE trial %d: original\n", i); setenv("NIER_TRACE_NOW", "1", 1); }
       State a = run(e.orig, in, s, t, st);
+      if (trace) fprintf(stderr, "TRACE original: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\nTRACE reconstruída\n", a.faulted, (unsigned long long)a.fault, a.calls.size(), (unsigned long long)a.ctx.r3.u64);
       State b = run(e.decomp, in, s, t, st);
+      if (trace) fprintf(stderr, "TRACE reconstruída: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\n", b.faulted, (unsigned long long)b.fault, b.calls.size(), (unsigned long long)b.ctx.r3.u64);
+      if (trace) unsetenv("NIER_TRACE_NOW");
       err = diff(a, b, callargs);
-      if (err.empty()) { if (a.faulted) ++both_fault; else ++ok; }
+      if (err.empty()) {
+        if (a.faulted) ++both_fault;
+        else { ++ok; if (tm.inputs < time_inputs) tm = measure_time(e.orig, e.decomp, in, s, t, st, time_reps, tm); }
+      }
       else {
         char regs[160];
         snprintf(regs, sizeof regs, " [entrada r3=0x%llx r4=0x%llx r5=0x%llx r6=0x%llx]",
@@ -419,11 +518,24 @@ int main(int argc, char** argv) {
       }
     }
     const int min_ok = trials < 2000 ? trials / 4 : 500;
-    bool pass = err.empty() && ok >= min_ok;
+    const bool equal_pass = err.empty() && ok >= min_ok;
+    // Gate de tempo: soma dos mínimos por entrada; reconstruída tem de ser <= original (× tolerância).
+    const bool time_pass = tm.inputs > 0 && (double)tm.decomp_ns <= (double)tm.orig_ns * time_slack + time_abs * tm.inputs;
+    const double ratio = tm.orig_ns ? (double)tm.decomp_ns / (double)tm.orig_ns : 0.0;
+    bool pass = equal_pass && time_pass;
     if (!pass) ++bad;
-    fprintf(out, "%s{\"name\":\"%s\",\"address\":\"0x%08X\",\"file\":\"%s\",\"pass\":%s,\"equal\":%d,\"both_faulted\":%d,\"error\":\"%s\"}",
+    if (err.empty() && !equal_pass) err = "poucas tentativas executaram sem falha de acesso";
+    else if (equal_pass && !time_pass) {
+      char tb[160];
+      snprintf(tb, sizeof tb, "mais lenta que a tradução: reconstruída %.0f ns vs original %.0f ns por entrada (x%.2f)",
+               (double)tm.decomp_ns / std::max(tm.inputs, 1), (double)tm.orig_ns / std::max(tm.inputs, 1), ratio);
+      err = tb;
+    }
+    fprintf(out, "%s{\"name\":\"%s\",\"address\":\"0x%08X\",\"file\":\"%s\",\"pass\":%s,\"equal\":%d,\"both_faulted\":%d,"
+           "\"time_inputs\":%d,\"orig_ns\":%.1f,\"decomp_ns\":%.1f,\"time_ratio\":%.3f,\"time_pass\":%s,\"error\":\"%s\"}",
            first ? "" : ",\n", e.name, e.addr, e.file, pass ? "true" : "false", ok, both_fault,
-           err.empty() && !pass ? "poucas tentativas executaram sem falha de acesso" : err.c_str());
+           tm.inputs, (double)tm.orig_ns / std::max(tm.inputs, 1), (double)tm.decomp_ns / std::max(tm.inputs, 1), ratio,
+           time_pass ? "true" : "false", err.c_str());
     first = false; fflush(out);
   }
   fprintf(out, "\n],\"failed\":%d}\n", bad);

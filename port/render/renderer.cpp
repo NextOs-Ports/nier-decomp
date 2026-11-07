@@ -100,6 +100,9 @@ struct Cmd {
   size_t inputs[kMaxInputs] = {};
   buffers::Ref vertexData[kMaxInputs], indexData;
   uint64_t indexAddress = 0;
+  size_t streamInputs[kMaxInputs]{}, streamIndices = 0;
+  uint32_t residentInputs = 0;
+  bool residentIndices = false;
   uint32_t inputCount = 0, vertexCount = 0, indexCount = 0;
   uint32_t flags = 0, argb = 0;
   int32_t rect[4] = {};
@@ -131,6 +134,7 @@ std::atomic<double> g_lastFrameMs{0};
 std::vector<uint32_t> g_srcIndices;
 std::vector<uint16_t> g_triIndices;
 buffers::Cache g_bufferSnapshots;
+uint64_t g_bufferRecordingFrame = 0; // recording thread, distinct Present boundaries
 std::atomic<bool> g_vertexHalf{false};
 bool ReferenceBuffers() { static bool value = std::getenv("NIER_BUFFER_REFERENCE") != nullptr; return value; }
 
@@ -797,6 +801,61 @@ struct CachedBuffer { GLuint id; size_t bytes; std::weak_ptr<const buffers::Payl
 std::unordered_map<uint64_t, CachedBuffer> g_bufferObjects;
 size_t g_bufferObjectBytes = 0;
 uint64_t g_bufferHits = 0, g_bufferUploads = 0, g_bufferUploadBytes = 0;
+struct StreamSlot { GLuint vertex = 0, index = 0; };
+std::array<StreamSlot, 3> g_streamSlots;
+std::vector<uint8_t> g_streamVertices, g_streamIndices;
+uint64_t g_streamUploads = 0, g_streamBytes = 0;
+void InitStreamBuffers() {
+  for (auto& slot : g_streamSlots) {
+    glGenBuffers(1, &slot.vertex); glGenBuffers(1, &slot.index);
+  }
+}
+void PrepareFrameStreams(Frame& frame) {
+  if (ReferenceBuffers()) return;
+  auto started = Clock::now();
+  size_t vertexBytes = 0, indexBytes = 0;
+  auto aligned = [](size_t size) { return (size + 15) & ~size_t(15); };
+  // Freeze promotion decisions for the entire frame before any draw is issued.
+  for (auto& c : frame.cmds) {
+    if (c.kind != Kind::Draw) continue;
+    c.residentInputs = 0;
+    for (uint32_t i = 0; i < c.inputCount; ++i) {
+      const auto& data = c.vertexData[i];
+      if (data && data->cacheable.load(std::memory_order_relaxed)) c.residentInputs |= 1u << i;
+      else {
+        c.streamInputs[i] = vertexBytes;
+        vertexBytes += aligned(data ? data->bytes.size() : size_t(c.vertexCount) * 16);
+      }
+    }
+    c.residentIndices = c.indexData && c.indexData->cacheable.load(std::memory_order_relaxed);
+    if (!c.residentIndices) { c.streamIndices = indexBytes; indexBytes += aligned(size_t(c.indexCount) * 2); }
+  }
+  g_streamVertices.resize(vertexBytes); g_streamIndices.resize(indexBytes);
+  for (const auto& c : frame.cmds) {
+    if (c.kind != Kind::Draw) continue;
+    for (uint32_t i = 0; i < c.inputCount; ++i) if (!(c.residentInputs & (1u << i))) {
+      const auto& data = c.vertexData[i];
+      std::memcpy(g_streamVertices.data() + c.streamInputs[i], data ? data->bytes.data() : frame.blob.data() + c.inputs[i],
+                  data ? data->bytes.size() : size_t(c.vertexCount) * 16);
+    }
+    if (!c.residentIndices) std::memcpy(g_streamIndices.data() + c.streamIndices,
+      c.indexData ? c.indexData->bytes.data() : frame.blob.data() + c.indices, size_t(c.indexCount) * 2);
+  }
+  auto& slot = g_streamSlots[g_frames.load() % g_streamSlots.size()];
+  // One orphan+upload per nonempty VBO/IBO, BEFORE the first draw of this frame.
+  // Never update an in-flight backing store with glBufferSubData on Mali-450.
+  if (vertexBytes) {
+    glBindBuffer(GL_ARRAY_BUFFER, slot.vertex);
+    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(vertexBytes), g_streamVertices.data(), GL_STREAM_DRAW);
+    ++g_streamUploads; g_streamBytes += vertexBytes;
+  }
+  if (indexBytes) {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, slot.index);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(indexBytes), g_streamIndices.data(), GL_STREAM_DRAW);
+    ++g_streamUploads; g_streamBytes += indexBytes;
+  }
+  g_pBuffers += Ms(started, Clock::now()); // include CPU staging AND both uploads in the budget
+}
 void BindSnapshot(GLenum target, const buffers::Ref& data) {
   auto it = g_bufferObjects.find(data->serial);
   if (it == g_bufferObjects.end()) {
@@ -809,7 +868,7 @@ void BindSnapshot(GLenum target, const buffers::Ref& data) {
 }
 void TrimBufferObjects(bool all = false) {
   for (auto it = g_bufferObjects.begin(); it != g_bufferObjects.end();) {
-    if (all || it->second.data.expired()) {
+    if (all || (it->second.data.expired() && g_frames.load() - it->second.used >= 3)) {
       glDeleteBuffers(1, &it->second.id); g_bufferObjectBytes -= it->second.bytes;
       it = g_bufferObjects.erase(it);
     } else ++it;
@@ -926,15 +985,25 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   auto t2 = Clock::now();
   g_pState += Ms(t1, t2);
+  size_t indexOffset = 0;
   if (!ReferenceBuffers() && !g_bufferAuditReference) {
+    const auto& stream = g_streamSlots[g_frames.load() % g_streamSlots.size()];
+    bool streamBound = false;
     for (uint32_t i = 0; i < c.inputCount; ++i) {
       const auto& data = c.vertexData[i];
-      BindSnapshot(GL_ARRAY_BUFFER, data);
-      glVertexAttribPointer(i, data->layout.components, data->layout.type,
-                            data->layout.normalized ? GL_TRUE : GL_FALSE, data->layout.bytes, nullptr);
+      auto layout = data ? data->layout : buffers::Layout{};
+      size_t offset = 0;
+      if (c.residentInputs & (1u << i)) { BindSnapshot(GL_ARRAY_BUFFER, data); streamBound = false; }
+      else {
+        if (!streamBound) glBindBuffer(GL_ARRAY_BUFFER, stream.vertex);
+        streamBound = true; offset = c.streamInputs[i];
+      }
+      glVertexAttribPointer(i, layout.components, layout.type, layout.normalized ? GL_TRUE : GL_FALSE,
+                            layout.bytes, reinterpret_cast<void*>(offset));
     }
-    SetAttribs(c.inputCount);
-    BindSnapshot(GL_ELEMENT_ARRAY_BUFFER, c.indexData);
+    SetAttribs(c.inputCount);  // cache de estado do C1 (só liga/desliga o que mudou)
+    if (c.residentIndices) BindSnapshot(GL_ELEMENT_ARRAY_BUFFER, c.indexData);
+    else { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, stream.index); indexOffset = c.streamIndices; }
   } else {
     glBindBuffer(GL_ARRAY_BUFFER, g_vertexBuffer);
     size_t bytes = size_t(c.vertexCount) * 16;
@@ -956,7 +1025,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
-  glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, nullptr);
+  glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -1160,7 +1229,14 @@ void AuditBufferImage(const Frame& work) {
   if (sceneDraws < 50) return;
   auto originalTarget = g_targets.find(g_mainTarget);
   if (originalTarget == g_targets.end()) return;
-  const auto& target = originalTarget->second;
+  auto logicalTarget = [&](const Target& stored) -> const Target& {
+    if (stored.holder) {
+      auto it = g_resolved.find(stored.holder);
+      if (it != g_resolved.end() && it->second.texture) return it->second;
+    }
+    return stored;
+  };
+  const auto& target = logicalTarget(originalTarget->second);
   std::vector<uint8_t> originalMain(size_t(target.w) * target.h * 4), finalMain;
   glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
   glReadPixels(0, 0, target.w, target.h, GL_RGBA, GL_UNSIGNED_BYTE, originalMain.data()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
@@ -1182,7 +1258,8 @@ void AuditBufferImage(const Frame& work) {
     g_bufferAuditReference = false;
     std::vector<uint8_t> pixels;
     auto readTargets = [&](const auto& targets, const char* kind) {
-      for (const auto& [key, target] : targets) {
+      for (const auto& [key, stored] : targets) {
+        const auto& target = logicalTarget(stored);
         if (!target.fbo || target.w < 1 || target.h < 1) continue;
         std::vector<uint8_t> rgba(size_t(target.w) * target.h * 4);
         glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
@@ -1213,9 +1290,9 @@ void AuditBufferImage(const Frame& work) {
     for (size_t i = 0; i < ref1.size(); ++i) differences += ref1[i] != candidate[i];
   bool stable = !ref1.empty() && ref0 == ref1 && ref1 == ref2 && originalMain == finalMain;
   bool equal = stable && ref1 == candidate;
-  std::fprintf(stderr, "[nier-buffer-audit] %s frame %llu scene_draws %zu targets %zu bytes %zu differences %zu stable_reference %d original_lit_pixels %zu GL 0x%x\n",
+  std::fprintf(stderr, "[nier-buffer-audit] %s frame %llu scene_draws %zu targets %zu bytes %zu differences %zu stable_reference %d original_lit_pixels %zu stable_replays %d original_match %d GL 0x%x\n",
                equal ? "PASS" : stable ? "FAIL" : "INCONCLUSIVE", (unsigned long long)g_frames.load(), sceneDraws,
-               g_targets.size() + g_resolved.size(), ref1.size(), differences, int(stable), litPixels, glGetError()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
+               g_targets.size() + g_resolved.size(), ref1.size(), differences, int(stable), litPixels, int(ref0 == ref1 && ref1 == ref2), int(originalMain == finalMain), glGetError()); // LEVE_OK: diagnostic NIER_BUFFER_AUDIT only
 
 }
 
@@ -1282,6 +1359,7 @@ void RenderThread() {
     SDL_GL_SetSwapInterval(1);
   }
   CreateBlit();
+  InitStreamBuffers();
   const char* extensions = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
   std::string extensionList = std::string(" ") + (extensions ? extensions : "") + " ";
   g_vertexHalf.store(extensionList.find(" GL_OES_vertex_half_float ") != std::string::npos);
@@ -1318,6 +1396,7 @@ void RenderThread() {
         }
     }
     auto tr = Clock::now();
+    PrepareFrameStreams(work);
     PlanDirectPasses(work);
     for (size_t i = 0; i < work.cmds.size(); ++i) {
       const Cmd& c = work.cmds[i];
@@ -1362,6 +1441,12 @@ void RenderThread() {
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
                    (unsigned long long)g_bufferUploads, (unsigned long long)g_bufferUploadBytes, g_bufferObjectBytes);
+      static uint64_t lastMiss = 0, lastCreate = 0, lastStream = 0, lastBytes = 0;
+      uint64_t misses = g_bufferSnapshots.misses.load();
+      std::fprintf(stderr, "[nier-perfil] buffers/quadros: misses %.2f criacoes %.2f static_uploads %.2f stream_uploads %.2f stream_bytes %.0f\n",
+        double(misses-lastMiss)/120, double(g_bufferUploads-lastCreate)/120, double(g_bufferUploads-lastCreate)/120,
+        double(g_streamUploads-lastStream)/120, double(g_streamBytes-lastBytes)/120);
+      lastMiss=misses;lastCreate=g_bufferUploads;lastStream=g_streamUploads;lastBytes=g_streamBytes;
       g_pTarget = g_pState = g_pBuffers = g_pDraw = g_pFinish = g_pResolve = 0; g_resolves = g_resolveCopies = 0;
       g_textureMs = g_sigMs = g_decodeMs = g_uploadMs = g_replayMs = g_swapMs = 0;
       windowStart = now; windowFirst = n;
@@ -1377,6 +1462,7 @@ void RenderThread() {
     g_queueCv.notify_all();
   }
   TrimBufferObjects(true);
+  for (auto& slot : g_streamSlots) { glDeleteBuffers(1, &slot.vertex); glDeleteBuffers(1, &slot.index); }
   SDL_GL_MakeCurrent(g_window, nullptr);
 }
 
@@ -1408,8 +1494,8 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count,
       if (!base) { RecordSkip("stream de vértice sem memória"); return false; }
       base += size_t(first) * in.stride * 4;
     }
-    if (!ReferenceBuffers()) {
-      c.vertexData[i] = g_bufferSnapshots.Vertex(in, base, endian, count, g_vertexHalf.load());
+    if (!ReferenceBuffers() && !c.up) {
+      c.vertexData[i] = g_bufferSnapshots.Vertex(in, base, endian, count, g_vertexHalf.load(), g_bufferRecordingFrame);
       if (!c.vertexData[i]) { RecordSkip("formato de vfetch não suportado"); return false; }
       g_building.bufferBytes += c.vertexData[i]->raw.size() + c.vertexData[i]->bytes.size();
       continue;
@@ -1581,9 +1667,9 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
-  if (ReferenceBuffers()) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
-    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount);
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
     g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
   }
   g_recordedBytes = g_building.blob.size();
@@ -1624,9 +1710,9 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
   if (!SnapshotInputs(c, g_building.blob.data() + c.state, 0, vertexCount, data, stride)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, vertexCount, false);
   c.indexCount = uint32_t(g_triIndices.size());
-  if (ReferenceBuffers()) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
-    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount);
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
     g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
   }
   g_building.cmds.push_back(c);
@@ -1672,6 +1758,7 @@ void Present() {
     g_traceFrame = (long long)g_presented.load() + 1 + sceneDelay;
     std::fprintf(stderr, "[nier-trace] cena 3D no quadro %llu; rastro no quadro %lld\n", (unsigned long long)g_presented.load(), g_traceFrame.load());
   }
+  ++g_bufferRecordingFrame;
   DriveTestInput(++g_presented);
   auto waitStart = Clock::now();
   std::unique_lock lock(g_queueMutex);

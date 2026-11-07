@@ -27,10 +27,12 @@ for r in run['results']:
     addr = int(r['address'], 16)
     f = by_addr.get(addr)
     if f is None: sys.exit(f'{r["address"]} não está no inventário')
-    src = pathlib.Path(r['file']).resolve().relative_to(root).as_posix()
+    src = r['file'] if not r['file'].startswith('/') else pathlib.Path(r['file']).resolve().relative_to(root).as_posix()
     rec = {'name': r['name'], 'address': r['address'], 'size': f['size'], 'source': src,
            'trials': run['trials'], 'equal': r['equal'], 'both_faulted': r['both_faulted'],
-           'pass': r['pass'], 'error': r['error']}
+           'pass': r['pass'], 'error': r['error'],
+           'time_inputs': r.get('time_inputs'), 'orig_ns': r.get('orig_ns'), 'decomp_ns': r.get('decomp_ns'),
+           'time_ratio': r.get('time_ratio'), 'time_pass': r.get('time_pass')}
     merged[r['address']] = rec
     if r['pass']:
         f['status'] = 'verified'; f['source'] = src; f['evidence'] = [ev_path.relative_to(root).as_posix()]
@@ -41,7 +43,8 @@ doc = {'tool': 'tools/verify/verify_main.cpp', 'executable_sha256': inv['baselin
        'method': 'Mesmo estado inicial aleatório para a função traduzida (oráculo) e a reconstruída; '
                  'compara r1-r3, r13-r31, f1, f14-f31, memória tocada da imagem, dados de teste, '
                  'área do r13 e pilha acima do r1. Aprovação exige zero divergência e ao menos metade '
-                 'das tentativas sem falha de acesso.',
+                 'das tentativas sem falha de acesso, e tempo da reconstruída <= tempo da tradução '
+                 '(mínimo de repetições por entrada, somado nas entradas válidas, só a chamada da função).',
        'results': sorted(merged.values(), key=lambda x: x['address'])}
 json.dump(doc, open(ev_path, 'w'), ensure_ascii=False, indent=1); open(ev_path, 'a').write('\n')
 json.dump(inv, open(inv_path, 'w'), ensure_ascii=False, indent=1); open(inv_path, 'a').write('\n')

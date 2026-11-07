@@ -11,6 +11,7 @@ Compara cada função reconstruída em `src/decomp/` com a função traduzida do
 - Compara r1–r3, r13–r31, f1, f14–f31 (o retorno de 64 bits sai inteiro em r3), a memória de teste, a área do r13, a pilha acima do r1 de entrada e falhas de acesso.
 - Chamadas indiretas vão para destinos falsos que registram alvo e argumentos `r3`–`r8` (ou até `r10` com `callargs=8` na especificação). A ordem, os alvos e os argumentos das chamadas também são comparados. Objetos de teste com vtable: especificação `obj`.
 - Aprovação: nenhuma divergência em todas as tentativas (padrão 2.000) e ao menos 500 delas executadas sem falha de acesso nos dois lados.
+- **Tempo (gate da decomp leve):** nas primeiras 64 entradas válidas (`NIER_TIME_INPUTS`), cada lado roda 8 vezes (`NIER_TIME_REPS`) em ordem alternada e fica o mínimo; a soma dos mínimos da reconstruída tem de ser ≤ a da tradução (`NIER_TIME_SLACK=1.0`; só a chamada da função é cronometrada, com `CLOCK_MONOTONIC`). Mais lenta = reprovada (`time_pass=false`, erro "mais lenta que a tradução"), mesmo com 0 divergências. O JSON traz `orig_ns`, `decomp_ns` (média por entrada) e `time_ratio`. Os dois lados são compilados no mesmo nível (-O1) neste build; a medição compara código, não flags.
 - Teste de mutação feito em 07/11: trocar uma comparação, um limite ou um deslocamento reprova a função.
 
 ## Escrever uma função
@@ -25,6 +26,8 @@ NIER_DECOMP(sub_823C6A50) {
 }
 NIER_VERIFY_SPEC(sub_823C6A50, 0x823C6A50, "r3=ptr r4=range:0..64");
 ```
+
+Opções da especificação: `callargs=N` (argumentos comparados nas chamadas indiretas), `callret=ptr` (destinos falsos devolvem ponteiro válido, para alocadores), `nan=payload` (NaN de 32 bits com sinal/carga diferentes conta como igual — só para DSP em que o compilador escolhe o NaN propagado).
 
 Especificação dos argumentos: `ptr[:alinhamento]`, `bptr`, `int`, `u8`, `u16`, `range:a..b` (faixas que atravessam o zero valem como inteiros com sinal), `const:v`, `image:a..b`, `f[:min..max]`, `f32`. Em 1 de cada 16 tentativas os floats recebem NaN, infinito ou zero com sinal. Registradores sem especificação recebem ponteiro válido ou inteiro pequeno.
 

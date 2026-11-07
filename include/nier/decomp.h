@@ -56,9 +56,16 @@ inline void call_indirect(PPCContext& __restrict ctx, uint8_t* base, uint32_t ta
   ctx.ctr.u64 = target;
   REX_CALL_INDIRECT_FUNC(target);
 }
-// Chamada a uma função do jogo pelo endereço (equivale ao `bl` direto).
+// Chamada a uma função do jogo pelo endereço (equivale ao `bl` direto, mas passa pela
+// tabela de funções). Preferir a forma por símbolo abaixo no caminho quente.
 inline void call_guest(PPCContext& __restrict ctx, uint8_t* base, uint32_t target) {
   call_indirect(ctx, base, target);
+}
+// Chamada direta por símbolo (`DECLARE_REX_FUNC(sub_X)` + `sub_X`): igual ao `bl` traduzido,
+// sem tabela nem despacho indireto. No build do jogo, se sub_X também foi reconstruída, a
+// chamada vai direto para a reconstrução.
+inline void call_guest(PPCContext& __restrict ctx, uint8_t* base, PPCFunc* target) {
+  target(ctx, base);
 }
 // Quadro de pilha do guest enquanto a função chama outras: reserva `size` bytes abaixo
 // do r1 (com o encadeamento no topo, como `stwu`) e devolve o r1 no fim do escopo.

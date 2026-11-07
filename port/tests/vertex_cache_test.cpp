@@ -13,18 +13,19 @@ GLuint Shader(GLenum type, const char* source) {
   return id;
 }
 int main() {
-  // Mutation deliberately outside the 16 sampled bytes must invalidate the entry.
+  // Same-frame repetition must NOT promote; two distinct frames may promote.
   Cache cache(1 << 20);
   std::vector<uint8_t> source(1024 * 16, 0);
   VertexInput in{}; in.format = 38; in.stride = 4;
   auto old = cache.Vertex(in, source.data(), 0, 1024, false);
   auto same = cache.Vertex(in, source.data(), 0, 1024, false);
-  assert(old == same && cache.hits == 1);
+  assert(old == same && cache.hits == 1 && !old->cacheable.load());
+  assert(cache.Vertex(in, source.data(), 0, 1024, false, 1) == old && old->cacheable.load());
   auto hash = Sample(source.data(), 16, 1024, 16);
   source[13] = 1;
-  assert(Sample(source.data(), 16, 1024, 16) == hash);
-  auto changed = cache.Vertex(in, source.data(), 0, 1024, false);
-  assert(changed != old && old->raw[13] == 0 && changed->raw[13] == 1);
+  assert(Sample(source.data(), 16, 1024, 16) != hash);
+  auto changed = cache.Vertex(in, source.data(), 0, 1024, false, 2);
+  assert(changed != old && old->raw[13] == 0 && changed->raw[13] == 1 && !changed->cacheable.load());
   in.expAdjust = 2;
   assert(cache.Vertex(in, source.data(), 0, 1024, false) != changed);
   Cache tiny(256);
@@ -102,7 +103,7 @@ int main() {
     }
     ++cases;nativeBytes+=packed->bytes.size();referenceBytes+=reference.size()*4;
   }
-  std::printf("PASS %d GLES2 images pixel-exact (%d vertex fetches); mutation/collision/descriptor/eviction/lifetime/IBO passed; bytes=%llu reference=%llu\n",cases,cases*1024,(unsigned long long)nativeBytes,(unsigned long long)referenceBytes);
+  std::printf("PASS %d GLES2 images pixel-exact (%d vertex fetches); sampled-mutation/promotion/descriptor/eviction/lifetime/IBO passed; bytes=%llu reference=%llu\n",cases,cases*1024,(unsigned long long)nativeBytes,(unsigned long long)referenceBytes);
   eglMakeCurrent(display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
   eglDestroyContext(display,context);eglDestroySurface(display,surface);eglTerminate(display);
 }
