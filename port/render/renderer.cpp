@@ -222,7 +222,7 @@ bool g_mali = false;
 struct TopDraw { uint32_t indices, vertices; uint8_t prim, cls; uint32_t vs, ps; int vsOps; };
 std::vector<TopDraw> g_topDraws;  // só no perfil: desenhos da janela, para o top 10 por índices
 uint8_t g_drawClassCurrent = 0;
-uint64_t g_culledDraws = 0, g_culledIndices = 0;
+uint64_t g_culledDraws = 0, g_culledIndices = 0, g_cullEval = 0, g_cullNoPattern = 0, g_cullNoData = 0;
 struct Aabb { float lo[3], hi[3]; bool ok; };
 std::unordered_map<uint64_t, Aabb> g_aabb;  // serial do atributo de posição -> AABB
 bool g_skipPrepass = false, g_skipShadow = false, g_sortByProgram = false;
@@ -1091,9 +1091,10 @@ bool CullDraw(const Frame& f, const Cmd& c) {
   auto ci = infos.find(c.vs->key);
   if (ci == infos.end()) ci = infos.emplace(c.vs->key, ParseCull(c.vs->source)).first;
   const CullInfo& cull = ci->second;
-  if (!cull.ok) return false;
+  if (!cull.ok) { ++g_cullNoPattern; return false; }
   int pi = cull.posInput;
-  if (pi < 0 || uint32_t(pi) >= c.inputCount || !c.vertexData[pi]) return false;
+  if (pi < 0 || uint32_t(pi) >= c.inputCount || !c.vertexData[pi]) { ++g_cullNoData; return false; }
+  ++g_cullEval;
   const auto& data = c.vertexData[pi];
   auto it = g_aabb.find(data->serial);
   if (it == g_aabb.end()) {
@@ -1726,8 +1727,8 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f), recepção de sombra %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu, recepção %llu; descartados por AABB %llu desenhos / %llu índices\n",
-                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), g_idxByClass[4] / double(W), g_drawsByClass[4] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow, (unsigned long long)g_skippedReceive, (unsigned long long)g_culledDraws, (unsigned long long)g_culledIndices);
+        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f), recepção de sombra %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu, recepção %llu; descartados por AABB %llu desenhos / %llu índices (avaliados %llu, sem padrão MVP %llu, sem dados %llu)\n",
+                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), g_idxByClass[4] / double(W), g_drawsByClass[4] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow, (unsigned long long)g_skippedReceive, (unsigned long long)g_culledDraws, (unsigned long long)g_culledIndices, (unsigned long long)g_cullEval, (unsigned long long)g_cullNoPattern, (unsigned long long)g_cullNoData);
       if (GlProfile() && !g_topDraws.empty()) {
         std::vector<TopDraw> top = g_topDraws;
         std::partial_sort(top.begin(), top.begin() + std::min<size_t>(10, top.size()), top.end(), [](const TopDraw& a, const TopDraw& b) { return a.indices > b.indices; });
@@ -1744,7 +1745,7 @@ void RenderThread() {
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
                      g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = g_cullEval = g_cullNoPattern = g_cullNoData = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
