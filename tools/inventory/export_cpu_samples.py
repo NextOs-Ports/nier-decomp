@@ -41,8 +41,9 @@ class Elf:
     def symbol(self,pc,mapping):
         start,end,offset,name=mapping;vaddr=pc-start+offset
         for fileoff,virt,filesz in self.loads:
-            if fileoff//4096*4096<=offset<(fileoff+filesz+4095)//4096*4096:
-                vaddr=pc-start+(virt//4096*4096)+(offset-fileoff//4096*4096);break
+            if offset<fileoff+filesz and offset+(end-start)>fileoff:
+                # Linear file-offset relation; valid with either 4 KiB or 64 KiB pages.
+                vaddr=pc-start+offset+(virt-fileoff);break
         index=bisect.bisect_right(self.starts,vaddr)-1
         if index>=0:
             address,size,symbol=self.symbols[index]

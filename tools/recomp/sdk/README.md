@@ -91,3 +91,22 @@ C1, separados do NFS de dados e com verificação de escrita antes do jogo.
 lógicos a uma emissão por processo. Usa `static std::atomic_flag` com ordem
 relaxada: somente arbitra o aviso entre threads, sem alterar afinidades.
 Recompilar apenas `rexruntime` nas duas arquiteturas com os caches existentes.
+
+## TimerQueue sem espera ativa — X1-H5
+
+Aplicar na cópia privada com `git apply --unidiff-zero blocking-timer-queue.patch`.
+
+`blocking-timer-queue.patch` troca somente a estratégia de espera da fila por
+condition_variable, mantendo deadlines absolutos, ordem, recorrência e estados
+de cancelamento. Corrige também a ordem dos argumentos wait_for/wait_until do
+helper blocking da dependência, que antes não era instanciado neste caminho.
+
+`nier_timer_queue_probe` exercita 1200 timers com quatro produtores, novo prazo
+mais cedo, recorrência de 1 ms, auto-cancelamento e cancelamento enquanto o
+callback executa. No host, CPU de 400 ms de recorrência passou de 64,4 para
+2,56 ms; 399/400 callbacks, sem mudança de intervalo. ARM64/QEMU passou na
+correção, sem certificar velocidade do aparelho. A espera ociosa também passou.
+
+Bibliotecas anteriores são preservadas para comparação. O FPS e a cadência
+percebida precisam ser medidos pelo coordenador no .164. O coletor de CPU usa
+timers POSIX independentes; não depende da TimerQueue do SDK.

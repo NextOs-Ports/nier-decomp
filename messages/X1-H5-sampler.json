@@ -34,6 +34,6 @@
   "hot_list": "messages/X1-H-hot.json (host post-H4; ARM update awaits device capture)",
   "sources": {
     "port/src/cpu_profile.cpp": "3d6694d77fa722b6efaed778cbdd924a8f70b4f547dfef2f38bb99b7b77896d3",
-    "tools/inventory/export_cpu_samples.py": "7ab7ea453de9d73020ff0b17c054543289dc9f6b234ef4d57242d03a48b8d188"
+    "tools/inventory/export_cpu_samples.py": "4b6651710d0c78d952633d9b92b5124a2cabc30a4956ce799fa7c787b3a49a5f"
   }
 }

@@ -39,3 +39,9 @@
 - Lista host pós-H4 atualizada em X1-H-hot.json e entregue no diretório compartilhado. D1 é dono da decomp; rascunho de feedback de áudio foi identificado como NÃO aprovado devido a NaNs sinalizantes e entregue separadamente.
 - Coletor opt-in: timers de CPU por thread, SIGPROF dirigido, handler apenas com atomics lock-free; JSON periódico e Build IDs. Informa threads bloqueadas, cobertura, overruns e perdas. Testes host/ARM-QEMU passaram; ELF incorreto foi recusado.
 - Base 7a7c9df integrada. ARM em h5-sampler/arm64, com DLL anterior para coleta inicial. Mesmo ELF pode usar a DLL TimerQueue candidata. Sem perf no aparelho; env padrão delay140/duração45/100Hz. Coordenador mantém corte ≤300s e envia JSON para simbolização. Recibo X1-H5-sampler.json.
+
+## X1-H5b — TimerQueue bloqueante
+- A fila usava spin até os deadlines. Patch passa a condition_variable e corrige a ordem dos argumentos nas duas esperas temporizadas da dependência. Prazos, recorrência e cancelamento preservados.
+- Host: 400 ms com timer de 1 ms consumiam 64,402 ms de CPU; agora 2,564 ms (-96,0%). Provas: 1200 timers concorrentes, prazo mais cedo, 399/400 callbacks periódicos, auto-cancelamento e cancelamento durante callback passaram. ARM/QEMU passou na correção. Não é medição de FPS.
+- DLL candidata ARM fc24bbed em h5-timer/arm64, junto ao mesmo ELF b5232912 do coletor. Baseline continua em h5-sampler/arm64 (DLL b79e167a). Prova host 3D bounded85s e smoke da base 7a7c9df bounded10s; aceite/FPS no .164 pendente do coordenador. Recibo X1-H5-timer.json.
+- Nova prioridade X1-I: imagem correta. Coleta ARM H5 segue com o coordenador; lista será atualizada quando o JSON chegar.

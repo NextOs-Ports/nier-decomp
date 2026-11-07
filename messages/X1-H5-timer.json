@@ -1,0 +1,77 @@
+{
+  "stage": "X1-H5b blocking TimerQueue",
+  "base_commit": "7a7c9df",
+  "change": "blocking wait strategy, unchanged absolute deadlines/recurrence/cancellation; fix timed CV helper argument order",
+  "before_host": {
+    "passed": true,
+    "idle_wall_seconds": 0.400078,
+    "idle_cpu_seconds": 0.004116,
+    "periodic_wall_seconds": 0.400074,
+    "periodic_cpu_seconds": 0.064402,
+    "early_late_us": 576,
+    "burst": 1200,
+    "recurring_callbacks": 399,
+    "self_disarm_callbacks": 3,
+    "disarm_wait_pass": true
+  },
+  "after_host": {
+    "passed": true,
+    "idle_wall_seconds": 0.400078,
+    "idle_cpu_seconds": 1.7e-05,
+    "periodic_wall_seconds": 0.400072,
+    "periodic_cpu_seconds": 0.002564,
+    "early_late_us": 63,
+    "burst": 1200,
+    "recurring_callbacks": 400,
+    "self_disarm_callbacks": 3,
+    "disarm_wait_pass": true
+  },
+  "cpu_reduction_percent": 96.01875718145399,
+  "arm_qemu_correctness": {
+    "passed": true,
+    "idle_wall_seconds": 0.400345,
+    "idle_cpu_seconds": 0.000224,
+    "periodic_wall_seconds": 0.400364,
+    "periodic_cpu_seconds": 0.009153,
+    "early_late_us": 1506,
+    "burst": 1200,
+    "recurring_callbacks": 400,
+    "self_disarm_callbacks": 3,
+    "disarm_wait_pass": true
+  },
+  "arm64": {
+    "librexruntime.so": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-timer/arm64/librexruntime.so",
+      "sha256": "fc24bbed7fac76abc1840c6df1b5ac5b3207e7b007df15a667f311d3b97a4543"
+    },
+    "nier": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-timer/arm64/nier",
+      "sha256": "b52329128ae3d348d8e1f09458358c1e4b964ebcb31cba56fe1d972f8f383317"
+    },
+    "librexgpu-null.so": {
+      "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-timer/arm64/librexgpu-null.so",
+      "sha256": "725f4ed69a861b68d9f5c56f6258de0337ebe5d0395db864f1c49bd81ae02eef"
+    }
+  },
+  "baseline_arm_runtime": {
+    "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-timer/before-arm64/librexruntime.so",
+    "sha256": "b79e167a30178221b0f700c7abe82660c18599dcc1754a6536b681e6de5b5041"
+  },
+  "game_smoke": {
+    "base": "68bd08c + sampler",
+    "duration_seconds": 85,
+    "collection_seconds": 15,
+    "exit_status": 124,
+    "source_profile": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-timer/game-profile.json",
+    "source_symbolization": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h5-timer/game-symbols.json",
+    "result": "3D reached; TimerQueue disappeared from top30; sampling incomplete for blocked llvmpipe workers; not FPS proof"
+  },
+  "latest_base_smoke": {
+    "base": "7a7c9df + sampler",
+    "duration_seconds": 10,
+    "exit_status": 124,
+    "build_id_validation": "passed"
+  },
+  "device_fps_status": "Pending coordinator .164; PC/QEMU do not certify FPS",
+  "patch_sha256": "3cc28f648fe2e664c6c54e1d53abf70e870465c601ca28ca6c71ac16ded8b91f"
+}
