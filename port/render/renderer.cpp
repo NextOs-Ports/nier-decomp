@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <set>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -200,6 +201,35 @@ struct Target { GLuint texture = 0, fbo = 0, depth = 0; int w = 0, h = 0; uint64
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
 uint64_t g_mainTarget = 0;
+// Resolve preguiçoso (Mali: cada glCopyTexSubImage esvazia o tile e custa ms): a cópia só acontece se a
+// textura destino for amostrada ou antes de o alvo de origem ser alterado; sem uso no quadro, é descartada.
+struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; };
+std::vector<PendingCopy> g_pendingCopies;
+std::set<uint64_t> g_frameSampled, g_everSampled;  // texturas amostradas no quadro (olhando à frente) e alguma vez
+uint32_t g_copiesDone = 0, g_copiesSkipped = 0;
+void DoCopy(const PendingCopy& p) {
+  auto s = g_targets.find(p.src); auto d = g_resolved.find(p.dst);
+  if (s == g_targets.end() || d == g_resolved.end()) return;
+  GLint fbo = 0, tex = 0;
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
+  glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
+  glBindFramebuffer(GL_FRAMEBUFFER, s->second.fbo);
+  glBindTexture(GL_TEXTURE_2D, d->second.texture);
+  glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, p.x0, p.y0, std::min(p.w, s->second.w - p.x0), std::min(p.h, s->second.h - p.y0));
+  glBindTexture(GL_TEXTURE_2D, GLuint(tex));
+  glBindFramebuffer(GL_FRAMEBUFFER, GLuint(fbo));
+  ++g_copiesDone;
+}
+void FlushCopiesFrom(uint64_t src) {  // antes de alterar o alvo de origem
+  for (size_t i = 0; i < g_pendingCopies.size();) {
+    if (g_pendingCopies[i].src == src) { DoCopy(g_pendingCopies[i]); g_pendingCopies.erase(g_pendingCopies.begin() + i); }
+    else ++i;
+  }
+}
+void FlushCopyTo(uint64_t dst) {  // antes de amostrar a textura destino
+  for (size_t i = 0; i < g_pendingCopies.size(); ++i)
+    if (g_pendingCopies[i].dst == dst) { DoCopy(g_pendingCopies[i]); g_pendingCopies.erase(g_pendingCopies.begin() + i); return; }
+}
 GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
 std::map<std::string, uint32_t> g_skipReasons;
 bool g_depth24 = false;
@@ -279,6 +309,7 @@ Target& CurrentTarget(const uint8_t* state) {
   uint64_t key = uint64_t(color & 0xF0FFF) << 16 | (surface & 0x3FFF);
   uint32_t guestPitch = std::max<uint32_t>(surface & 0x3FFF, 1);
   int w = std::max(1, int(guestPitch * Scale() + 0.5f)), h = std::max(1, int(720 * Scale() + 0.5f));
+  if (!g_pendingCopies.empty()) FlushCopiesFrom(key);
   Target& t = g_targets[key];
   if (t.w != w || t.h != h) CreateTarget(t, w, h, true);
   if ((key & 0x3FFF) > (g_mainTarget & 0x3FFF)) g_mainTarget = key;
@@ -332,6 +363,10 @@ GLuint White() {
   return g_white;
 }
 
+double g_pResolve = 0; uint32_t g_resolves = 0, g_resolveCopies = 0;
+double g_pTarget = 0, g_pState = 0, g_pBuffers = 0, g_pDraw = 0, g_pFinish = 0;
+bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
+double Ms(Clock::time_point a, Clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); }
 double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs = 0, g_swapMs = 0;
 std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
 GLuint TextureForImpl(const xenos::TextureFetch& t);
@@ -343,7 +378,11 @@ GLuint TextureFor(const xenos::TextureFetch& t) {
 }
 GLuint TextureForImpl(const xenos::TextureFetch& t) {
   uint64_t key = uint64_t(t.base) << 32 | uint64_t(t.width) << 16 | t.height;
-  if (auto r = g_resolved.find(key); r != g_resolved.end()) return r->second.texture;
+  if (auto r = g_resolved.find(key); r != g_resolved.end()) {
+    g_everSampled.insert(key);
+    if (!g_pendingCopies.empty()) FlushCopyTo(key);
+    return r->second.texture;
+  }
   if (!xenos::Supported(t.format) || t.dimension != 1) { Skip("formato/dimensão de textura não suportado (branco)"); return White(); }
   Texture& tex = g_textures[key ^ uint64_t(t.format) << 58];
   uint64_t frame = g_frames.load();
@@ -533,7 +572,10 @@ void ApplyFixedState(const uint8_t* state) {
 
 void ReplayDraw(const Frame& f, const Cmd& c) {
   const uint8_t* state = f.blob.data() + c.state;
+  auto t0 = Clock::now();
   CurrentTarget(state);
+  auto t1 = Clock::now();
+  g_pTarget += Ms(t0, t1);
   ApplyFixedState(state);
   Program* p = ProgramFor(c.vs, c.ps);
   if (!p) { Skip("programa não compilou/linkou"); return; }
@@ -554,6 +596,8 @@ void ReplayDraw(const Frame& f, const Cmd& c) {
     ++unit;
   }
   glActiveTexture(GL_TEXTURE0);
+  auto t2 = Clock::now();
+  g_pState += Ms(t1, t2);
   glBindBuffer(GL_ARRAY_BUFFER, g_vertexBuffer);
   size_t bytes = size_t(c.vertexCount) * 16;
   glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(bytes * c.inputCount), nullptr, GL_STREAM_DRAW);
@@ -565,28 +609,45 @@ void ReplayDraw(const Frame& f, const Cmd& c) {
   for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_indexBuffer);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(c.indexCount * 2), f.blob.data() + c.indices, GL_STREAM_DRAW);
+  auto t3 = Clock::now();
+  g_pBuffers += Ms(t2, t3);
   glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, nullptr);
+  g_pDraw += Ms(t3, Clock::now());
 }
 
+uint64_t TargetKeyOf(const uint8_t* state) {
+  uint32_t surface = BE32(Field(state, kSurfaceInfo)), color = BE32(Field(state, kColorInfo));
+  return uint64_t(color & 0xF0FFF) << 16 | (surface & 0x3FFF);
+}
 void ReplayResolve(const Frame& f, const Cmd& c) {
   const uint8_t* state = f.blob.data() + c.state;
-  Target& src = CurrentTarget(state);
+  uint64_t srcKey = TargetKeyOf(state);
+  bool clears = c.flags & 0x300;
   float s = Scale();
   if (c.fetch != SIZE_MAX) {
     auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
-    if (t.width >= 8 && t.height >= 8) {
+    static bool noCopy = std::getenv("NIER_NO_RESOLVE_COPY") != nullptr;  // diagnóstico
+    if (t.width >= 8 && t.height >= 8 && !noCopy) {
+      ++g_resolveCopies;
       uint64_t key = uint64_t(t.base) << 32 | uint64_t(t.width) << 16 | t.height;
       Target& dst = g_resolved[key];
       int w = std::max(1, int(t.width * s)), h = std::max(1, int(t.height * s));
       if (dst.w != w || dst.h != h) CreateTarget(dst, w, h, false);
       int x0 = c.hasRect ? int(c.rect[0] * s) : 0, y0 = c.hasRect ? int(c.rect[1] * s) : 0;
-      glBindFramebuffer(GL_FRAMEBUFFER, src.fbo);
-      glBindTexture(GL_TEXTURE_2D, dst.texture);
-      glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, x0, y0, std::min(w, src.w - x0), std::min(h, src.h - y0));
+      // substitui pendência anterior do mesmo destino (a antiga nunca foi usada)
+      for (size_t i = 0; i < g_pendingCopies.size(); ++i)
+        if (g_pendingCopies[i].dst == key) { g_pendingCopies.erase(g_pendingCopies.begin() + i); ++g_copiesSkipped; break; }
+      if (g_frameSampled.count(key) || g_everSampled.count(key)) {
+        g_pendingCopies.push_back({srcKey, key, x0, y0, w, h});
+        FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
+      } else {
+        ++g_copiesSkipped;      // ninguém amostra este destino: a cópia é pulada
+      }
     }
   }
   // Resolve com limpeza (D3DRESOLVE_CLEARRENDERTARGET 0x100 / CLEARDEPTHSTENCIL 0x200, a confirmar).
-  if (c.flags & 0x300) {
+  if (clears) {
+    Target& src = CurrentTarget(state);
     glBindFramebuffer(GL_FRAMEBUFFER, src.fbo);
     glDisable(GL_SCISSOR_TEST);
     glColorMask(1, 1, 1, 1);
@@ -673,12 +734,25 @@ void RenderThread() {
     }
     g_mainTarget = 0;
     uint32_t frameDraws = 0;
+    g_frameSampled.clear();
+    for (const Cmd& c : work.cmds) {
+      if (c.kind != Kind::Draw || !c.ps) continue;
+      const uint8_t* st = work.blob.data() + c.state;
+      for (int t = 0; t < 32; ++t)
+        if (c.ps->textureMask & (1u << t)) {
+          auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t));
+          g_frameSampled.insert(uint64_t(tf.base) << 32 | uint64_t(tf.width) << 16 | tf.height);
+        }
+    }
     auto tr = Clock::now();
     for (const Cmd& c : work.cmds) {
-      if (c.kind == Kind::Resolve) ReplayResolve(work, c);
+      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
       else { ++g_draws; ++frameDraws; ReplayDraw(work, c); }
     }
+    g_copiesSkipped += uint32_t(g_pendingCopies.size());
+    g_pendingCopies.clear();
+    if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }
     auto tp = Clock::now();
     g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
     PresentToWindow();
@@ -692,6 +766,11 @@ void RenderThread() {
       std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
                    (unsigned long long)n, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
                    g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, glGetError());
+      if (GlProfile())
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f) glFinish(GPU) %.2f\n",
+                     g_pTarget / 120, g_pState / 120, g_pBuffers / 120, g_pDraw / 120, g_pResolve / 120, g_resolves / 120.0, g_resolveCopies / 120.0, g_copiesDone / 120.0, g_copiesSkipped / 120.0, g_pFinish / 120);
+      g_copiesDone = g_copiesSkipped = 0;
+      g_pTarget = g_pState = g_pBuffers = g_pDraw = g_pFinish = g_pResolve = 0; g_resolves = g_resolveCopies = 0;
       g_textureMs = g_sigMs = g_decodeMs = g_uploadMs = g_replayMs = g_swapMs = 0;
     }
     {

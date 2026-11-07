@@ -51,7 +51,7 @@ try:
     for name in ['nier', 'librexruntime.so', 'librexgpu-null.so']:
         run(['smbclient', '-N', '//' + host + '/roms', '-c', 'put "%s" "ports/nier-dev-c1/%s"' % (build / name, name)], timeout=180)
     ssh('chmod +x %s/nier; sha256sum %s/nier %s/librexruntime.so %s/librexgpu-null.so' % (remote, remote, remote, remote))
-    env = ('NIER_NATIVE_RENDER=1 %sNIER_GLES2_SHADERS=%s/run/shaders '
+    env = ('NIER_NATIVE_RENDER=1 NIER_GL_PROFILE=1 %sNIER_GLES2_SHADERS=%s/run/shaders '
            'NIER_INPUT_SCRIPT="%s" LD_LIBRARY_PATH=%s' % ('NIER_GLES2_CAPTURE=%s/run/capturas ' % remote if capture else '', remote, script, remote))
     sampler = ('( for i in $(seq 1 40); do sleep 2; p=$(pgrep -x nier) || break; '
                'echo "$(date +%%s) $(grep -E \'VmRSS|VmHWM\' /proc/$p/status | tr -s \' \' | tr \'\\n\' \' \')"; done ) > ' + remote + '/run/rss.txt 2>&1 & ')
