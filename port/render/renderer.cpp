@@ -1200,21 +1200,26 @@ bool CpuSkinCompute(SkinJob& j) {
   for (int i : dirIn) { auto src = FloatsFor(c.vertexData[i], n); if (!src) continue; srcs.push_back(src); outs.push_back(i); points.push_back(false); }
   std::vector<float*> dst; for (int i : outs) dst.push_back(j.Out(i, size_t(n) * 4).data());
   const float* W = wgt->data(); const float* I = idx->data();
+  // colunas da 3x4 de cada osso (lane 3 = 0): saída = C0*x + C1*y + C2*z (+ C3 se ponto), 4 FMAs, sem soma horizontal
+  thread_local v4f cols[256][4];
+  for (int b = 0; b < 256; ++b) if (have[b] && (4 * b + 2) < int(t.width)) { const float* m = &rows[size_t(4 * b) * 4]; for (int k = 0; k < 4; ++k) cols[b][k] = v4f{m[k], m[4 + k], m[8 + k], 0.0f}; }
+  else if (have[b]) for (int k = 0; k < 4; ++k) cols[b][k] = v4f{0, 0, 0, 0};
+  const size_t ns = srcs.size(); const float* sp[kMaxInputs]; bool pt[kMaxInputs];
+  for (size_t sIdx = 0; sIdx < ns; ++sIdx) { sp[sIdx] = srcs[sIdx]->data(); pt[sIdx] = points[sIdx]; }
   for (uint32_t v = 0; v < n; ++v) {
-    v4f r0 = {0, 0, 0, 0}, r1 = r0, r2 = r0;
+    v4f C0 = {0, 0, 0, 0}, C1 = C0, C2 = C0, C3 = C0;
     for (int k = 0; k < 4; ++k) {
       float w = W[size_t(v) * 4 + k]; if (w == 0.0f) continue;
       int b = int(I[size_t(v) * 4 + k]); if (b < 0 || b > 255) continue;
-      const float* m = &rows[size_t(4 * b) * 4];
-      v4f m0, m1, m2; std::memcpy(&m0, m, 16); std::memcpy(&m1, m + 4, 16); std::memcpy(&m2, m + 8, 16);
-      r0 += w * m0; r1 += w * m1; r2 += w * m2;
+      const v4f* m = cols[b];
+      C0 += w * m[0]; C1 += w * m[1]; C2 += w * m[2]; C3 += w * m[3];
     }
-    for (size_t sIdx = 0; sIdx < srcs.size(); ++sIdx) {
-      const float* q = &(*srcs[sIdx])[size_t(v) * 4];
-      v4f pv = {q[0], q[1], q[2], points[sIdx] ? 1.0f : 0.0f};
-      v4f a0 = r0 * pv, a1 = r1 * pv, a2 = r2 * pv;
-      float* o = dst[sIdx] + size_t(v) * 4;
-      o[0] = a0[0] + a0[1] + a0[2] + a0[3]; o[1] = a1[0] + a1[1] + a1[2] + a1[3]; o[2] = a2[0] + a2[1] + a2[2] + a2[3]; o[3] = q[3];
+    for (size_t sIdx = 0; sIdx < ns; ++sIdx) {
+      const float* q = sp[sIdx] + size_t(v) * 4;
+      v4f o = C0 * q[0] + C1 * q[1] + C2 * q[2];
+      if (pt[sIdx]) o += C3;
+      o[3] = q[3];
+      std::memcpy(dst[sIdx] + size_t(v) * 4, &o, 16);
     }
   }
   (void)t0; j.vertices = n;
@@ -1279,21 +1284,30 @@ bool RelSkinCompute(SkinJob& j) {
   for (int i : posIn) { auto h = FloatsFor(c.vertexData[i], n); if (!h) return false; holders.push_back(h); srcs.push_back(h->data()); outs.push_back(i); points.push_back(true); }
   for (int i : dirIn) { auto h = FloatsFor(c.vertexData[i], n); if (!h) continue; holders.push_back(h); srcs.push_back(h->data()); outs.push_back(i); points.push_back(false); }
   std::vector<float*> dst; for (int i : outs) dst.push_back(j.Out(i, size_t(n) * 4).data());
+  // colunas por osso (ver CpuSkinCompute): 4 FMAs por stream, sem soma horizontal
+  thread_local v4f cols[256][4]; thread_local uint8_t haveCols[256];
+  std::memset(haveCols, 0, sizeof haveCols);
+  auto boneCols = [&](int b) -> const v4f* {
+    if (!haveCols[b]) { haveCols[b] = 1; const v4f* m = bone(b); for (int k = 0; k < 4; ++k) cols[b][k] = v4f{m[0][k], m[1][k], m[2][k], 0.0f}; }
+    return cols[b];
+  };
+  const size_t ns = srcs.size(); bool pt[kMaxInputs];
+  for (size_t sIdx = 0; sIdx < ns; ++sIdx) pt[sIdx] = points[sIdx];
   for (uint32_t v = 0; v < n; ++v) {
-    v4f r0 = {0, 0, 0, 0}, r1 = r0, r2 = r0; float wsum = 0;
+    v4f C0 = {0, 0, 0, 0}, C1 = C0, C2 = C0, C3 = C0; float wsum = 0;
     for (int k = 0; k < ri.bones; ++k) {
       float w = W ? W[size_t(v) * 4 + k] : 1.0f; if (w == 0.0f) continue;
       int b = int(I[size_t(v) * 4 + k]); if (b < 0 || b > 255) continue;
-      const v4f* m = bone(b);
-      r0 += w * m[0]; r1 += w * m[1]; r2 += w * m[2]; wsum += w;
+      const v4f* m = boneCols(b);
+      C0 += w * m[0]; C1 += w * m[1]; C2 += w * m[2]; C3 += w * m[3]; wsum += w;
     }
-    if (wsum > 0.0f && wsum != 1.0f) { float iw = 1.0f / wsum; r0 *= iw; r1 *= iw; r2 *= iw; }
-    for (size_t sIdx = 0; sIdx < srcs.size(); ++sIdx) {
+    if (wsum > 0.0f && wsum != 1.0f) { float iw = 1.0f / wsum; C0 *= iw; C1 *= iw; C2 *= iw; C3 *= iw; }
+    for (size_t sIdx = 0; sIdx < ns; ++sIdx) {
       const float* q = srcs[sIdx] + size_t(v) * 4;
-      v4f pv = {q[0], q[1], q[2], points[sIdx] ? 1.0f : 0.0f};
-      v4f a0 = r0 * pv, a1 = r1 * pv, a2 = r2 * pv;
-      float* o = dst[sIdx] + size_t(v) * 4;
-      o[0] = a0[0] + a0[1] + a0[2] + a0[3]; o[1] = a1[0] + a1[1] + a1[2] + a1[3]; o[2] = a2[0] + a2[1] + a2[2] + a2[3]; o[3] = q[3];
+      v4f o = C0 * q[0] + C1 * q[1] + C2 * q[2];
+      if (pt[sIdx]) o += C3;
+      o[3] = q[3];
+      std::memcpy(dst[sIdx] + size_t(v) * 4, &o, 16);
     }
   }
   (void)t0; j.vertices = n;
