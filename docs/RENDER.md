@@ -200,3 +200,11 @@ Medição: `NIER_GL_PROFILE=1` imprime a cada 120 quadros ou 5 s (`[nier-perfil]
 - **Padrões na Mali** (GL_RENDERER contém "Mali"; no PC `NIER_MALI_LIKE=1`): interno 640x360 (`NIER_RENDER_WIDTH` manda, nunca < 640); discard desligado (`NIER_DISCARD=1` liga); pré-passe de profundidade pulado (`NIER_PREPASS=1` religa; EQUAL→LEQUAL); mapa de sombra e recepção de sombra pulados, máscara em branco (`NIER_SHADOW=1` religa); opacos consecutivos ordenados por programa (`NIER_NO_SORT=1`); bloom < `NIER_BLOOM_MIN` px em quadros alternados (padrão 0 = desligado: deixava rastro).
 - **Piso medido (PC Mali-like, gameplay do prólogo)**: cor ≈ 540 mil índices (≈180 mil triângulos) em ~107 desenhos, tudo cenário (maior desenho 53 004 idx / 28 882 vtx, VS 7887BD com 27 operações); sombra/pré-passe/pós ≈ 0. Abaixo disso só com corte por distância (precisa da câmera) — decisão do coordenador.
 - **A/B**: `NIER_NO_KEEP` (gameplay fica preta: a cópia é necessária), `NIER_NO_CLEAR_ALIAS`, `NIER_STRIP_AS_LIST`, `NIER_VT_K=220` (orçamento de ossos da Mali no PC), `NIER_NO_DIRECT_RESOLVE`, `NIER_NO_RESOLVE_COPY`.
+
+**Corpo do personagem invisível (C1, 07/11 18:00) — resolvido no tradutor.** Os ops escalares com constante
+(MUL/ADD/SUB_CONST, 42–47) aplicavam o bit de negação só à constante; o PS da roupa faz `clip(a - 0.5)`, que virava
+`(-0.5) - a` e descartava todo pixel (só a cabeça, sem recorte, aparecia). O bit vale para os dois operandos.
+Tradutor privado `nier-data/deps/dmc3-xenos-c76b074-nier/xenos_shader.cpp` sha256 12d5d8a3…, diff df9e97bc…
+Prova: `nier-build/c1/provas/p1-corpo-antes-depois-negacao-const.png`. Diagnóstico usado: `NIER_DIAG_VS=<hex>`
+(só aquele VS, vermelho, sem profundidade), `NIER_DIAG_DEPTH=1` (mantém profundidade), `NIER_DIAG_PS=1` (PS real).
+Skinning roda num worker fora da thread GL; frameskip `NIER_FRAMESKIP=auto|1|2|3|4` (auto na Mali).
