@@ -333,9 +333,9 @@ GLuint g_white = 0;
 
 // Conteúdo inteiro até 2 MB (atlas de fonte e texturas escritas pela CPU mudam em poucos bytes);
 // acima disso, 64 amostras. Pendente para a Mali: trocar por write watch da memória física (ReXGlue).
-uint64_t Signature(uint32_t base, uint32_t span) {
+uint64_t Signature(uint32_t base, uint32_t span, bool sampled = false) {
   uint64_t h = 1469598103934665603ull ^ span;
-  if (span <= (2u << 20)) {
+  if (!sampled && span <= (2u << 20)) {
     if (const uint8_t* p = Physical(base, span)) {
       size_t words = span / 8;
       for (size_t i = 0; i < words; ++i) { uint64_t w; std::memcpy(&w, p + 8 * i, 8); h = (h ^ w) * 0x100000001B3ull; h ^= h >> 29; }
@@ -394,7 +394,8 @@ GLuint TextureForImpl(const xenos::TextureFetch& t) {
   uint32_t pitchE = std::max(block ? t.pitch / 4 : t.pitch, bw);
   uint32_t span = ((pitchE + 31) & ~31u) * ((bh + 31) & ~31u) * bpe;
   auto ts = Clock::now();
-  uint64_t sig = Signature(t.base, span);
+  // Planos de vídeo (k8 reenviado): o quadro novo muda tudo, 64 amostras bastam e poupam ~1,4 MB de leitura.
+  uint64_t sig = Signature(t.base, span, t.format == xenos::k8 && tex.uploads >= 2);
   auto td = Clock::now();
   g_sigMs += std::chrono::duration<double, std::milli>(td - ts).count();
   if (tex.id && sig == tex.signature) return tex.id;
