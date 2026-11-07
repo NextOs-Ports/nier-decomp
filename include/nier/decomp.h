@@ -49,6 +49,23 @@ inline void call_indirect(PPCContext& __restrict ctx, uint8_t* base, uint32_t ta
   ctx.ctr.u64 = target;
   REX_CALL_INDIRECT_FUNC(target);
 }
+// Chamada a uma função do jogo pelo endereço (equivale ao `bl` direto).
+inline void call_guest(PPCContext& __restrict ctx, uint8_t* base, uint32_t target) {
+  call_indirect(ctx, base, target);
+}
+// Quadro de pilha do guest enquanto a função chama outras: reserva `size` bytes abaixo
+// do r1 (com o encadeamento no topo, como `stwu`) e devolve o r1 no fim do escopo.
+struct GuestFrame {
+  PPCContext& ctx;
+  uint8_t* base;
+  uint32_t saved;
+  GuestFrame(PPCContext& c, uint8_t* b, uint32_t size) : ctx(c), base(b), saved(c.r1.u32) {
+    ctx.r1.u64 = saved - size;
+    st32(base, ctx.r1.u32, saved);
+  }
+  ~GuestFrame() { ctx.r1.u64 = saved; }
+  uint32_t slot(uint32_t off) const { return ctx.r1.u32 + off; }
+};
 // Método virtual `slot` do objeto em `obj` (vtable na palavra 0).
 inline void call_virtual(PPCContext& __restrict ctx, uint8_t* base, uint32_t obj, uint32_t slot) {
   call_indirect(ctx, base, ld32(base, ld32(base, obj) + slot * 4));

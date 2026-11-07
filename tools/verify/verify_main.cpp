@@ -13,6 +13,7 @@
 #include <setjmp.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <cinttypes>
 #include <cstdio>
@@ -85,6 +86,12 @@ void fake_target(PPCContext& ctx, uint8_t*) {
   ctx.f1.f64 = (double)(int64_t)(h % 2001) / 8.0 - 125.0;
 }
 
+// Limite de tempo por execução (laço sem fim com memória aleatória): conta como falha.
+void on_alarm(int) {
+  g_fault_addr = (uintptr_t)g_base;   // endereço guest 0 marca estouro de tempo
+  if (g_armed) siglongjmp(g_jmp, 1);
+}
+
 void map_rw(uint64_t guest, uint64_t size) {
   if (mprotect(g_base + guest, size, PROT_READ | PROT_WRITE)) { perror("mprotect"); exit(2); }
 }
@@ -121,12 +128,15 @@ State run(PPCFunc* fn, const PPCContext& in, const std::vector<uint8_t>& s,
   static PPCContext ctx;          // fora da pilha: sobrevive ao siglongjmp
   ctx = in;
   g_armed = 1;
+  struct itimerval tv{}; tv.it_value.tv_usec = 100000;   // 100 ms
+  setitimer(ITIMER_REAL, &tv, nullptr);
   if (sigsetjmp(g_jmp, 1) == 0) {
     fn(ctx, g_base);
   } else {
     out.faulted = true; out.fault = g_fault_addr - (uintptr_t)g_base;
   }
   g_armed = 0;
+  struct itimerval off{}; setitimer(ITIMER_REAL, &off, nullptr);
   out.ctx = ctx;
   out.calls = g_calls;
   out.scratch.assign(g_base + kScratch, g_base + kScratch + kScratchSize);
@@ -320,6 +330,8 @@ int main(int argc, char** argv) {
 
   struct sigaction sa{}; sa.sa_sigaction = on_segv; sa.sa_flags = SA_SIGINFO | SA_NODEFER;
   sigaction(SIGSEGV, &sa, nullptr); sigaction(SIGBUS, &sa, nullptr);
+  sigaction(SIGFPE, &sa, nullptr); sigaction(SIGILL, &sa, nullptr);   // divisão por zero etc. contam como falha
+  struct sigaction al{}; al.sa_handler = on_alarm; al.sa_flags = SA_NODEFER; sigaction(SIGALRM, &al, nullptr);
 
   FILE* out = fopen(getenv("NIER_OUT") ? getenv("NIER_OUT") : "/dev/stdout", "w");
   if (!out) { perror("NIER_OUT"); return 2; }
