@@ -12,6 +12,7 @@
 #include "nier_d3d.h"
 #include "xenos_texture.h"
 #include "texture_gamma.h"
+#include "constant_lod.h"
 #include "vertex_cache.h"
 
 #include <SDL3/SDL.h>
@@ -19,6 +20,10 @@
 #include <GLES2/gl2ext.h>
 #include <EGL/egl.h>
 
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <ctime>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -28,7 +33,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <map>
+#include <memory>
 #include <regex>
 #include <set>
 #include <mutex>
@@ -133,15 +140,19 @@ struct Cmd {
   int32_t rect[4] = {};
   bool hasRect = false;
   bool up = false;  // BeginVertices (2D/UI); falso = DrawVertices/DrawIndexedVertices
+  int skinJob = -1;  // índice em Frame::skinJobs (skinning na CPU iniciado na captura)
+  uint8_t level = 0;  // Resolve: nível de mip do destino
   uint8_t prim = 0;         // primitiva Xenos original (perfil)
   GLenum mode = GL_TRIANGLES;  // tiras da Xenos viram GL_TRIANGLE_STRIP (reinício = triângulos degenerados): 1/3 dos índices
 };
+struct SkinJob;
 struct Frame {
   std::vector<uint8_t> blob;
   std::vector<Cmd> cmds;
+  std::vector<std::shared_ptr<SkinJob>> skinJobs;  // jobs do skinning deste quadro (donos compartilhados com o pool)
   uint32_t presentInterval = 1;
   size_t bufferBytes = 0; // conservative accounting, including references shared by draws
-  void Clear() { blob.clear(); cmds.clear(); bufferBytes = 0; }
+  void Clear() { blob.clear(); cmds.clear(); skinJobs.clear(); bufferBytes = 0; }
 };
 size_t Append(Frame& f, const void* p, size_t n) {
   size_t at = (f.blob.size() + 15) & ~size_t(15);
@@ -202,6 +213,7 @@ uint64_t g_mainTarget = 0;
 // textura destino for amostrada ou antes de o alvo de origem ser alterado; sem uso no quadro, é descartada.
 GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
 GLint g_blitRect = -1, g_blitFlip = -1;
+bool DiagOsso() { static bool on = std::getenv("NIER_DIAG_OSSO") != nullptr; return on; }  // [nier-osso]/[nier-dyn] só com NIER_DIAG_OSSO=1
 bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
 // Cache de estado GL na CPU (como o glCache do Rayman): nenhum glGet e nenhuma chamada redundante no quadro.
 // Quem muda estado fora deste cache (CreateTarget, blit, apresentação) chama InvalidateGl().
@@ -497,6 +509,22 @@ double g_pResolve = 0; uint32_t g_resolves = 0, g_resolveCopies = 0;
 double g_pTarget = 0, g_pState = 0, g_pBuffers = 0, g_pDraw = 0, g_pFinish = 0;
 double Ms(Clock::time_point a, Clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); }
 double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs = 0, g_swapMs = 0;
+// C1-H2 frameskip na fila de replay (lógica do NieR é por Δt real: o jogo não pode esperar o GL).
+// NIER_FRAMESKIP=auto: se a thread GL ainda não pegou o quadro anterior, o novo o substitui (o antigo é pulado) em
+// vez de o jogo esperar; no máximo 3 pulos seguidos (stride ≤ 4). 2|3|4 = 1 desenhado a cada N, pulos espalhados.
+// 1 = sem pulo. Pular é seguro para a lógica: o renderizador não devolve nada à memória do guest; alvos/Resolve
+// ficam do último quadro desenhado.
+std::atomic<bool> g_frameskipAuto{false};
+// C1-H7 NIER_AB_CYCLE=1: numa abertura só, a partir da 1ª cena 3D troca de modo a cada NIER_AB_PERIOD s (padrão 6) e
+// registra o custo do quadro na thread GL por modo. Imagem errada de propósito (diagnóstico).
+// 0 base, 1 sem pós/UP (cls 3), 2 sem cenário (cls 0), 3 sem Resolve, 4 PS chapado, 5 tesoura 1x1 (sem preenchimento)
+int g_abMode = 0;
+// 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices),
+// 8 LOD por distância (NIER_LOD_DIST ou 60)
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia"};
+std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
+std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
+std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
 std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
 GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved);
 GLuint TextureFor(const xenos::TextureFetch& t, bool allowResolved = true) {
@@ -629,6 +657,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
 // ---- programas
 struct CullInfo { bool ok = false; int row[4] = {-1, -1, -1, -1}; int posInput = -1; };
 struct Program {
+  ConstantLod lod;
   GLuint id = 0;
   GLint vc = -1, pc = -1, alphaFunc = -1, alphaRef = -1, wideScale = -1;
   std::vector<std::pair<int, GLint>> bools;    // (índice, local)
@@ -644,6 +673,7 @@ struct Program {
   std::vector<Vtf> vtf;
   int vsOps = 0;      // operações (vr/sr) no VS final, para o perfil
   bool identityUploaded = false;  // skinning na CPU: paleta de identidade já enviada
+  bool dynIndex = false;          // VS final ainda indexa uniforme com expressão não constante (VC[k+addr], VT[...])
   CullInfo cull;      // MVP e atributo de posição reconhecidos (descarte por AABB)
 };
 // Substitui o stub "nx_sample<t> devolve 0" do tradutor por busca num array de uniformes (a Mali-450 não tem
@@ -663,10 +693,12 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
       if (at == std::string::npos) continue;
       // índices de osso e pesos viram constantes no programa (ver SkinConst em ProgramFor): uv é dobrado pelo
       // compilador e o acesso vira VT<n>[const] — sem índice dinâmico de uniforme (GP da Mali, não software).
-      std::string repl = "uniform vec4 VT" + n + "[4];\nuniform vec2 VT" + n + "_p;\n"
-        "vec4 nx_sample" + n + "(vec2 uv) { return VT" + n + "[int(uv.x * 1024.0 + 0.5)]; }\n";
+      // C1-G7: a paleta é a identidade e a linha é (texel mod 4) → linha calculada em ALU, sem uniforme nenhum
+      // (nada de índice de uniforme no VS: na MaliGP2 isso cai em vértice por software no driver).
+      std::string repl = "vec4 nx_sample" + n + "(vec2 uv) { float k = floor(mod(uv.x * 1024.0 + 0.5, 4.0)); "
+        "return vec4(equal(vec4(k), vec4(0.0, 1.0, 2.0, 3.0))); }\n";
       out.replace(at, stub.size(), repl);
-      slots.push_back({t, 4});
+      slots.push_back({t, 0});  // k = 0: sem uniformes VT (loc = -1); o slot ainda diz de onde a CPU lê a paleta
     }
     return out;
   }
@@ -768,11 +800,49 @@ CullInfo ParseCull(const std::string& src) {
   ci.ok = true;
   return ci;
 }
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, uint64_t gammaChannels = 0) {
-  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3), gammaChannels};
+// C1-G8: VS com paleta de ossos em constantes (VC[B+addr], VC[B+1+addr], VC[B+2+addr], addr = 3 * índice do osso).
+// Com o skinning na CPU o VS lê as linhas da identidade como literais (e0/e1/e2): nenhum índice dinâmico de uniforme.
+// A saída do VS fica (Σ pesos do shader) × posição pré-misturada = a mesma de antes quando os pesos somam 1.
+struct RelSkinInfo { bool ok = false; int base = 0; int bones = 0; };
+const RelSkinInfo& RelSkinFor(const GuestShader* vs) {
+  static std::unordered_map<uint64_t, RelSkinInfo> cache;  // uma análise por VS (não é por quadro)
+  static std::mutex mx; std::lock_guard<std::mutex> lk(mx);  // thread do jogo (captura) e thread GL (referências estáveis)
+  auto [it, inserted] = cache.try_emplace(vs->key);
+  RelSkinInfo& r = it->second;
+  static bool off = std::getenv("NIER_NO_REL_SKIN") != nullptr;  // A/B: volta ao VC[k+addr]
+  if (!inserted || off || !vs->relativeConstants || !CpuSkin()) return r;
+  static const std::regex refRe(R"(VC\[nx_clamp_int\((\d+) \+ addr, 0, \d+\)\])");
+  static const std::regex saRe(R"(float sa = ([^,]+), sb = [^;]+;\s*\n\s*addr = )");
+  std::set<int> ks; size_t refs = 0;
+  for (std::sregex_iterator m(vs->source.begin(), vs->source.end(), refRe), e; m != e; ++m) { ks.insert(std::stoi((*m)[1])); ++refs; }
+  size_t addrUses = 0;
+  for (size_t at = 0; (at = vs->source.find("+ addr", at)) != std::string::npos; at += 6) ++addrUses;
+  if (ks.size() != 3 || *ks.rbegin() - *ks.begin() != 2 || addrUses != refs) return r;
+  std::set<std::string> srcs;
+  for (std::sregex_iterator m(vs->source.begin(), vs->source.end(), saRe), e; m != e; ++m) srcs.insert((*m)[1]);
+  if (srcs.empty() || srcs.size() > 4) return r;
+  r.ok = true; r.base = *ks.begin(); r.bones = int(srcs.size());
+  return r;
+}
+std::string RelSkinSource(const std::string& src, int base) {
+  static const std::regex refRe(R"(VC\[nx_clamp_int\((\d+) \+ addr, 0, \d+\)\])");
+  static const char* rows[3] = {"vec4(1.0, 0.0, 0.0, 0.0)", "vec4(0.0, 1.0, 0.0, 0.0)", "vec4(0.0, 0.0, 1.0, 0.0)"};
+  std::string out; size_t last = 0;
+  for (std::sregex_iterator m(src.begin(), src.end(), refRe), e; m != e; ++m) {
+    out.append(src, last, size_t(m->position()) - last);
+    out += rows[std::clamp(std::stoi((*m)[1]) - base, 0, 2)];
+    last = size_t(m->position() + m->length());
+  }
+  out.append(src, last, std::string::npos);
+  return out;
+}
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0) {
+  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0), gammaChannels};
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
+  p.lod = ParseConstantLod(vs->source,ps->source);
+  if(p.lod.index>=0) { if(size_t(p.lod.index)<vs->constMap.size())p.lod.index=vs->constMap[p.lod.index];else p.lod.index=-1; }
   char vn[40], pn[40];
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
@@ -780,7 +850,8 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::string psSource = ScalarizeRegisters(TextureGammaVariant(alphaTest ? ps->source : StripAlphaTest(ps->source), ps->textureMask, gammaChannels));
   std::vector<std::pair<int, int>> vtfSlots;
   static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
-  std::string vsSource = ScalarizeRegisters(StripUnusedVaryings((vs->textureMask && !noVtf) ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source, flat ? 0xFF : ps->inputMask));
+  std::string vsBase = relBase >= 0 ? RelSkinSource(vs->source, relBase) : vs->source;
+  std::string vsSource = ScalarizeRegisters(StripUnusedVaryings((vs->textureMask && !noVtf) ? EmulateVertexTextures(vsBase, vs, vtfSlots) : vsBase, flat ? 0xFF : ps->inputMask));
   if (skinConst > 0) {
     // skinning na CPU: atributo de índices de osso = 0, pesos = (1,0,0,0); o resto do VS fica igual (paleta identidade)
     int idxIn = (skinConst - 1) >> 8, wIn = (skinConst - 1) & 0xFF;
@@ -792,6 +863,8 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
     constify(idxIn, "vec4(0.0)");
     constify(wIn, "vec4(1.0, 0.0, 0.0, 0.0)");
   }
+  p.dynIndex = vsSource.find("VC[nx_clamp_int(") != std::string::npos || vsSource.find("VT0[int(") != std::string::npos ||
+               vsSource.find("[int(clamp(uv.x") != std::string::npos;
   p.cull = ParseCull(vs->source);
   for (size_t at = 0; (at = vsSource.find(" vr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
   for (size_t at = 0; (at = vsSource.find(" sr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
@@ -1056,24 +1129,57 @@ const BoneRemap* BoneRemapFor(const buffers::Ref& data, uint32_t vertexCount) {
   return &(g_boneRemap[data->serial] = std::move(r));
 }
 // Conversões estáticas por malha (float4 por vértice) em cache por serial: índices de osso, pesos, posição, direções.
-std::unordered_map<uint64_t, std::shared_ptr<std::vector<float>>> g_floatCache;
-const std::vector<float>* FloatsFor(const buffers::Ref& data, uint32_t count) {
+// Usado pelas threads do skinning (trava; o dono do vetor é o shared_ptr devolvido, o teto pode limpar o mapa).
+std::mutex g_floatMx;
+std::unordered_map<uint64_t, std::shared_ptr<const std::vector<float>>> g_floatCache;
+std::atomic<uint64_t> g_convNs{0}, g_convMisses{0}, g_convVertices{0};  // perfil: conversões float4 que erraram o cache
+std::shared_ptr<const std::vector<float>> FloatsFor(const buffers::Ref& data, uint32_t count) {
   if (!data) return nullptr;
-  auto it = g_floatCache.find(data->serial);
-  if (it != g_floatCache.end()) return it->second.get();
+  {
+    std::lock_guard<std::mutex> lk(g_floatMx);
+    auto it = g_floatCache.find(data->serial);
+    if (it != g_floatCache.end()) return it->second;
+  }
+  auto t0 = Clock::now();
   auto v = std::make_shared<std::vector<float>>(size_t(count) * 4);
   if (!ConvertInput(data->input, data->raw.data(), data->endian, 0, count, v->data())) return nullptr;
-  return g_floatCache.emplace(data->serial, v).first->second.get();
+  g_convNs += uint64_t(Ms(t0, Clock::now()) * 1e6); ++g_convMisses; g_convVertices += count;
+  std::lock_guard<std::mutex> lk(g_floatMx);
+  if (g_floatCache.size() > 4096) g_floatCache.clear();  // teto: serial novo a cada quadro não cresce sem fim
+  g_floatCache[data->serial] = v;
+  return v;
 }
 // VBOs transitórios para os streams deformados (anel por quadro × atributo)
 GLuint g_transient[3][kMaxInputs] = {};
-std::vector<float> g_skinOut[kMaxInputs];
+const std::vector<float>* g_skinOut[kMaxInputs] = {};  // stream deformado deste desenho (dono: o job do worker)
+// C1-H4: skinning na CPU começa NA CAPTURA (thread do jogo): ao gravar o desenho, a paleta é copiada naquele instante
+// e o job vai para um pool de NIER_SKIN_THREADS (padrão 2) threads; malha+paleta iguais no mesmo quadro (mapa de sombra,
+// passe reduzido, passe principal) reaproveitam o mesmo job. A thread GL só encontra pronto e envia o VBO.
+struct SkinJob {
+  Cmd cmd;                     // cópia do comando (refs dos vértices)
+  int kind = 0;                // 1 = paleta em textura (VTF), 2 = paleta em constantes (VC)
+  std::vector<uint8_t> pal;    // cópia da paleta no instante da captura (VTF: textura 1D float4; VC: banco de 256 vec4)
+  uint32_t palWidth = 0, palEndian = 0;
+  int relBase = 0, relBones = 0;
+  std::vector<std::pair<int, std::vector<float>>> outs; size_t nOuts = 0;
+  double ms = 0; uint32_t vertices = 0; bool ok = false;
+  std::atomic<bool> done{false};
+  std::vector<float>& Out(int input, size_t floats) {
+    if (nOuts == outs.size()) outs.emplace_back();
+    auto& o = outs[nOuts++]; o.first = input; o.second.resize(floats); return o.second;
+  }
+};
 bool g_transientUsed[kMaxInputs] = {};
 uint64_t g_skinnedVertices = 0, g_skinnedDraws = 0;
 uint64_t g_relDraws = 0, g_relVertices = 0, g_relIndices = 0;  // desenhos com VS de constante relativa (VC[k + addr]): índice dinâmico de uniforme
-double g_skinMs = 0;
+double g_skinMs = 0, g_skinWaitMs = 0;
 // Entradas do skinning: índices (fmt 6 inteiro), pesos (fmt 6 normalizado com soma ≈ 1), posições (57/38), direções
 // (16/7/17). Devolve skinConst = (idx<<8 | w) + 1 para a variante do programa, ou 0.
+// Detecção na thread GL sem tocar o cache de conversões (só o worker usa): converte só o 1º vértice.
+bool FirstVertex(const buffers::Ref& data, float out[4]) {
+  if (!data) return false;
+  return ConvertInput(data->input, data->raw.data(), data->endian, 0, 1, out);
+}
 int SkinInputs(const Cmd& c, int& idxIn, int& wIn, std::vector<int>* posIn, std::vector<int>* dirIn) {
   idxIn = -1; wIn = -1;
   if (!c.vs || !c.vs->textureMask || !CpuSkin()) return 0;
@@ -1081,74 +1187,191 @@ int SkinInputs(const Cmd& c, int& idxIn, int& wIn, std::vector<int>* posIn, std:
     const auto& in = c.vs->inputs[i];
     if (in.format == 6 && in.isInteger) { if (idxIn < 0) idxIn = int(i); }
     else if (in.format == 6 && !in.isInteger) {
-      if (wIn < 0) { const auto* v = FloatsFor(c.vertexData[i], c.vertexCount); if (v && c.vertexCount) { float sum = (*v)[0] + (*v)[1] + (*v)[2] + (*v)[3]; if (std::fabs(sum - 1.0f) < 0.03f) wIn = int(i); } }
+      float v[4]; if (wIn < 0 && c.vertexCount && FirstVertex(c.vertexData[i], v)) { float sum = v[0] + v[1] + v[2] + v[3]; if (std::fabs(sum - 1.0f) < 0.03f) wIn = int(i); }
     } else if (in.format == 57 || in.format == 38) { if (posIn) posIn->push_back(int(i)); }
     else if (in.format == 16 || in.format == 7 || in.format == 17) { if (dirIn) dirIn->push_back(int(i)); }
   }
   if (idxIn < 0 || wIn < 0) return 0;
   return ((idxIn << 8) | wIn) + 1;
 }
-bool CpuSkinDraw(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
-  if (p.vtf.size() != 1) return false;
-  const auto& vt = p.vtf[0];
+bool CpuSkinCompute(SkinJob& j) {
+  const Cmd& c = j.cmd;
   int idxIn = -1, wIn = -1; std::vector<int> posIn, dirIn;
   if (!SkinInputs(c, idxIn, wIn, &posIn, &dirIn) || posIn.empty()) return false;
-  const uint8_t* fetch = Field(state, kFetchConstants + 24 * vt.slot);
-  auto t = xenos::DecodeFetch(fetch);
-  if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) return false;
-  const uint8_t* pal = Physical(t.base, t.width * 16);
-  if (!pal) return false;
-  const auto* idx = FloatsFor(c.vertexData[idxIn], c.vertexCount);
-  const auto* wgt = FloatsFor(c.vertexData[wIn], c.vertexCount);
+  struct { uint32_t width, endian; } t{j.palWidth, j.palEndian};
+  const uint8_t* pal = j.pal.data();
+  auto idx = FloatsFor(c.vertexData[idxIn], c.vertexCount);
+  auto wgt = FloatsFor(c.vertexData[wIn], c.vertexCount);
   if (!idx || !wgt) return false;
   auto t0 = Clock::now();
   // matrizes 3x4 dos ossos usados (linha c = texel 4b+c, bytes 8in32)
-  static std::vector<float> rows; rows.assign(size_t(t.width) * 4, 0.0f);
-  static std::vector<uint8_t> have; have.assign(256, 0);
+  thread_local std::vector<float> rows; rows.assign(size_t(t.width) * 4, 0.0f);
+  thread_local std::vector<uint8_t> have; have.assign(256, 0);
   const uint32_t n = c.vertexCount;
   for (uint32_t v = 0; v < n * 4; ++v) { int b = int((*idx)[v]); if (b >= 0 && b < 256 && !have[b]) { have[b] = 1; for (int k = 0; k < 12 && (4 * b + 2) < int(t.width); ++k) { uint8_t e[4]; std::memcpy(e, pal + (4 * b) * 16 + 4 * k, 4); xenos::Swap(e, 4, t.endian); std::memcpy(&rows[size_t(4 * b) * 4 + k], e, 4); } } }
   // Uma mistura de matriz por vértice (Σ w_b M_b, 3 linhas) aplicada a todos os streams (posição com w=1, direções
   // com w=0). Vetores de 4 floats do GCC: NEON no A53, SSE no PC.
   typedef float v4f __attribute__((vector_size(16)));
-  std::vector<const std::vector<float>*> srcs; std::vector<int> outs; std::vector<bool> points;
-  for (int i : posIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) return false; srcs.push_back(src); outs.push_back(i); points.push_back(true); }
-  for (int i : dirIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) continue; srcs.push_back(src); outs.push_back(i); points.push_back(false); }
-  for (int i : outs) { g_skinOut[i].resize(size_t(n) * 4); g_transientUsed[i] = true; }
+  std::vector<std::shared_ptr<const std::vector<float>>> srcs; std::vector<int> outs; std::vector<bool> points;
+  for (int i : posIn) { auto src = FloatsFor(c.vertexData[i], n); if (!src) return false; srcs.push_back(src); outs.push_back(i); points.push_back(true); }
+  for (int i : dirIn) { auto src = FloatsFor(c.vertexData[i], n); if (!src) continue; srcs.push_back(src); outs.push_back(i); points.push_back(false); }
+  std::vector<float*> dst; for (int i : outs) dst.push_back(j.Out(i, size_t(n) * 4).data());
   const float* W = wgt->data(); const float* I = idx->data();
+  // colunas da 3x4 de cada osso (lane 3 = 0): saída = C0*x + C1*y + C2*z (+ C3 se ponto), 4 FMAs, sem soma horizontal
+  thread_local v4f cols[256][4];
+  for (int b = 0; b < 256; ++b) if (have[b] && (4 * b + 2) < int(t.width)) { const float* m = &rows[size_t(4 * b) * 4]; for (int k = 0; k < 4; ++k) cols[b][k] = v4f{m[k], m[4 + k], m[8 + k], 0.0f}; }
+  else if (have[b]) for (int k = 0; k < 4; ++k) cols[b][k] = v4f{0, 0, 0, 0};
+  const size_t ns = srcs.size(); const float* sp[kMaxInputs]; bool pt[kMaxInputs];
+  for (size_t sIdx = 0; sIdx < ns; ++sIdx) { sp[sIdx] = srcs[sIdx]->data(); pt[sIdx] = points[sIdx]; }
   for (uint32_t v = 0; v < n; ++v) {
-    v4f r0 = {0, 0, 0, 0}, r1 = r0, r2 = r0;
+    v4f C0 = {0, 0, 0, 0}, C1 = C0, C2 = C0, C3 = C0;
     for (int k = 0; k < 4; ++k) {
       float w = W[size_t(v) * 4 + k]; if (w == 0.0f) continue;
       int b = int(I[size_t(v) * 4 + k]); if (b < 0 || b > 255) continue;
-      const float* m = &rows[size_t(4 * b) * 4];
-      v4f m0, m1, m2; std::memcpy(&m0, m, 16); std::memcpy(&m1, m + 4, 16); std::memcpy(&m2, m + 8, 16);
-      r0 += w * m0; r1 += w * m1; r2 += w * m2;
+      const v4f* m = cols[b];
+      C0 += w * m[0]; C1 += w * m[1]; C2 += w * m[2]; C3 += w * m[3];
     }
-    for (size_t sIdx = 0; sIdx < srcs.size(); ++sIdx) {
-      const float* q = &(*srcs[sIdx])[size_t(v) * 4];
-      v4f pv = {q[0], q[1], q[2], points[sIdx] ? 1.0f : 0.0f};
-      v4f a0 = r0 * pv, a1 = r1 * pv, a2 = r2 * pv;
-      float* o = &g_skinOut[outs[sIdx]][size_t(v) * 4];
-      o[0] = a0[0] + a0[1] + a0[2] + a0[3]; o[1] = a1[0] + a1[1] + a1[2] + a1[3]; o[2] = a2[0] + a2[1] + a2[2] + a2[3]; o[3] = q[3];
+    for (size_t sIdx = 0; sIdx < ns; ++sIdx) {
+      const float* q = sp[sIdx] + size_t(v) * 4;
+      v4f o = C0 * q[0] + C1 * q[1] + C2 * q[2];
+      if (pt[sIdx]) o += C3;
+      o[3] = q[3];
+      std::memcpy(dst[sIdx] + size_t(v) * 4, &o, 16);
     }
   }
-  g_skinMs += Ms(t0, Clock::now()); g_skinnedVertices += n; ++g_skinnedDraws;
-  if (!p.identityUploaded) {
-    static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
-    if (vt.loc >= 0) glUniform4fv(vt.loc, 4, ident);
-    p.identityUploaded = true;
+  (void)t0; j.vertices = n;
+  if (DiagOsso() && !outs.empty()) {  // diagnóstico: caixa da posição antes/depois (1ª vez por malha)
+    thread_local std::set<std::pair<uint64_t, uint32_t>> seen;
+    if (seen.insert({c.vs->key, n}).second && seen.size() < 200) {
+      float lo[2][3] = {{1e30f, 1e30f, 1e30f}, {1e30f, 1e30f, 1e30f}}, hi[2][3] = {{-1e30f, -1e30f, -1e30f}, {-1e30f, -1e30f, -1e30f}};
+      int maxBone = 0;
+      for (uint32_t v = 0; v < n; ++v) {
+        for (int a = 0; a < 3; ++a) {
+          float in = (*srcs[0])[size_t(v) * 4 + a], out = dst[0][size_t(v) * 4 + a];
+          lo[0][a] = std::min(lo[0][a], in); hi[0][a] = std::max(hi[0][a], in); lo[1][a] = std::min(lo[1][a], out); hi[1][a] = std::max(hi[1][a], out);
+        }
+        for (int k = 0; k < 4; ++k) if (W[size_t(v) * 4 + k] != 0.0f) maxBone = std::max(maxBone, int(I[size_t(v) * 4 + k]));
+      }
+      const float* m0 = &rows[0];
+      std::fprintf(stderr, "[nier-osso-caixa] vs %016llX vtx %u maxOsso %d antes (%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f) depois (%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f) osso0 (%.3g %.3g %.3g %.3g | %.3g %.3g %.3g %.3g | %.3g %.3g %.3g %.3g)\n",
+                   (unsigned long long)c.vs->key, n, maxBone, lo[0][0], lo[0][1], lo[0][2], hi[0][0], hi[0][1], hi[0][2], lo[1][0], lo[1][1], lo[1][2], hi[1][0], hi[1][1], hi[1][2],
+                   m0[0], m0[1], m0[2], m0[3], m0[4], m0[5], m0[6], m0[7], m0[8], m0[9], m0[10], m0[11]);
+    }
   }
-  if (vt.params >= 0) glUniform2f(vt.params, float(t.width), 0.0f);
   return true;
+}
+// C1-G8: entradas do skinning de paleta em constantes. Índices = fmt 6 inteiro; pesos = fmt 6 normalizado com soma ≈ 1
+// (obrigatório se o VS mistura mais de um osso); posições 57/38; direções 16/7/17.
+bool RelSkinInputs(const Cmd& c, const RelSkinInfo& ri, int& idxIn, int& wIn, std::vector<int>& posIn, std::vector<int>& dirIn) {
+  idxIn = -1; wIn = -1; posIn.clear(); dirIn.clear();
+  if (!ri.ok) return false;
+  for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+    const auto& in = c.vs->inputs[i];
+    float v[4];
+    if (!c.vertexCount || !FirstVertex(c.vertexData[i], v)) continue;
+    if (in.format == 6 && in.isInteger) { if (idxIn < 0) idxIn = int(i); }
+    else if (in.format == 6) { if (wIn < 0) { float sum = v[0] + v[1] + v[2] + v[3]; if (std::fabs(sum - 1.0f) < 0.03f) wIn = int(i); } }
+    else if (in.format == 57 || in.format == 38) posIn.push_back(int(i));
+    else if (in.format == 16 || in.format == 7 || in.format == 17) dirIn.push_back(int(i));
+  }
+  return idxIn >= 0 && !posIn.empty() && (ri.bones == 1 || wIn >= 0);
+}
+bool RelSkinCompute(SkinJob& j) {
+  const Cmd& c = j.cmd; const uint8_t* bank = j.pal.data();
+  RelSkinInfo ri; ri.ok = true; ri.base = j.relBase; ri.bones = j.relBones;
+  int idxIn, wIn; std::vector<int> posIn, dirIn;
+  if (!RelSkinInputs(c, ri, idxIn, wIn, posIn, dirIn)) return false;
+  auto t0 = Clock::now();
+  typedef float v4f __attribute__((vector_size(16)));
+  const uint32_t n = c.vertexCount;
+  auto Ip = FloatsFor(c.vertexData[idxIn], n), Wp = wIn >= 0 ? FloatsFor(c.vertexData[wIn], n) : nullptr;
+  if (!Ip || (wIn >= 0 && !Wp)) return false;
+  const float* I = Ip->data(); const float* W = Wp ? Wp->data() : nullptr;
+  // linhas dos ossos (constante B + 3b + k, big-endian), lidas uma vez por osso usado
+  thread_local v4f rows[256][3]; thread_local uint8_t have[256];
+  std::memset(have, 0, sizeof have);
+  auto bone = [&](int b) -> const v4f* {
+    if (!have[b]) {
+      have[b] = 1;
+      for (int k = 0; k < 3; ++k) { int reg = std::clamp(ri.base + 3 * b + k, 0, 255); for (int e = 0; e < 4; ++e) rows[b][k][e] = BEF(bank + reg * 16 + 4 * e); }
+    }
+    return rows[b];
+  };
+  std::vector<std::shared_ptr<const std::vector<float>>> holders; std::vector<const float*> srcs; std::vector<int> outs; std::vector<bool> points;
+  for (int i : posIn) { auto h = FloatsFor(c.vertexData[i], n); if (!h) return false; holders.push_back(h); srcs.push_back(h->data()); outs.push_back(i); points.push_back(true); }
+  for (int i : dirIn) { auto h = FloatsFor(c.vertexData[i], n); if (!h) continue; holders.push_back(h); srcs.push_back(h->data()); outs.push_back(i); points.push_back(false); }
+  std::vector<float*> dst; for (int i : outs) dst.push_back(j.Out(i, size_t(n) * 4).data());
+  // colunas por osso (ver CpuSkinCompute): 4 FMAs por stream, sem soma horizontal
+  thread_local v4f cols[256][4]; thread_local uint8_t haveCols[256];
+  std::memset(haveCols, 0, sizeof haveCols);
+  auto boneCols = [&](int b) -> const v4f* {
+    if (!haveCols[b]) { haveCols[b] = 1; const v4f* m = bone(b); for (int k = 0; k < 4; ++k) cols[b][k] = v4f{m[0][k], m[1][k], m[2][k], 0.0f}; }
+    return cols[b];
+  };
+  const size_t ns = srcs.size(); bool pt[kMaxInputs];
+  for (size_t sIdx = 0; sIdx < ns; ++sIdx) pt[sIdx] = points[sIdx];
+  for (uint32_t v = 0; v < n; ++v) {
+    v4f C0 = {0, 0, 0, 0}, C1 = C0, C2 = C0, C3 = C0; float wsum = 0;
+    for (int k = 0; k < ri.bones; ++k) {
+      float w = W ? W[size_t(v) * 4 + k] : 1.0f; if (w == 0.0f) continue;
+      int b = int(I[size_t(v) * 4 + k]); if (b < 0 || b > 255) continue;
+      const v4f* m = boneCols(b);
+      C0 += w * m[0]; C1 += w * m[1]; C2 += w * m[2]; C3 += w * m[3]; wsum += w;
+    }
+    if (wsum > 0.0f && wsum != 1.0f) { float iw = 1.0f / wsum; C0 *= iw; C1 *= iw; C2 *= iw; C3 *= iw; }
+    for (size_t sIdx = 0; sIdx < ns; ++sIdx) {
+      const float* q = srcs[sIdx] + size_t(v) * 4;
+      v4f o = C0 * q[0] + C1 * q[1] + C2 * q[2];
+      if (pt[sIdx]) o += C3;
+      o[3] = q[3];
+      std::memcpy(dst[sIdx] + size_t(v) * 4, &o, 16);
+    }
+  }
+  (void)t0; j.vertices = n;
+  return true;
+}
+// Pool de threads do skinning
+std::mutex g_skinMx; std::condition_variable g_skinCv, g_skinDoneCv;
+std::deque<std::shared_ptr<SkinJob>> g_skinQueue;
+void SkinWorker() {
+  // prioridade abaixo da thread GL e do jogo (NIER_SKIN_NICE, padrão 5): a thread GL não pode perder núcleo para o skin
+  static int nice = std::getenv("NIER_SKIN_NICE") ? std::atoi(std::getenv("NIER_SKIN_NICE")) : 5;
+  setpriority(PRIO_PROCESS, pid_t(syscall(SYS_gettid)), nice);
+  for (;;) {
+    std::shared_ptr<SkinJob> j;
+    {
+      std::unique_lock<std::mutex> lk(g_skinMx);
+      g_skinCv.wait(lk, [] { return !g_skinQueue.empty(); });
+      j = std::move(g_skinQueue.front()); g_skinQueue.pop_front();
+    }
+    auto t0 = Clock::now();
+    j->ok = j->kind == 1 ? CpuSkinCompute(*j) : RelSkinCompute(*j);
+    j->ms = Ms(t0, Clock::now());
+    { std::lock_guard<std::mutex> lk(g_skinMx); j->done.store(true, std::memory_order_release); }
+    g_skinDoneCv.notify_all();
+  }
+}
+void WaitSkinJob(SkinJob& j) {
+  if (j.done.load(std::memory_order_acquire)) return;
+  auto t0 = Clock::now();
+  std::unique_lock<std::mutex> lk(g_skinMx);
+  g_skinDoneCv.wait(lk, [&] { return j.done.load(std::memory_order_acquire); });
+  g_skinWaitMs += Ms(t0, Clock::now());
+}
+// No desenho (thread GL): liga os streams deformados do job deste comando (idempotente).
+void ConsumeSkinJob(const Frame& f, const Cmd& c) {
+  if (c.skinJob < 0 || size_t(c.skinJob) >= f.skinJobs.size()) return;
+  SkinJob& j = *f.skinJobs[size_t(c.skinJob)];
+  WaitSkinJob(j);
+  if (!j.ok) return;
+  for (size_t k = 0; k < j.nOuts; ++k) { g_skinOut[j.outs[k].first] = &j.outs[k].second; g_transientUsed[j.outs[k].first] = true; }
+  if (j.vertices) { g_skinMs += j.ms; g_skinnedVertices += j.vertices; ++g_skinnedDraws; j.vertices = 0; }
 }
 void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
   for (auto& r : g_drawRemap) r.reset();
   for (auto& u : g_transientUsed) u = false;
   if (CpuSkin()) {
-    if (!CpuSkinDraw(f, c, p, state)) {  // sem ossos/pesos reconhecidos: paleta de identidade mesmo assim (vértice sem deformar)
-      if (!p.identityUploaded) { static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}; if (p.vtf[0].loc >= 0) glUniform4fv(p.vtf[0].loc, 4, ident); p.identityUploaded = true; }
-      if (p.vtf[0].params >= 0) glUniform2f(p.vtf[0].params, 1024.0f, 0.0f);
-    }
+    ConsumeSkinJob(f, c);  // sem job (ossos/pesos não reconhecidos): identidade em ALU, vértice sem deformar
     return;
   }
   // 1) remapeamento compacto (ossos únicos da malha cabem em k/4 slots)
@@ -1227,6 +1450,7 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
 }
 // Descarte no CPU: AABB do VBO de posição (1x por serial) × MVP do desenho (constantes do estado). Fora do
 // frustum (os 8 cantos atrás do mesmo plano) ou < 2 px na tela (todos os cantos à frente) = não desenha.
+uint64_t g_lodHist[8] = {}, g_lodCulledIdx = 0;
 bool CullDraw(const Frame& f, const Cmd& c) {
   static bool off = std::getenv("NIER_NO_CULL_AABB") != nullptr;
   if (off || !c.vs || !c.ps) return false;
@@ -1234,7 +1458,14 @@ bool CullDraw(const Frame& f, const Cmd& c) {
   auto ci = infos.find(c.vs->key);
   if (ci == infos.end()) ci = infos.emplace(c.vs->key, ParseCull(c.vs->source)).first;
   const CullInfo& cull = ci->second;
-  if (!cull.ok) { ++g_cullNoPattern; return false; }
+  if (!cull.ok) {
+    ++g_cullNoPattern;
+    if (DiagOsso()) { static std::map<uint64_t, uint64_t> miss; static uint64_t n = 0; miss[c.vs->key] += c.indexCount;
+      if (++n % 20000 == 0) { std::vector<std::pair<uint64_t, uint64_t>> v(miss.begin(), miss.end()); std::sort(v.begin(), v.end(), [](auto& a, auto& b) { return a.second > b.second; });
+        std::string t; char b[64]; for (size_t i = 0; i < v.size() && i < 8; ++i) { std::snprintf(b, sizeof b, " %016llX:%llu", (unsigned long long)v[i].first, (unsigned long long)v[i].second); t += b; }
+        std::fprintf(stderr, "[nier-lod] VS sem padrão MVP (índices acumulados):%s\n", t.c_str()); } }
+    return false;
+  }
   int pi = cull.posInput;
   if (pi < 0 || uint32_t(pi) >= c.inputCount || !c.vertexData[pi]) { ++g_cullNoData; return false; }
   ++g_cullEval;
@@ -1262,7 +1493,7 @@ bool CullDraw(const Frame& f, const Cmd& c) {
     for (int cc = 0; cc < 4; ++cc) m[r][cc] = BEF(Field(state, kVertexConstants + reg * 16 + 4 * cc));
   }
   int outside[6] = {};  // -x +x -y +y -z +z (clip D3D: -w<=x<=w, -w<=y<=w, 0<=z<=w)
-  float sx0 = 1e30f, sx1 = -1e30f, sy0 = 1e30f, sy1 = -1e30f; bool allFront = true;
+  float sx0 = 1e30f, sx1 = -1e30f, sy0 = 1e30f, sy1 = -1e30f; bool allFront = true; float minW = 1e30f;
   for (int i = 0; i < 8; ++i) {
     float v[4] = {(i & 1) ? a.hi[0] : a.lo[0], (i & 2) ? a.hi[1] : a.lo[1], (i & 4) ? a.hi[2] : a.lo[2], 1.0f};
     float cl[4];
@@ -1271,6 +1502,7 @@ bool CullDraw(const Frame& f, const Cmd& c) {
     if (cl[0] < -w) ++outside[0]; if (cl[0] > w) ++outside[1];
     if (cl[1] < -w) ++outside[2]; if (cl[1] > w) ++outside[3];
     if (cl[2] < 0) ++outside[4]; if (cl[2] > w) ++outside[5];
+    minW = std::min(minW, w);
     if (w <= 1e-6f) allFront = false;
     else { float x = cl[0] / w, y = cl[1] / w; sx0 = std::min(sx0, x); sx1 = std::max(sx1, x); sy0 = std::min(sy0, y); sy1 = std::max(sy1, y); }
   }
@@ -1282,6 +1514,15 @@ bool CullDraw(const Frame& f, const Cmd& c) {
     // cuja caixa projetada cobre menos de 1 % da tela não são desenhados. Padrão 0 = desligado.
     static float areaFrac = std::getenv("NIER_CULL_AREA") ? float(std::atof(std::getenv("NIER_CULL_AREA"))) : 0.0f;
     if (areaFrac > 0 && px * py < areaFrac * float(g_config.renderWidth) * float(g_config.renderHeight)) return true;
+    // C1-H9 histograma: índices do cenário por distância (w de recorte do canto mais próximo da caixa)
+    static const float edges[] = {5, 10, 20, 40, 80, 160, 320};
+    int bucket = 0; while (bucket < 7 && minW >= edges[bucket]) ++bucket;
+    g_lodHist[bucket] += c.indexCount;
+    // LOD por distância (autorizado pelo dono: "efeitos podem reduzir se jogável"): cenário cuja parte mais próxima
+    // está além de NIER_LOD_DIST não é desenhado. Só cenário (classe cor, não UP), nunca o que cruza o plano da câmera.
+    static float lodDist = std::getenv("NIER_LOD_DIST") ? float(std::atof(std::getenv("NIER_LOD_DIST"))) : 0.0f;
+    float dist = g_abMode == 8 ? (lodDist > 0 ? lodDist : 60.0f) : lodDist;
+    if (dist > 0 && minW > dist) { g_lodCulledIdx += c.indexCount; return true; }
   }
   return false;
 }
@@ -1292,6 +1533,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t0 = Clock::now();
   for (auto& r : g_drawRemap) r.reset();  // só UploadVertexTextures liga um remapeamento para ESTE desenho
   for (auto& u : g_transientUsed) u = false;  // idem para os streams deformados na CPU
+  if (g_floatCache.size() > 4096) g_floatCache.clear();  // teto: serial novo a cada quadro não pode crescer a memória sem fim
   if (rd.skip) return;  // nível de bloom mantido do quadro anterior
   Target& drawTarget = rd.key ? DirectTarget(rd.key, rd.w, rd.h) : CurrentTarget(state);
   if (rd.key) { ++g_directDraws; if (rd.passStart) drawTarget.from3D = false; if (!c.up) drawTarget.from3D = true; }
@@ -1304,9 +1546,23 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   uint32_t colorControl = BE32(Field(state, kColorControl));
   int skinIdx = -1, skinW = -1;
   int skinConst = SkinInputs(c, skinIdx, skinW, nullptr, nullptr);
-  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up, keepAlphaTest || (colorControl & 8), skinConst, TextureGammaChannels(Field(state,kFetchConstants),c.ps->textureMask));
+  const RelSkinInfo& relInfo = RelSkinFor(c.vs);
+  int relBase = -1;
+  if (relInfo.ok) { int ri, rw; std::vector<int> rp, rd; if (RelSkinInputs(c, relInfo, ri, rw, rp, rd)) relBase = relInfo.base; }
+  // diagnóstico NIER_DIAG_VS=<hex dos 6 primeiros dígitos do VS>: só esse VS, em vermelho, sem profundidade nem cull
+  static const char* diagVs = std::getenv("NIER_DIAG_VS");
+  bool diag = false;
+  if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
+  static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
+  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask));
+  { static bool diagRes = std::getenv("NIER_DIAG_RESOLVE") != nullptr;  // PC0 (exposição) dos PS que o leem, a cada 300 quadros
+    if (diagRes && g_frames.load() % 300 == 0) { static uint64_t lastF = ~0ull; static int n = 0; if (lastF != g_frames.load()) { lastF = g_frames.load(); n = 0; }
+      const uint8_t* pc = Field(state, kPixelConstants);
+      if (n < 6 && !c.ps->constMap.empty() && c.ps->constMap[0] == 0) { ++n; std::fprintf(stderr, "[nier-pc0] quadro %llu ps %016llX up %d PC0 %.4g %.4g %.4g %.4g\n", (unsigned long long)g_frames.load(), (unsigned long long)c.ps->key, int(c.up), BEF(pc), BEF(pc + 4), BEF(pc + 8), BEF(pc + 12)); } } }
+  if (diag) { if (!diagDepth) glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND); glColorMask(1, 1, 1, 1); g_gl.fixedValid = false; }
   if (!p) { Skip("programa não compilou/linkou"); return; }
   UseProgram(p->id);
+  if (relBase >= 0) ConsumeSkinJob(f, c);
   UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc, p->vcSeq);
   UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps, p->lastPc, p->pcSeq);
   if (p->lastBools.size() != p->bools.size()) p->lastBools.assign(p->bools.size(), -1);
@@ -1327,7 +1583,12 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
     // desenho 3D no quadro (composição da cena). Tela de UI pura vem da memória do guest (menus sem faixas).
     static bool resolvedInUi = std::getenv("NIER_RESOLVED_IN_UI") != nullptr;
     ActiveUnit(unit);  // TextureFor pode enviar a textura: liga na unidade certa
-    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White();
+    auto sampled=t;
+    if(p->lod.index>=0 && (p->lod.samplers&(1u<<slot))) {
+      float lod=BEF(Field(state,kVertexConstants+16*p->lod.index+4*p->lod.component));
+      if(std::isfinite(lod)&&lod>=0&&lod<=15&&std::fabs(lod-std::round(lod))<0.001f){unsigned level=unsigned(std::round(lod));auto view=t;view.width=std::max(1u,t.width>>level);view.height=std::max(1u,t.height>>level);if(g_resolved.count(TexKey(view)))sampled=view;}
+    }
+    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(sampled, !c.up || resolvedInUi) : White();
     BindTexture(unit, id);
     if (sizeLoc >= 0) {
       std::pair<float, float> sz{float(t.width), float(t.height)};
@@ -1346,7 +1607,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
         GLuint& vbo = g_transient[g_frames.load() % 3][i];
         if (!vbo) glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo); streamBound = false;
-        glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(g_skinOut[i].size() * 4), g_skinOut[i].data(), GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(g_skinOut[i]->size() * 4), g_skinOut[i]->data(), GL_STREAM_DRAW);
         glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, nullptr);
         continue;
       }
@@ -1386,9 +1647,40 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
   g_indicesDrawn += c.indexCount;
-  if (c.vs->relativeConstants) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
+  if (DiagOsso() && c.vs->textureMask) {  // diagnóstico: desenhos com ossos (VTF), caminho e 1º vértice
+    static std::set<std::pair<uint64_t, uint32_t>> seenSkin;
+    if (seenSkin.insert({c.vs->key, c.vertexCount}).second && seenSkin.size() < 400) {
+      std::string d; char b[128];
+      for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+        const auto& in = c.vs->inputs[i]; float fv[4];
+        std::snprintf(b, sizeof b, " a%u:f%u%s", i, in.format, in.isInteger ? "i" : ""); d += b;
+        if (c.vertexCount && FirstVertex(c.vertexData[i], fv)) { std::snprintf(b, sizeof b, "(%.3g,%.3g,%.3g,%.3g)", fv[0], fv[1], fv[2], fv[3]); d += b; }
+      }
+      int job = c.skinJob;
+      auto tf = xenos::DecodeFetch(Field(state, kFetchConstants + 24 * __builtin_ctz(c.vs->textureMask)));
+      std::fprintf(stderr, "[nier-osso] vs %016llX ps %016llX vtx %u idx %u tex %u fmt %u w %u skinConst %d job %d ok %d%s\n", (unsigned long long)c.vs->key, (unsigned long long)c.ps->key, c.vertexCount, c.indexCount, c.vs->textureMask, unsigned(tf.format), tf.width, skinConst, job, job >= 0 && size_t(job) < f.skinJobs.size() ? int(f.skinJobs[size_t(job)]->done.load() && f.skinJobs[size_t(job)]->ok) : -1, d.c_str());
+    }
+  }
+  if (p->dynIndex && DiagOsso()) {  // diagnóstico: uma linha por VS com índice dinâmico, formatos dos atributos
+    static std::set<uint64_t> seen;
+    if (seen.insert(c.vs->key).second) {
+      std::string d; char b[96];
+      for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+        const auto& in = c.vs->inputs[i]; float fv[4]; std::vector<float> tmp; const std::vector<float>* v = nullptr; if (c.vertexCount && FirstVertex(c.vertexData[i], fv)) { tmp.assign(fv, fv + 4); v = &tmp; }
+        std::snprintf(b, sizeof b, " a%u:f%u%s%s", i, in.format, in.isInteger ? "i" : "", in.isSigned ? "s" : ""); d += b;
+        if (v && c.vertexCount) { std::snprintf(b, sizeof b, "(%.3g,%.3g,%.3g,%.3g)", (*v)[0], (*v)[1], (*v)[2], (*v)[3]); d += b; }
+      }
+      std::fprintf(stderr, "[nier-dyn] vs %016llX vtx %u idx %u%s\n", (unsigned long long)c.vs->key, c.vertexCount, c.indexCount, d.c_str());
+    }
+  }
+  if (p->dynIndex) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
   if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
-  glDrawElements(c.mode, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
+  if (g_abMode == 5) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
+  GLsizei abCount = GLsizei(c.indexCount);
+  if (g_abMode == 7 && g_drawClassCurrent == 0 && c.mode == GL_TRIANGLES) abCount = GLsizei((c.indexCount / 2) / 3 * 3);
+  if (!(g_abMode == 6 && g_drawClassCurrent == 0))
+    glDrawElements(c.mode, abCount, GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
+  if (g_abMode == 5) glDisable(GL_SCISSOR_TEST);
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -1528,6 +1820,65 @@ void PlanDirectPasses(const Frame& f) {
     }
   }
 }
+// C1-I1: Resolve pequeno (cadeia de luminância 16→8→4→2, 8_8_8_8) volta para a memória do guest. Na Xbox o
+// Resolve grava na memória e a CPU do jogo lê a média para a adaptação de exposição; sem isso o jogo lê lixo/zero e a
+// exposição (PC0 da gameplay) sobe a ~1000 (tela branca). Só destinos ≤ NIER_READBACK_MAX texels (padrão 16).
+// NIER_NO_READBACK=1 desliga (A/B).
+void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFetch& t, uint32_t level) {
+  static bool off = std::getenv("NIER_NO_READBACK") != nullptr;
+  static uint32_t maxTexels = std::getenv("NIER_READBACK_MAX") ? uint32_t(std::atoi(std::getenv("NIER_READBACK_MAX"))) : 16;
+  if (off || t.width * t.height > maxTexels || t.format != xenos::k8888 || t.dimension != 1 || !t.tiled) return;
+  // endereço do nível: L0 = base; L>=1 = mipBase + soma dos níveis 1..L-1 (32 bpp, tiled: linhas/colunas alinhadas a 32
+  // texels, cada nível alinhado a 4 KB). Mips empacotados (cauda) ainda não: não grava.
+  uint32_t addr = t.base;
+  if (level > 0) {
+    if (t.packedMips || !t.mipBase) return;
+    auto pow2 = [](uint32_t n) { uint32_t p = 1; while (p < n) p <<= 1; return p; };
+    uint32_t w0 = pow2(t.width << level), h0 = pow2(t.height << level);  // dimensões do nível 0 (t já está no nível)
+    addr = t.mipBase;
+    for (uint32_t k = 1; k < level; ++k) {
+      uint32_t w = std::max(1u, w0 >> k), h = std::max(1u, h0 >> k);
+      uint32_t bytes = ((w + 31) & ~31u) * ((h + 31) & ~31u) * 4;
+      addr += (bytes + 4095) & ~4095u;
+    }
+  }
+  // lê da ORIGEM do Resolve (quem tem o conteúdo agora: o alvo, ou o destino do alias/passe direto), no retângulo
+  // do Resolve na escala interna. O destino GL pode não existir: ninguém amostra o 2x2 na GPU (só a CPU lê).
+  auto st = g_targets.find(srcKey);
+  if (st == g_targets.end()) return;
+  const Target* holder = &st->second;
+  int rx = 0, ry = 0;
+  if (st->second.holder) { auto h = g_resolved.find(st->second.holder); if (h == g_resolved.end()) return; holder = &h->second; }
+  else { int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h); float sc = Scale(); rx = int(x0 * sc); ry = int(y0 * sc); }
+  struct { int w, h; } dimsT{std::max(1, int(t.width * Scale())), std::max(1, int(t.height * Scale()))};
+  auto* tg = &dimsT;
+  if (!holder->fbo || rx + tg->w > holder->w || ry + tg->h > holder->h) return;
+  thread_local std::vector<uint8_t> px; px.resize(size_t(tg->w) * tg->h * 4);
+  BindFbo(holder->fbo);
+  glReadPixels(rx, ry, tg->w, tg->h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());  // LEVE_OK: readback da luminância (exposição), ≤16 texels por Resolve
+  const uint32_t alignedW = (t.width + 31) & ~31u, alignedH = (t.height + 31) & ~31u;
+  const uint32_t span = std::max(4096u, alignedW * alignedH * 4);
+  // endereço do fetch está na faixa virtual 0xE0000000+ (o ponteiro do Lock da CPU é o mesmo, FEC21000): o físico
+  // tem +0x1000 nessa faixa (PhysicalOf, mesma regra dos index buffers). Sem isso a CPU lia 4 KB adiante (zeros).
+  uint8_t* dst = const_cast<uint8_t*>(Physical(PhysicalOf(addr), span));
+  if (!dst) return;
+  for (uint32_t y = 0; y < t.height; ++y) {
+    int32_t rowBase = xenos::TiledOuter(int32_t(y), int32_t(alignedW), 2);
+    for (uint32_t x = 0; x < t.width; ++x) {
+      uint32_t off = uint32_t(xenos::TiledInner(int32_t(x), int32_t(y), 2, rowBase));
+      if (off + 4 > span) continue;
+      uint32_t sx = x * uint32_t(tg->w) / t.width, sy = y * uint32_t(tg->h) / t.height;
+      const uint8_t* p = &px[(size_t(sy) * tg->w + sx) * 4];
+      // A8R8G8B8 como a CPU do jogo lê (D1, 825A3668): bytes A, R, G, B
+      uint8_t e[4] = {p[3], p[0], p[1], p[2]};
+      static const char* force = std::getenv("NIER_READBACK_FORCE");  // diagnóstico: AARRGGBB fixo
+      if (force) { uint32_t v = uint32_t(std::strtoul(force, nullptr, 16)); e[0] = uint8_t(v >> 24); e[1] = uint8_t(v >> 16); e[2] = uint8_t(v >> 8); e[3] = uint8_t(v); }
+      std::memcpy(dst + off, e, 4);
+    }
+  }
+  static bool diag = std::getenv("NIER_DIAG_RESOLVE") != nullptr;
+  if (diag) { static uint64_t n = 0; if (n++ < 40 || n % 200 == 0) std::fprintf(stderr, "[nier-readback] nível %u %ux%u endereço %08X gl %dx%d texel0 RGBA %u %u %u %u\n", level, t.width, t.height, addr, tg->w, tg->h, px[0], px[1], px[2], px[3]); }
+}
 void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false) {
   const uint8_t* state = f.blob.data() + c.state;
   uint64_t srcKey = TargetKeyOf(state);
@@ -1547,6 +1898,13 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false)
     }
   } else if (c.fetch != SIZE_MAX) {
     auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
+    static bool diagResolve = std::getenv("NIER_DIAG_RESOLVE") != nullptr;  // Resolve pequenos (luminância/exposição?)
+    if (diagResolve && t.width * t.height <= 256) {
+      static std::set<uint64_t> seen;
+      if (seen.insert(TexKey(t)).second && seen.size() < 64)
+        std::fprintf(stderr, "[nier-resolve] pequeno: destino fmt %u %ux%u base %08X mipBase %08X pitch %u packed %d endian %u tiled %d; origem surf %08X color %08X flags %08X\n",
+                     unsigned(t.format), t.width, t.height, t.base, t.mipBase, t.pitch, int(t.packedMips), t.endian, int(t.tiled), BE32(Field(state, kSurfaceInfo)), BE32(Field(state, kSurfaceInfo + 4)), c.flags);
+    }
     static bool noCopy = std::getenv("NIER_NO_RESOLVE_COPY") != nullptr;  // diagnóstico
     uint64_t key = TexKey(t);
     if (direct) {
@@ -1618,6 +1976,7 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false)
       }
     }
   }
+  if (!(c.flags & 4) && c.fetch != SIZE_MAX) { auto t = xenos::DecodeFetch(f.blob.data() + c.fetch); ReadbackSmallResolve(c, srcKey, t, c.level); }
   // Resolve com limpeza (D3DRESOLVE_CLEARRENDERTARGET 0x100 / CLEARDEPTHSTENCIL 0x200, a confirmar).
   if (clears) {
     Target& src = CurrentTarget(state, false);
@@ -1794,6 +2153,7 @@ void RenderThread() {
     g_skipPrepass = maliLike && !std::getenv("NIER_PREPASS");
     g_skipShadow = maliLike && !std::getenv("NIER_SHADOW");
     g_sortByProgram = maliLike && !std::getenv("NIER_NO_SORT");
+    g_frameskipAuto = false;  // H3 no .164: auto derrubou os desenhados/s (CPU disputada); padrão 1, NIER_FRAMESKIP=auto|2|3|4 liga
     // Ordem do dono (07/11): na Mali a resolução interna padrão é 640x360 (nunca abaixo de 640 de largura);
     // NIER_RENDER_WIDTH continua valendo quando dado. glDiscardFramebufferEXT na Mali só com NIER_DISCARD=1
     // (F13: quadrados pretos e retângulo de quadro antigo = conteúdo indefinido pelo driver).
@@ -1815,6 +2175,7 @@ void RenderThread() {
       if (g_quit) break;
       work.blob.swap(g_inflight.blob);
       work.cmds.swap(g_inflight.cmds);
+      work.skinJobs.swap(g_inflight.skinJobs); g_inflight.skinJobs.clear();
       work.presentInterval = g_inflight.presentInterval;
     }
     g_mainTarget = 0;
@@ -1830,11 +2191,19 @@ void RenderThread() {
         }
     }
     auto tr = Clock::now();
+    static bool abCycle = std::getenv("NIER_AB_CYCLE") != nullptr;
+    static int abPeriod = std::getenv("NIER_AB_PERIOD") ? std::max(2, std::atoi(std::getenv("NIER_AB_PERIOD"))) : 6;
+    static Clock::time_point abStart{}; static bool abOn = false;
+    if (abCycle) {
+      if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 9 : 0;
+    }
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
     for (size_t oi = 0; oi < g_order.size(); ++oi) {
       size_t i = g_order[oi];
       const Cmd& c = work.cmds[i];
+      if (c.kind == Kind::Resolve && g_abMode == 3) continue;
       if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
       else {
@@ -1848,6 +2217,7 @@ void RenderThread() {
           if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
           continue;
         }
+        if ((g_abMode == 1 && cls == 3) || (g_abMode == 2 && cls == 0)) continue;
         if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
         g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
         g_drawClassCurrent = cls;
@@ -1865,6 +2235,16 @@ void RenderThread() {
     InvalidateGl();
     g_depthKeep.clear();  // apresentação (e auditoria opt-in) mexem no estado fora do cache
     auto now = Clock::now();
+    if (abCycle && abOn) {  // por modo: replay+apresentação (só thread GL; não inclui espera pelo jogo)
+      static int lastMode = -1; static double sum = 0; static int frames = 0; static Clock::time_point modeStart = now;
+      static uint64_t cpuStart = 0;
+      if (g_abMode != lastMode) {
+        timespec ts; clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts); uint64_t cpuNow = uint64_t(ts.tv_sec) * 1000000000ull + uint64_t(ts.tv_nsec);
+        if (lastMode >= 0 && frames) std::fprintf(stderr, "[nier-ab] modo %d %s: %d quadros em %.1f s, replay+apresentação %.1f ms/quadro, CPU da thread GL %.1f ms/quadro\n", lastMode, kAbNames[lastMode], frames, std::chrono::duration<double>(now - modeStart).count(), sum / frames, (cpuNow - cpuStart) / 1e6 / frames);
+        lastMode = g_abMode; sum = 0; frames = 0; modeStart = now; cpuStart = cpuNow;
+      }
+      sum += std::chrono::duration<double, std::milli>(now - tr).count(); ++frames;
+    }
     g_swapMs += std::chrono::duration<double, std::milli>(now - tp).count();
     g_lastFrameMs = std::chrono::duration<double, std::milli>(now - last).count();
     last = now;
@@ -1899,10 +2279,33 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-perfil] top 10 VS por vértices x operações:%s\n", line.c_str());
         g_topDraws.clear();
       }
+      {
+        static Clock::time_point fsLast = Clock::now();
+        double secs = std::chrono::duration<double>(Clock::now() - fsLast).count(); fsLast = Clock::now();
+        uint64_t up = g_fsUpdates.exchange(0), dr = g_fsDropped.exchange(0);
+        uint64_t rec = g_recordNs.exchange(0), th = g_triHits.exchange(0), tm = g_triMisses.exchange(0);
+        if (W) {
+          std::fprintf(stderr, "[nier-lod] índices de cenário/quadro por distância (w): <5 %.0f, 5-10 %.0f, 10-20 %.0f, 20-40 %.0f, 40-80 %.0f, 80-160 %.0f, 160-320 %.0f, >=320 %.0f; cortados por LOD %.0f\n",
+                       g_lodHist[0] / double(W), g_lodHist[1] / double(W), g_lodHist[2] / double(W), g_lodHist[3] / double(W), g_lodHist[4] / double(W), g_lodHist[5] / double(W), g_lodHist[6] / double(W), g_lodHist[7] / double(W), g_lodCulledIdx / double(W));
+          for (auto& h : g_lodHist) h = 0; g_lodCulledIdx = 0;
+        }
+        { uint64_t ph[7]; for (int k = 0; k < 7; ++k) ph[k] = g_recPhaseNs[k].exchange(0);
+          double u = up ? up * 1e6 : 1.0;
+          static uint64_t lastHits = 0, lastMisses = 0, lastConv = 0;
+          uint64_t h = g_bufferSnapshots.hits.load(), m = g_bufferSnapshots.misses.load(), cv = g_bufferSnapshots.converted.load();
+          double upd = up ? double(up) : 1.0;
+          std::fprintf(stderr, "[nier-captura] ms/update: shaders %.2f estado %.2f índices %.2f vértices(SnapshotInputs) %.2f IB+trace %.2f skin(início) %.2f outros %.2f | RecordDraw parede %.2f CPU-da-thread %.2f | cache de vértices/IB por update: acertos %.0f misses %.1f (conteúdo mudou %.1f, chave nova %.1f) convertidos %.0f KB\n",
+                       ph[0] / u, ph[1] / u, ph[2] / u, ph[3] / u, ph[4] / u, ph[5] / u, ph[6] / u, rec / u, g_recordCpuNs.exchange(0) / u,
+                       (h - lastHits) / upd, (m - lastMisses) / upd, g_bufferSnapshots.missChanged.exchange(0) / upd, g_bufferSnapshots.missNewKey.exchange(0) / upd, (cv - lastConv) / upd / 1024.0);
+          lastHits = h; lastMisses = m; lastConv = cv; }
+        std::fprintf(stderr, "[nier-frameskip] updates/s %.1f desenhados/s %.1f pulados %llu maior rajada %llu; captura RecordDraw %.2f ms/update, triangulação em cache %llu acertos / %llu erros\n",
+                     secs > 0 ? up / secs : 0.0, secs > 0 ? W / secs : 0.0, (unsigned long long)dr, (unsigned long long)g_fsMaxBurst.exchange(0),
+                     up ? rec / (up * 1e6) : 0.0, (unsigned long long)th, (unsigned long long)tm);
+      }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, skinning CPU %.0f vtx em %.1f desenhos %.2f ms, VS com VC[k+addr] %.1f desenhos / %.0f vtx / %.0f idx, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
-                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_skinnedVertices / double(W), g_skinnedDraws / double(W), g_skinMs / double(W), g_relDraws / double(W), g_relVertices / double(W), g_relIndices / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = g_cullEval = g_cullNoPattern = g_cullNoData = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0; g_skinnedVertices = g_skinnedDraws = 0; g_skinMs = 0; g_relDraws = g_relVertices = g_relIndices = 0;
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, skinning CPU %.0f vtx em %.1f desenhos %.2f ms (no worker; espera da thread GL %.2f ms; conversões %.2f ms, %.1f misses, %.0f vtx), VS com índice dinâmico de uniforme %.1f desenhos / %.0f vtx / %.0f idx, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
+                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_skinnedVertices / double(W), g_skinnedDraws / double(W), g_skinMs / double(W), g_skinWaitMs / double(W), g_convNs.exchange(0) / (W * 1e6), g_convMisses.exchange(0) / double(W), g_convVertices.exchange(0) / double(W), g_relDraws / double(W), g_relVertices / double(W), g_relIndices / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = g_cullEval = g_cullNoPattern = g_cullNoData = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0; g_skinnedVertices = g_skinnedDraws = 0; g_skinMs = 0; g_skinWaitMs = 0; g_relDraws = g_relVertices = g_relIndices = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
@@ -2078,7 +2481,67 @@ void Shutdown() {
 bool Enabled() { return g_enabled.load(std::memory_order_relaxed); }
 const Config& Settings() { return g_config; }
 
+// C1-H3: cache de triangulação na thread de captura. Malhas estáticas mandam o mesmo IB todo quadro: a chave é
+// (endereço físico, contagem, 16/32 bits, primitiva) e a validação é memcmp dos bytes brutos (muito mais barato que
+// trocar bytes + triangular ~550 mil índices/quadro no A53). NIER_NO_TRI_CACHE=1 desliga (A/B).
+struct TriCacheEntry { std::vector<uint8_t> raw; std::vector<uint16_t> tri; uint32_t lo = 0, hi = 0; GLenum mode = GL_TRIANGLES; };
+std::unordered_map<uint64_t, TriCacheEntry> g_triCache;
+// C1-H4: inicia o skinning do desenho recém-gravado (thread do jogo). st = estado copiado deste comando.
+uint64_t Fnv(const uint8_t* p, size_t n, uint64_t h = 1469598103934665603ull) {
+  for (size_t i = 0; i + 8 <= n; i += 8) { uint64_t w; std::memcpy(&w, p + i, 8); h = (h ^ w) * 1099511628211ull; }
+  return h;
+}
+std::unordered_map<uint64_t, int> g_skinDedupe; uint64_t g_skinDedupeFrame = ~0ull;
+void StartSkinJob(Cmd& c, const uint8_t* st) {
+  c.skinJob = -1;
+  if (!CpuSkin() || c.up || !c.vs || !c.ps) return;
+  static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;
+  static int threads = [] {
+    int n = std::getenv("NIER_SKIN_THREADS") ? std::atoi(std::getenv("NIER_SKIN_THREADS")) : 1;
+    n = std::clamp(n, 1, 4);
+    for (int i = 0; i < n; ++i) std::thread(SkinWorker).detach();
+    return n;
+  }();
+  (void)threads;
+  auto job = std::make_shared<SkinJob>();
+  if (c.vs->textureMask && !noVtf && __builtin_popcount(c.vs->textureMask) == 1) {
+    int a, b; if (!SkinInputs(c, a, b, nullptr, nullptr)) return;
+    auto t = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * __builtin_ctz(c.vs->textureMask)));
+    if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) return;
+    const uint8_t* pal = Physical(t.base, t.width * 16);
+    if (!pal) return;
+    job->kind = 1; job->pal.assign(pal, pal + size_t(t.width) * 16); job->palWidth = t.width; job->palEndian = t.endian;
+  } else if (c.vs->relativeConstants) {
+    const RelSkinInfo& ri = RelSkinFor(c.vs);
+    int a, b; std::vector<int> pi, di;
+    if (!ri.ok || !RelSkinInputs(c, ri, a, b, pi, di)) return;
+    const uint8_t* bank = Field(st, kVertexConstants);
+    job->kind = 2; job->pal.assign(bank, bank + 256 * 16); job->relBase = ri.base; job->relBones = ri.bones;
+  } else return;
+  // mesma malha + mesma paleta no mesmo quadro: um job só
+  if (g_skinDedupeFrame != g_presented.load()) { g_skinDedupe.clear(); g_skinDedupeFrame = g_presented.load(); }
+  uint64_t key = Fnv(job->pal.data(), job->pal.size(), uint64_t(job->kind) * 0x9E3779B97F4A7C15ull ^ c.vs->key);
+  for (uint32_t i = 0; i < c.inputCount; ++i) key = (key ^ (c.vertexData[i] ? c.vertexData[i]->serial : 0)) * 1099511628211ull;
+  key = (key ^ c.vertexCount) * 1099511628211ull;
+  auto hit = g_skinDedupe.find(key);
+  if (hit != g_skinDedupe.end() && size_t(hit->second) < g_building.skinJobs.size()) { c.skinJob = hit->second; return; }
+  job->cmd = c;
+  c.skinJob = int(g_building.skinJobs.size());
+  g_building.skinJobs.push_back(job);
+  g_skinDedupe[key] = c.skinJob;
+  { std::lock_guard<std::mutex> lk(g_skinMx); g_skinQueue.push_back(job); }
+  g_skinCv.notify_one();
+}
+// Parede e CPU da própria thread: diferença grande = thread do jogo preemptada (núcleos disputados), não custo do código.
+inline uint64_t ThreadCpuNs() { timespec ts; clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts); return uint64_t(ts.tv_sec) * 1000000000ull + uint64_t(ts.tv_nsec); }
+struct RecordTimer {
+  Clock::time_point t0 = Clock::now(); uint64_t c0 = ThreadCpuNs();
+  ~RecordTimer() { g_recordNs += uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - t0).count()); g_recordCpuNs += ThreadCpuNs() - c0; }
+};
 void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32_t startIndex, uint32_t count, bool indexed) {
+  RecordTimer recordTimer;
+  auto ph = Clock::now();
+  auto mark = [&](int k) { auto t = Clock::now(); g_recPhaseNs[k] += uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(t - ph).count()); ph = t; };
   static uint64_t calls = 0;
   if (++calls % 5000 == 0)
     std::fprintf(stderr, "[nier-jogo] %llu desenhos gravados; quadro atual %zu comandos %zu MB; apresentados %llu\n", (unsigned long long)calls,
@@ -2088,12 +2551,16 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
   if (!state || !count) return;
   Cmd c{Kind::Draw};
+  mark(6);
   if (!PrepareShaders(c, device)) return;
+  mark(0);
   c.state = Append(g_building, state, kStateSize);
+  mark(1);
   const uint8_t* copy = g_building.blob.data() + c.state;
   g_srcIndices.clear();
   int64_t first = 0;
   uint32_t vertices = 0;
+  const std::vector<uint16_t>* triCached = nullptr;
   if (indexed) {
     // Objeto IB (+0x3144): palavra 0 bit 31 = índices de 32 bits; +0x18 = endereço dos dados.
     uint32_t ib = BE32(Field(copy, kIndexBuffer));
@@ -2105,6 +2572,26 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     c.indexAddress = uint64_t(physical) + uint64_t(startIndex) * bytes;
     const uint8_t* src = Physical(physical + startIndex * bytes, count * bytes);
     if (!src) { RecordSkip("index buffer ilegível"); return; }
+    static bool noTriCache = std::getenv("NIER_NO_TRI_CACHE") != nullptr;
+    uint64_t triKey = (c.indexAddress * 0x9E3779B97F4A7C15ull) ^ (uint64_t(count) << 8) ^ (uint64_t(primitive) << 1) ^ uint64_t(is32);
+    if (!noTriCache) {
+      auto hit = g_triCache.find(triKey);
+      if (hit != g_triCache.end() && hit->second.raw.size() == size_t(count) * bytes && std::memcmp(hit->second.raw.data(), src, hit->second.raw.size()) == 0) {
+        ++g_triHits;
+        triCached = &hit->second.tri; g_triMode = hit->second.mode;
+        first = int64_t(int32_t(baseVertex)) + hit->second.lo; vertices = hit->second.hi - hit->second.lo + 1;
+      }
+    }
+  }
+  if (triCached) {
+    // índices já triangulados (acerto do cache)
+  } else if (indexed) {
+    uint32_t ib = BE32(Field(copy, kIndexBuffer));
+    const uint8_t* object = Virtual(ib, 0x20);
+    bool is32 = BE32(object) & 0x80000000u;
+    uint32_t address = BE32(object + 0x18), bytes = is32 ? 4 : 2;
+    uint32_t physical = (address & 0x1FFFFFFF) + (address >= 0xE0000000 ? 0x1000 : 0);
+    const uint8_t* src = Physical(physical + startIndex * bytes, count * bytes);
     uint32_t lo = 0xFFFFFFFF, hi = 0;
     for (uint32_t i = 0; i < count; ++i) {
       uint32_t v = is32 ? BE32(src + 4 * i) : uint32_t(src[2 * i]) << 8 | src[2 * i + 1];
@@ -2116,12 +2603,24 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     if (hi - lo >= 65535) { RecordSkip("faixa de índices > 65535"); return; }
     for (auto& v : g_srcIndices) if (v != 0xFFFFFFFFu) v -= lo;
     first = int64_t(int32_t(baseVertex)) + lo; vertices = hi - lo + 1;
+    if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
+    static bool noTriCache = std::getenv("NIER_NO_TRI_CACHE") != nullptr;
+    if (!noTriCache) {
+      if (g_triCache.size() > 8192) g_triCache.clear();
+      uint64_t triKey = (c.indexAddress * 0x9E3779B97F4A7C15ull) ^ (uint64_t(count) << 8) ^ (uint64_t(primitive) << 1) ^ uint64_t(is32);
+      auto& e = g_triCache[triKey];
+      e.raw.assign(src, src + size_t(count) * bytes); e.tri = g_triIndices; e.lo = lo; e.hi = hi; e.mode = g_triMode;
+      ++g_triMisses;
+    }
+    triCached = &g_triIndices;
   } else {
     first = int64_t(int32_t(baseVertex)); vertices = count;
     for (uint32_t i = 0; i < count; ++i) g_srcIndices.push_back(i);
+    if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
+    triCached = &g_triIndices;
   }
-  if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
-  if (g_triIndices.empty()) return;
+  const std::vector<uint16_t>& tri = *triCached;
+  if (tri.empty()) return;
   static int trace3d = std::getenv("NIER_RENDER_TRACE_3D") ? std::atoi(std::getenv("NIER_RENDER_TRACE_3D")) : 0;
   if (trace3d > 0 && indexed) {
     --trace3d;
@@ -2130,16 +2629,21 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
                  (unsigned long long)c.vs->key, int(c.vs->ok), int(c.ps->ok));
     for (const auto& in : c.vs->inputs) std::fprintf(stderr, "[nier-3d]   slot %u fmt %u off %u stride %u\n", in.slot, in.format, in.offset, in.stride);
   }
+  mark(2);
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
+  mark(3);
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
-  c.indexCount = uint32_t(g_triIndices.size());
+  c.indexCount = uint32_t(tri.size());
   c.prim = uint8_t(primitive);
   c.mode = g_triMode;
-  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, tri.data(), tri.size() * 2);
   else {
-    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, tri.data(), c.indexCount, g_bufferRecordingFrame);
     g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
   }
+  mark(4);
+  StartSkinJob(c, g_building.blob.data() + c.state);
+  mark(5);
   g_recordedBytes = g_building.blob.size();
   g_building.cmds.push_back(c);
 }
@@ -2196,7 +2700,7 @@ void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_
   if (!state) return;
   if ((flags & 4) && !destTexture && !(flags & 0x300)) return;  // D3DRESOLVE_DEPTHSTENCIL = 4 sem destino nem limpeza
   Cmd c{Kind::Resolve};
-  c.flags = flags; c.argb = clearColorArgb;
+  c.flags = flags; c.argb = clearColorArgb; c.level = uint8_t(level < 16 ? level : 0);
   if (rect) { std::memcpy(c.rect, rect, sizeof c.rect); c.hasRect = true; }
   c.state = Append(g_building, state, kStateSize);
   if (destTexture) {
@@ -2242,12 +2746,38 @@ void Present() {
   }
   ++g_bufferRecordingFrame;
   DriveTestInput(++g_presented);
+  ++g_fsUpdates;
+  static int fsMode = [] {  // 0 = auto
+    const char* e = std::getenv("NIER_FRAMESKIP");
+    if (!e) return -1;  // decide pelo GPU (g_frameskipAuto) quando a thread GL já iniciou
+    if (!std::strcmp(e, "auto")) return 0;
+    return std::clamp(std::atoi(e), 1, 4);
+  }();
+  int mode = fsMode >= 0 ? fsMode : (g_frameskipAuto.load() ? 0 : 1);
+  static uint64_t burst = 0;
+  auto noteDrop = [&] { ++g_fsDropped; if (++burst > g_fsMaxBurst.load()) g_fsMaxBurst = burst; };
+  if (mode >= 2 && (g_presented.load() % uint64_t(mode)) != 0 && g_traceFrame.load() < 0) {
+    g_building.Clear(); noteDrop();  // fixo: 1 desenhado a cada N, pulos espalhados; o jogo não espera
+    return;
+  }
   auto waitStart = Clock::now();
   std::unique_lock lock(g_queueMutex);
+  if (mode == 0 && g_hasInflight && !g_quit && burst < 3 && g_traceFrame.load() < 0) {
+    // auto: a thread GL está ocupada; o quadro novo toma o lugar do que ainda não começou (esse é pulado)
+    g_inflight.blob.swap(g_building.blob);
+    g_inflight.cmds.swap(g_building.cmds);
+    g_inflight.skinJobs.swap(g_building.skinJobs);
+    g_inflight.presentInterval = g_interval;
+    g_building.Clear();
+    noteDrop();
+    return;
+  }
   g_queueCv.wait(lock, [] { return !g_hasInflight || g_quit; });
+  burst = 0;
   g_gameWaitNs += uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - waitStart).count());
   g_inflight.blob.swap(g_building.blob);
   g_inflight.cmds.swap(g_building.cmds);
+  g_inflight.skinJobs.swap(g_building.skinJobs);
   g_inflight.presentInterval = g_interval;
   g_building.Clear();
   g_hasInflight = true;

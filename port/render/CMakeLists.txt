@@ -40,6 +40,17 @@ if(NIER_XENOS_TRANSLATOR_DIR)
       endif()
     endif()
   endforeach()
+  # Annotate a private build copy, preserving shared translator fixes and pins.
+  set(_lod_translator "${CMAKE_CURRENT_BINARY_DIR}/lod-translator")
+  set(_lod_script "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/shaders/prepare_lod_translator.py")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_lod_script}" "${NIER_XENOS_TRANSLATOR_DIR}/xenos_shader.cpp")
+  execute_process(COMMAND python3 "${_lod_script}" "${NIER_XENOS_TRANSLATOR_DIR}" "${_lod_translator}"
+    RESULT_VARIABLE _lod_status OUTPUT_VARIABLE _lod_sha OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT _lod_status EQUAL 0)
+    message(FATAL_ERROR "Could not annotate the private translator for constant register LOD")
+  endif()
+  message(STATUS "nier_render: annotated LOD translator sha256 ${_lod_sha}")
+  set(NIER_XENOS_TRANSLATOR_DIR "${_lod_translator}")
   list(APPEND NIER_RENDER_CORE ${NIER_XENOS_TRANSLATOR_DIR}/xenos_shader.cpp)
 endif()
 
@@ -71,3 +82,9 @@ target_link_libraries(nier_resolve_alpha_test PRIVATE nier_render_deps)
 
 add_executable(nier_texture_gamma_test EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/../tests/texture_gamma_test.cpp)
 target_link_libraries(nier_texture_gamma_test PRIVATE nier_render_deps)
+
+add_executable(nier_constant_lod_test EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/../tests/constant_lod_test.cpp)
+add_executable(nier_constant_lod_gpu_test EXCLUDE_FROM_ALL
+  ${CMAKE_CURRENT_SOURCE_DIR}/../tests/constant_lod_gpu_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test_input.cpp)
+target_link_libraries(nier_constant_lod_gpu_test PRIVATE nier_render_deps)
