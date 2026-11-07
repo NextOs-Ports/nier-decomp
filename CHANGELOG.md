@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 4 da reconstrução: basename de caminhos, estados e flags de objeto, canais de interpolação (valor, alvo, duração). 53 funções verificadas.
 - No PC, com o renderizador GLES2: logos, vídeo de abertura inteiro, tela de título, aviso de save, New Game, escolha de dificuldade e confirmação passam com imagem correta. O nome do herói, que travava no teclado do sistema, agora recebe "Nier" por padrão.
 - No Mali-450 (.164): logos e vídeo com imagem correta; todos os shaders compilam e linkam na Mali, nenhum desenho pulado, sem erro de GL, 368–389 MB de RAM.
 - Áudio provado no PC: música da abertura/título e efeitos de menu com sinal real. A thread de áudio caiu de 47 s para 0,4 s de CPU por minuto.
