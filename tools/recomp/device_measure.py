@@ -36,6 +36,10 @@ def main():
         '--log_max_file_size_mb=40', '--log_max_files=3']
     receipt = dict(command=command, temperature_before=read('/sys/class/thermal/thermal_zone0/temp').strip(),samples=[])
     start = time.monotonic()
+    receipt['started_monotonic'] = start
+    receipt['clock_ticks_per_second'] = os.sysconf('SC_CLK_TCK')
+    pulse_candidate = None
+    pulse_stability = 0
     stop = False
     def requested(signum, frame):
         nonlocal stop
@@ -62,11 +66,17 @@ def main():
                         if re.search(r'application.process.id = "%d"'%proc.pid,block):
                             match=re.search(r'Sink Input #(\d+)',block)
                             if match:
+                                if pulse_candidate == match[1]:
+                                    pulse_stability += 1
+                                else:
+                                    pulse_candidate, pulse_stability = match[1], 1
+                                if pulse_stability < 3:
+                                    break
                                 receipt['pulse']=dict(sink_input=int(match[1]),process_id=proc.pid)
                                 raw=(a.output/'audio-monitor.f32').open('wb')
                                 recorder=subprocess.Popen(['timeout','-k','1','8','parec',
-                                    '--monitor-stream='+match[1], '--format=float32le','--rate=48000',
-                                    '--channels=2','--raw'],stdout=raw,stderr=subprocess.DEVNULL)
+                                    '--device=@DEFAULT_MONITOR@', '--monitor-stream='+match[1], '--format=float32le','--rate=48000',
+                                    '--channels=2','--raw'],stdout=raw,stderr=(a.output/'audio-monitor.err').open('w'))
                                 break
                 time.sleep(0.5)
         finally:

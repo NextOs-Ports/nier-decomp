@@ -1,0 +1,11 @@
+--- a/src/audio/audio_system.cpp
++++ b/src/audio/audio_system.cpp
+@@ -25,7 +25,7 @@
+ #include <rex/cvar.h>
+ 
+ REXCVAR_DEFINE_INT32(
+-    audio_maxqframes, 8, "Audio",
++    audio_maxqframes, 20, "Audio",
+     "Max buffered audio frames (range 4-64). Lower reduces latency but may cause stuttering.");
+ 
+ // As with normal Microsoft, there are like twelve different ways to access

@@ -22,5 +22,6 @@ cmake -S "$project_root/port" -B "$build_dir" -G Ninja \
     -DVulkanHeaders_DIR="$sdk_prefix/share/cmake/VulkanHeaders" \
     -DVulkanMemoryAllocator_DIR="$sdk_prefix/share/cmake/VulkanMemoryAllocator" \
     -DREXGLUE_PLUGIN_SOURCE="$sdk_source" -DREXGLUE_HOST_TOOL="$REXGLUE_HOST_TOOL" \
+    -DNIER_RUNTIME_LIBRARY="${NIER_RUNTIME_LIBRARY:-$sdk_source/out/linux-arm64/librexruntime.so}" \
     -DNIER_THINLTO=OFF
 cmake --build "$build_dir" --parallel "${NIER_BUILD_JOBS:-4}"

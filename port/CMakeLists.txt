@@ -14,6 +14,7 @@ include(cmake/rexglue.cmake)
 set(NIER_SOURCES
     src/main.cpp
     src/timing_probe.cpp
+    src/virtual_pad_probe.cpp
 )
 
 if(WIN32)
@@ -57,9 +58,14 @@ if(CMAKE_CROSSCOMPILING)
 endif()
 
 # The SDK helper provides $ORIGIN but only stages the shared runtime on macOS.
+set(NIER_RUNTIME_LIBRARY "" CACHE FILEPATH "Private rebuilt runtime to stage after linking")
 if(UNIX AND NOT APPLE)
+    set(NIER_STAGE_RUNTIME "$<TARGET_FILE:rex::runtime>")
+    if(NIER_RUNTIME_LIBRARY)
+        set(NIER_STAGE_RUNTIME "${NIER_RUNTIME_LIBRARY}")
+    endif()
     add_custom_command(TARGET nier POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:rex::runtime> $<TARGET_FILE_DIR:nier>)
+        "${NIER_STAGE_RUNTIME}" $<TARGET_FILE_DIR:nier>)
 endif()
 
 option(NIER_BUILD_LIFECYCLE_PROBE "Build synthetic SDL event integration check" OFF)
@@ -67,4 +73,11 @@ if(NIER_BUILD_LIFECYCLE_PROBE)
     add_executable(nier_lifecycle_probe tests/lifecycle_probe.cpp)
     target_include_directories(nier_lifecycle_probe PRIVATE src)
     target_link_libraries(nier_lifecycle_probe PRIVATE rex::runtime)
+endif()
+
+option(NIER_BUILD_SERVICE_PROBE "Build synthetic audio conversion/XContent persistence check" OFF)
+if(NIER_BUILD_SERVICE_PROBE)
+    add_executable(nier_services_probe tests/runtime_services_probe.cpp)
+    target_link_libraries(nier_services_probe PRIVATE rex::runtime)
+    rexglue_apply_target_settings(nier_services_probe)
 endif()

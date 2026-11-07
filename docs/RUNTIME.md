@@ -183,3 +183,100 @@ A coleta privilegiada foi restrita ao perf, mantendo o jogo como o usuário
 normal. Nenhuma política global de perf foi alterada. Validaram-se os 300
 registros, limites dos percentuais e soma da CPU por thread. Não é perfil de
 renderização, gameplay ou desempenho do aparelho.
+
+## X1-2c — entradas virtuais de ajuste de `this`
+
+O abort após START em `0x8249D498` veio de entradas não registradas. A varredura
+de `.text` e `PSFD00` encontrou 328 pares `addi r3,r3,simm16; b alvo`, dos quais
+135 têm ponteiros em seções de dados. Doze faltavam no mapa gerado; todos foram
+incluídos, com quatro limites antigos divididos para não agrupar entradas.
+Após regenerar: 22.423 entradas (22.243 funções + 180 imports), zero pendências
+nesse padrão e zero avisos do codegen. A soma exclusiva permanece 5.372.176 B.
+A passagem do título com imagem pertence à validação do renderer do C1.
+
+## B3 — controle, persistência e áudio
+
+O teste `NIER_VIRTUAL_PAD_PROBE=1` usa um pad virtual SDL3 dentro do binário:
+14 botões, quatro eixos e dois gatilhos chegaram corretamente ao `GetState`
+XInput do runtime. Solturas foram verificadas. BACK sozinho não fechou;
+SELECT+START produziu o registro de saída imediata e encerrou o processo com
+status 0. A execução inteira da prova durou 0,223 s; não houve necessidade de
+segurar os botões. O teste anterior também separou botões de controles distintos.
+
+O launcher experimental `port/run.sh` não possui timer e fixa saves/conteúdo
+em `user-data` ao lado do binário. O launcher de teste também usa essa pasta
+persistente; cache e logs ficam separados dos dados do jogo. XContent resolve:
+
+`user-data/<XUID>/<TITLE_ID>/<CONTENT_TYPE>/<PACKAGE>/`
+
+Para NieR, o Title ID é `535107E8` e saved games usam tipo `00000001`.
+O teste `nier_services_probe` criou um pacote sintético exclusivo e o reabriu
+em outro processo, conferindo payload e resolução VFS. Passou em x86-64 e em
+ARM64 sob QEMU, sem executar código guest nem tocar saves reais. Isso valida
+a persistência do serviço; um save/reload dentro da campanha ainda exige cena
+jogável.
+
+### Correção do custo da AudioWorker
+
+O perfil anterior mostrou tempo em `pthread_mutex_trylock`, varredura de
+handles em `WaitMultiple` e consultas de relógio; decodificação XMA e mixagem
+não eram o custo dominante dessa thread. A biblioteca host antiga fazia
+polling, enquanto a referência ARM64 já tinha uma correção de espera.
+
+Foi reconstruída uma cópia privada do SDK para ambas as arquiteturas com
+inscrições de espera nos handles relevantes e condição bloqueante, eliminando
+polling/broadcasts desnecessários. O patch direcionado foi reaproveitado da
+referência Rayman, sem alterar seu checkout ou SDK instalado. A fila padrão
+local passou de **8 para 20 quadros**, com capacidade de aproximadamente
+106,7 ms a 48 kHz; `--audio_maxqframes` continua configurável. A decodificação
+XMA nativa existente foi preservada. Não houve alteração do Δt do jogo.
+
+| Medição | Antes | Depois |
+| --- | ---: | ---: |
+| AudioWorker host, CPU user amostrada em 60 s | 47,055 s | 0,402 s |
+| Processo host, CPU user amostrada em 60 s | 126,206 s | 78,884 s |
+| AudioWorker ARM64, % de um núcleo na janela pós-swap | 6,927% | 6,522% |
+| CPU da thread em timeout sintético de 100 ms, host | 0,485 ms | 0,019 ms |
+
+No host, a redução da AudioWorker foi aproximadamente **99,1%**. No ARM64,
+a diferença observada foi aproximadamente **5,9%**, pois já havia espera
+corrigida. A janela física compara amostras entre dois e 32 segundos após o
+primeiro swap, com cerca de 29,3 s úteis por rodada. São provas de boot null,
+não de gameplay; a combinação de espera/fila foi testada em conjunto.
+
+Os testes de concorrência passaram com ambas as bibliotecas: timeout,
+64 liberações concorrentes de semáforo, consumo único, WaitAll, coalescência
+de auto-reset e notificação de dois waiters em evento manual-reset.
+
+A rodada ARM64 posterior durou 53,902 s e encerrou o processo. Os CPKs foram
+lidos; a memória máxima foi 365.472 KiB, com 45 threads, temperatura 62→66 °C
+e 57,465 swaps de protocolo/s na janela pós-inicialização. A montagem NFS
+somente leitura e a exportação foram removidas, preservando frontend parado,
+dados e cópias dos binários anteriores.
+
+O caminho observado foi XMA/MMIO e callback guest → XAudioSubmitRenderDriverFrame
+→ SDLAudioDriver → SDL3/PulseAudio → HDMI/ALSA, estéreo 48 kHz. O ganho frontal
+unitário foi aplicado, e a conversão BE planar 5.1 → LE estéreo passou também
+na implementação ARM64. A captura de 7,875 s do stream do próprio PID contém
+somente nível próximo da quantização (pico de um LSB de 16 bits), portanto
+**não certifica música ou efeitos audíveis** nessa cena de boot. Essa prova
+continua pendente de uma cena que produza áudio significativo.
+
+O teste físico e os perfis de áudio antecedem apenas a adição dos 12 thunks
+X1-2c; estes foram compilados incrementalmente depois. Nenhuma nova abertura
+física foi feita para repetir partes preservadas. Logs e recibos completos
+ficam em `nier-build/x1/b3-*` e `messages/X1-B3.json`.
+
+Artefatos finais B3 + X1-2c (as bibliotecas de referência continuam preservadas):
+
+| Artefato | SHA-256 |
+| --- | --- |
+| ARM64 `nier` | `1ec3c9de56edee8fa2617138f1acdcbc8ec2de25d6ea44d2c0cf34204706b7ba` |
+| ARM64 `librexruntime.so` | `be32b87d6202371cb8c27d23e5e5dce5fcf2ea2d5e10318eb20d115d2b61429f` |
+| ARM64 `librexgpu-null.so` | `995fb294819cc4ace6d534d0e30aa0d6b2e441f4b56e2cebf5ee355fc6c09233` |
+| Host `librexruntime.so` | `d1176059a4a0ba942bc65e0900f8c3d075338babf5be2f128f185846161e64e4` |
+
+A prova de pad virtual/saída e a reabertura XContent host foram repetidas com
+a biblioteca final para verificar a troca de SDK. Ambas passaram. O perfil
+`messages/X1-quentes.json` agora corresponde ao SDK corrigido; o perfil anterior
+foi preservado como `X1-quentes-antes-audio.json` para a comparação.
