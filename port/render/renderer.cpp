@@ -511,6 +511,11 @@ double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs 
 // 1 = sem pulo. Pular é seguro para a lógica: o renderizador não devolve nada à memória do guest; alvos/Resolve
 // ficam do último quadro desenhado.
 std::atomic<bool> g_frameskipAuto{false};
+// C1-H7 NIER_AB_CYCLE=1: numa abertura só, a partir da 1ª cena 3D troca de modo a cada NIER_AB_PERIOD s (padrão 6) e
+// registra o custo do quadro na thread GL por modo. Imagem errada de propósito (diagnóstico).
+// 0 base, 1 sem pós/UP (cls 3), 2 sem cenário (cls 0), 3 sem Resolve, 4 PS chapado, 5 tesoura 1x1 (sem preenchimento)
+int g_abMode = 0;
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -1520,7 +1525,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   bool diag = false;
   if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
-  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat)) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase);
+  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase);
   if (diag) { if (!diagDepth) glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND); glColorMask(1, 1, 1, 1); g_gl.fixedValid = false; }
   if (!p) { Skip("programa não compilou/linkou"); return; }
   UseProgram(p->id);
@@ -1632,7 +1637,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   if (p->dynIndex) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
   if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
+  if (g_abMode == 5) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
   glDrawElements(c.mode, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
+  if (g_abMode == 5) glDisable(GL_SCISSOR_TEST);
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -2076,11 +2083,19 @@ void RenderThread() {
         }
     }
     auto tr = Clock::now();
+    static bool abCycle = std::getenv("NIER_AB_CYCLE") != nullptr;
+    static int abPeriod = std::getenv("NIER_AB_PERIOD") ? std::max(2, std::atoi(std::getenv("NIER_AB_PERIOD"))) : 6;
+    static Clock::time_point abStart{}; static bool abOn = false;
+    if (abCycle) {
+      if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 6 : 0;
+    }
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
     for (size_t oi = 0; oi < g_order.size(); ++oi) {
       size_t i = g_order[oi];
       const Cmd& c = work.cmds[i];
+      if (c.kind == Kind::Resolve && g_abMode == 3) continue;
       if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
       else {
@@ -2094,6 +2109,7 @@ void RenderThread() {
           if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
           continue;
         }
+        if ((g_abMode == 1 && cls == 3) || (g_abMode == 2 && cls == 0)) continue;
         if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
         g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
         g_drawClassCurrent = cls;
@@ -2111,6 +2127,14 @@ void RenderThread() {
     InvalidateGl();
     g_depthKeep.clear();  // apresentação (e auditoria opt-in) mexem no estado fora do cache
     auto now = Clock::now();
+    if (abCycle && abOn) {  // por modo: replay+apresentação (só thread GL; não inclui espera pelo jogo)
+      static int lastMode = -1; static double sum = 0; static int frames = 0; static Clock::time_point modeStart = now;
+      if (g_abMode != lastMode) {
+        if (lastMode >= 0 && frames) std::fprintf(stderr, "[nier-ab] modo %d %s: %d quadros em %.1f s, replay+apresentação %.1f ms/quadro\n", lastMode, kAbNames[lastMode], frames, std::chrono::duration<double>(now - modeStart).count(), sum / frames);
+        lastMode = g_abMode; sum = 0; frames = 0; modeStart = now;
+      }
+      sum += std::chrono::duration<double, std::milli>(now - tr).count(); ++frames;
+    }
     g_swapMs += std::chrono::duration<double, std::milli>(now - tp).count();
     g_lastFrameMs = std::chrono::duration<double, std::milli>(now - last).count();
     last = now;
