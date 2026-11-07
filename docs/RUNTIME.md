@@ -159,3 +159,27 @@ permaneceu inativo e mascarado. Não houve alteração de vídeo, clocks ou gove
 ELF desta rodada: SHA-256
 `d1c7d218a608677bd49b6d7715e75087870f782e7f324b59ce8c4ee2645ba745`.
 O plugin diagnóstico inclui timestamps opcionais por swap para a medição.
+
+## B2 — perfil CPU do boot null host
+
+Coleta de 60 s por `perf cpu-clock:u`, 199 Hz, pilhas DWARF de 16 KiB.
+25.118 amostras totais; 25.115 pertencem ao PID do jogo, cobrindo 28 threads e
+126,206 segundos acumulados de CPU user. O exportador gerou 300 entradas guest
+globais e listas por thread com tempo próprio/inclusivo, endereço e percentual.
+O denominador inclui CPU do runtime; os percentuais inclusivos se sobrepõem.
+
+Maiores custos próprios globais:
+
+| Função | Próprio | Inclusivo |
+| --- | ---: | ---: |
+| `0x82579D50` | 15,477% | 25,594% |
+| `0x82573758` | 9,672% | 46,180% |
+| `0x825D17DC` (CRT) | 3,822% | 3,822% |
+| `0x825D182C` (CRT) | 3,731% | 3,731% |
+| `0x8255D138` | 2,783% | 2,783% |
+
+Dados privados: `messages/X1-quentes.json`; coleta e pilhas sob `nier-build/x1/b2`.
+A coleta privilegiada foi restrita ao perf, mantendo o jogo como o usuário
+normal. Nenhuma política global de perf foi alterada. Validaram-se os 300
+registros, limites dos percentuais e soma da CPU por thread. Não é perfil de
+renderização, gameplay ou desempenho do aparelho.
