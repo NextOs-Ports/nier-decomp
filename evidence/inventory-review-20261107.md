@@ -23,3 +23,18 @@ Todas as 257 instruções foram conferidas por padrão de instrução (std/ld/st
 ## Consequência
 
 O inventário só pode ser declarado completo depois que essas 251 funções entrarem no codegen e no inventário. Isso também evita falha no runtime em chamadas virtuais para código não traduzido. A lista foi entregue à frente de recompilação.
+
+## Segunda rodada (após incluir as 251 funções)
+
+Inventário reexportado: 22.411 entradas, 5.372.176 bytes, zero avisos no codegen. Na correção, 5 entradas viraram casos internos de `switch` (`bdzf` em `0x82269DA8` e `0x8235F388`).
+
+Mapa byte a byte das faixas de código:
+
+| Faixa | Coberta pelo inventário | Fora do inventário | Enchimento | Outros |
+| --- | ---: | ---: | ---: | ---: |
+| `.text` (5.397.700 B) | 5.352.788 | 44.912 | 44.352 | 560 |
+| `PSFD00` (19.464 B) | 19.388 | 76 | 76 | 0 |
+
+Nenhum byte é contado duas vezes. Os 560 bytes restantes são tabelas de endereços embutidas e os campos da tabela de thunks de imports, todos dados. Não há código fora do inventário.
+
+**Inventário declarado completo** para o `default.xex` SHA-256 `f375d506…`. O denominador da porcentagem passa a ser 5.372.176 bytes.

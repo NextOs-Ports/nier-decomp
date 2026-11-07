@@ -4,6 +4,7 @@
 
 - Extraído o ISO (XGD2) e identificado o `default.xex`: SHA-256 `f375d506…`, Title ID `535107E8`, Media ID `507D2720`, entrada `0x8255CEA0`, XDK D3D 2.0.9328. Imagem PE decifrada fixada por hash.
 - Referência externa de timing: Xbox 360 original apresenta 30 quadros distintos/s; RGH destravado e FPS Boost rodam a 60. A trava de 30 é de apresentação (`0x8256BB90`).
+- Inventário declarado completo: 22.411 funções, 5.372.176 bytes, conferido byte a byte contra o `.text` e o `PSFD00`. A porcentagem de decompilação verificada passa a ser medida (0% no início).
 - Mapa D3D do NieR (XDK 9328): desenho, resolve, troca e texturas localizados. O jogo tem vsync adaptativo em `0x825A6F48`: escolhe 60, 30 ou 15 a cada quadro pelo tempo medido de desenho e lógica; a trava de 30 vem dessa escolha.
 - Inventário inicial importado: 22.165 entradas (180 imports), 5.365.100 bytes exclusivos, todas `recompiled`. Ainda parcial: 257 limites compartilhados ou inferidos aguardam revisão, então a porcentagem global segue sem denominador.
 - Codegen ReXGlue do NieR: 21.985 funções e 180 imports traduzidos sem avisos; 248 tabelas de salto (243 pelo analisador padrão, 5 pelo detector simulado adaptado do Rayman). Código gerado fica privado.

@@ -1,30 +1,30 @@
 {
   "schema_version": 1,
-  "baseline_id": "f09440e395b7f2147cc6e1e5f4d3b7b590d7e21e47ca5d2111f6ad793963995b",
+  "baseline_id": "1b7723fce3c179a6ddf0491fce22f617ac2d49c441e1acaadbf1f63a0a2e31fc",
   "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
-  "inventory_complete": false,
-  "inventory_functions": 22165,
-  "inventory_bytes": 5365100,
+  "inventory_complete": true,
+  "inventory_functions": 22411,
+  "inventory_bytes": 5372176,
   "coverage": {
     "discovered": {
-      "functions": 22165,
-      "bytes": 5365100,
-      "percent": null
+      "functions": 22411,
+      "bytes": 5372176,
+      "percent": 100.0
     },
     "recompiled": {
-      "functions": 22165,
-      "bytes": 5365100,
-      "percent": null
+      "functions": 22411,
+      "bytes": 5372176,
+      "percent": 100.0
     },
     "decompiled": {
       "functions": 0,
       "bytes": 0,
-      "percent": null
+      "percent": 0.0
     },
     "verified": {
       "functions": 0,
       "bytes": 0,
-      "percent": null
+      "percent": 0.0
     }
   }
 }
