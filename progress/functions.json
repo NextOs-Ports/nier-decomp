@@ -15328,11 +15328,15 @@
    "address": 2182366600,
    "size": 3412,
    "name": "sub_82144588",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 3412,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/particle_update.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182370016,
@@ -201228,11 +201232,15 @@
    "address": 2186776832,
    "size": 320,
    "name": "sub_82579100",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 320,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/shader_cache.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186777152,
