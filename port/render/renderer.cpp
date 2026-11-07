@@ -210,6 +210,7 @@ uint64_t g_mainTarget = 0;
 // textura destino for amostrada ou antes de o alvo de origem ser alterado; sem uso no quadro, é descartada.
 GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
 GLint g_blitRect = -1, g_blitFlip = -1;
+bool DiagOsso() { static bool on = std::getenv("NIER_DIAG_OSSO") != nullptr; return on; }  // [nier-osso]/[nier-dyn] só com NIER_DIAG_OSSO=1
 bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
 // Cache de estado GL na CPU (como o glCache do Rayman): nenhum glGet e nenhuma chamada redundante no quadro.
 // Quem muda estado fora deste cache (CreateTarget, blit, apresentação) chama InvalidateGl().
@@ -1229,7 +1230,7 @@ bool CpuSkinCompute(SkinJob& j) {
     }
   }
   (void)t0; j.vertices = n;
-  if (GlProfile() && !outs.empty()) {  // diagnóstico: caixa da posição antes/depois (1ª vez por malha)
+  if (DiagOsso() && !outs.empty()) {  // diagnóstico: caixa da posição antes/depois (1ª vez por malha)
     thread_local std::set<std::pair<uint64_t, uint32_t>> seen;
     if (seen.insert({c.vs->key, n}).second && seen.size() < 200) {
       float lo[2][3] = {{1e30f, 1e30f, 1e30f}, {1e30f, 1e30f, 1e30f}}, hi[2][3] = {{-1e30f, -1e30f, -1e30f}, {-1e30f, -1e30f, -1e30f}};
@@ -1609,7 +1610,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
   g_indicesDrawn += c.indexCount;
-  if (GlProfile() && c.vs->textureMask) {  // diagnóstico: desenhos com ossos (VTF), caminho e 1º vértice
+  if (DiagOsso() && c.vs->textureMask) {  // diagnóstico: desenhos com ossos (VTF), caminho e 1º vértice
     static std::set<std::pair<uint64_t, uint32_t>> seenSkin;
     if (seenSkin.insert({c.vs->key, c.vertexCount}).second && seenSkin.size() < 400) {
       std::string d; char b[128];
@@ -1623,7 +1624,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
       std::fprintf(stderr, "[nier-osso] vs %016llX ps %016llX vtx %u idx %u tex %u fmt %u w %u skinConst %d job %d ok %d%s\n", (unsigned long long)c.vs->key, (unsigned long long)c.ps->key, c.vertexCount, c.indexCount, c.vs->textureMask, unsigned(tf.format), tf.width, skinConst, job, job >= 0 && size_t(job) < f.skinJobs.size() ? int(f.skinJobs[size_t(job)]->done.load() && f.skinJobs[size_t(job)]->ok) : -1, d.c_str());
     }
   }
-  if (p->dynIndex && GlProfile()) {  // diagnóstico (perfil): uma linha por VS com índice dinâmico, formatos dos atributos
+  if (p->dynIndex && DiagOsso()) {  // diagnóstico: uma linha por VS com índice dinâmico, formatos dos atributos
     static std::set<uint64_t> seen;
     if (seen.insert(c.vs->key).second) {
       std::string d; char b[96];
