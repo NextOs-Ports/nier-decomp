@@ -82,7 +82,23 @@ bool Triangulate(uint32_t primitive, const std::vector<uint32_t>& src, std::vect
   switch (primitive) {
     case 4: for (size_t i = 0; i + 2 < src.size(); i += 3) add(src[i], src[i + 1], src[i + 2]); return true;
     case 5: for (size_t i = 2; i < src.size(); ++i) add(src[0], src[i - 1], src[i]); return true;
-    case 6: { size_t start = 0; for (size_t i = 0; i < src.size(); ++i) { if (src[i] == 0xFFFFFFFFu) { start = i + 1; continue; } if (i < start + 2) continue; if ((i - start) & 1) add(src[i - 1], src[i - 2], src[i]); else add(src[i - 2], src[i - 1], src[i]); } return true; }
+    case 6: {
+      // Tira com reinício (0xFFFFFFFF): sai como UMA tira GL; a emenda usa vértices repetidos (degenerados) e
+      // mantém a paridade do enrolamento (número par de índices entre sub-tiras).
+      static bool asList = std::getenv("NIER_STRIP_AS_LIST") != nullptr;  // A/B
+      if (asList) { size_t start = 0; for (size_t i = 0; i < src.size(); ++i) { if (src[i] == 0xFFFFFFFFu) { start = i + 1; continue; } if (i < start + 2) continue; if ((i - start) & 1) add(src[i - 1], src[i - 2], src[i]); else add(src[i - 2], src[i - 1], src[i]); } return true; }
+      bool first = true;
+      for (size_t i = 0; i < src.size();) {
+        size_t j = i; while (j < src.size() && src[j] != 0xFFFFFFFFu) ++j;
+        if (j - i >= 3) {
+          if (!first) { dst.push_back(dst.back()); dst.push_back(uint16_t(src[i])); if (dst.size() & 1) dst.push_back(uint16_t(src[i])); }
+          for (size_t k = i; k < j; ++k) dst.push_back(uint16_t(src[k]));
+          first = false;
+        }
+        i = j + 1;
+      }
+      return true;
+    }
     case 13: for (size_t i = 0; i + 3 < src.size(); i += 4) { add(src[i], src[i + 1], src[i + 2]); add(src[i], src[i + 2], src[i + 3]); } return true;
     case 8: for (size_t i = 0; i + 2 < src.size(); i += 3) { add(src[i], src[i + 1], src[i + 2]); /* rect list: 4º vértice implícito */ } return true;
     default: return false;
@@ -108,6 +124,8 @@ struct Cmd {
   int32_t rect[4] = {};
   bool hasRect = false;
   bool up = false;  // BeginVertices (2D/UI); falso = DrawVertices/DrawIndexedVertices
+  uint8_t prim = 0;         // primitiva Xenos original (perfil)
+  GLenum mode = GL_TRIANGLES;  // tiras da Xenos viram GL_TRIANGLE_STRIP (reinício = triângulos degenerados): 1/3 dos índices
 };
 struct Frame {
   std::vector<uint8_t> blob;
@@ -193,6 +211,9 @@ void InvalidateGl() { g_gl = GlCache{}; }
 uint64_t g_vec4Sent = 0, g_vtVec4Sent = 0, g_indicesDrawn = 0, g_programsLinked = 0, g_programSwitches = 0;
 uint64_t g_idxByClass[5] = {}, g_drawsByClass[5] = {}, g_skippedPrepass = 0, g_skippedShadow = 0, g_skippedReceive = 0;
 bool g_mali = false;
+struct TopDraw { uint32_t indices, vertices; uint8_t prim, cls; uint32_t vs, ps; };
+std::vector<TopDraw> g_topDraws;  // só no perfil: desenhos da janela, para o top 10 por índices
+uint8_t g_drawClassCurrent = 0;
 bool g_skipPrepass = false, g_skipShadow = false, g_sortByProgram = false;
 uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
 void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; ++g_fboBinds; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
@@ -1005,6 +1026,7 @@ uint32_t g_bloomSkips = 0;
 void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
+  for (auto& r : g_drawRemap) r.reset();  // só UploadVertexTextures liga um remapeamento para ESTE desenho
   if (rd.skip) return;  // nível de bloom mantido do quadro anterior
   Target& drawTarget = rd.key ? DirectTarget(rd.key, rd.w, rd.h) : CurrentTarget(state);
   if (rd.key) { ++g_directDraws; if (rd.passStart) drawTarget.from3D = false; if (!c.up) drawTarget.from3D = true; }
@@ -1089,7 +1111,8 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
   g_indicesDrawn += c.indexCount;
-  glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
+  if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40)});
+  glDrawElements(c.mode, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -1552,6 +1575,7 @@ void RenderThread() {
           continue;
         }
         g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
+        g_drawClassCurrent = cls;
         ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
       }
     }
@@ -1587,6 +1611,15 @@ void RenderThread() {
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f), recepção de sombra %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu, recepção %llu\n",
                      g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), g_idxByClass[4] / double(W), g_drawsByClass[4] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow, (unsigned long long)g_skippedReceive);
+      if (GlProfile() && !g_topDraws.empty()) {
+        std::vector<TopDraw> top = g_topDraws;
+        std::partial_sort(top.begin(), top.begin() + std::min<size_t>(10, top.size()), top.end(), [](const TopDraw& a, const TopDraw& b) { return a.indices > b.indices; });
+        static const char* cls[] = {"cor", "sombra", "pre-passe", "pos", "recepcao"};
+        std::string line;
+        for (size_t i = 0; i < top.size() && i < 10; ++i) { char b[96]; std::snprintf(b, sizeof b, " | %u idx %u vtx prim %u %s vs %06X ps %06X", top[i].indices, top[i].vertices, top[i].prim, cls[top[i].cls], top[i].vs, top[i].ps); line += b; }
+        std::fprintf(stderr, "[nier-perfil] top 10 desenhos da janela (%zu desenhos):%s\n", g_topDraws.size(), line.c_str());
+        g_topDraws.clear();
+      }
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
                      g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
@@ -1821,6 +1854,8 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
+  c.prim = uint8_t(primitive);
+  c.mode = (primitive == 6 && !std::getenv("NIER_STRIP_AS_LIST")) ? GL_TRIANGLE_STRIP : GL_TRIANGLES;
   if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
     c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
@@ -1864,6 +1899,8 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
   if (!SnapshotInputs(c, g_building.blob.data() + c.state, 0, vertexCount, data, stride)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, vertexCount, false);
   c.indexCount = uint32_t(g_triIndices.size());
+  c.prim = uint8_t(primitive);
+  c.mode = (primitive == 6 && !std::getenv("NIER_STRIP_AS_LIST")) ? GL_TRIANGLE_STRIP : GL_TRIANGLES;
   if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
     c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
