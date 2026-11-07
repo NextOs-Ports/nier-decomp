@@ -11,6 +11,7 @@
 
 #include "nier_d3d.h"
 #include "xenos_texture.h"
+#include "texture_gamma.h"
 #include "vertex_cache.h"
 
 #include <SDL3/SDL.h>
@@ -715,7 +716,9 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
   }
   return out;
 }
-std::unordered_map<uint64_t, Program> g_programs;
+struct ProgramKey { uint64_t shader, gamma; bool operator==(const ProgramKey&) const = default; };
+struct ProgramHash { size_t operator()(const ProgramKey& k) const { return k.shader ^ (k.gamma * 0x9E3779B97F4A7C15ull); } };
+std::unordered_map<ProgramKey, Program, ProgramHash> g_programs;
 
 // Variante sem alpha test (alphaTest = false): o bloco "bool pass … if (!pass) discard;" sai do PS. Na Mali-450 um
 // `discard` presente no shader desliga o early-Z/descarte de fragmentos escondidos mesmo que nunca execute.
@@ -831,8 +834,8 @@ std::string RelSkinSource(const std::string& src, int base) {
   out.append(src, last, std::string::npos);
   return out;
 }
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1) {
-  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0);
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0) {
+  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0), gammaChannels};
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
@@ -840,7 +843,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
-  std::string psSource = ScalarizeRegisters(alphaTest ? ps->source : StripAlphaTest(ps->source));
+  std::string psSource = ScalarizeRegisters(TextureGammaVariant(alphaTest ? ps->source : StripAlphaTest(ps->source), ps->textureMask, gammaChannels));
   std::vector<std::pair<int, int>> vtfSlots;
   static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
   std::string vsBase = relBase >= 0 ? RelSkinSource(vs->source, relBase) : vs->source;
@@ -1547,7 +1550,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   bool diag = false;
   if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
-  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase);
+  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask));
   { static bool diagRes = std::getenv("NIER_DIAG_RESOLVE") != nullptr;  // PC0 (exposição) dos PS que o leem, a cada 300 quadros
     if (diagRes && g_frames.load() % 300 == 0) { static uint64_t lastF = ~0ull; static int n = 0; if (lastF != g_frames.load()) { lastF = g_frames.load(); n = 0; }
       const uint8_t* pc = Field(state, kPixelConstants);
