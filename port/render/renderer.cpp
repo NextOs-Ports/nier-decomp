@@ -204,6 +204,7 @@ struct Target {
   // texturas entre FBOs, ping-pong) e `holder` guarda a chave em g_resolved onde está o conteúdo mais recente;
   // um desenho novo no alvo zera `holder`. Passes menores (bloom) desenham direto no FBO do destino.
   uint64_t holder = 0;
+  bool shared = false;  // textura/FBO emprestados de outro destino (mesmo conteúdo): nunca apagar nem desenhar nela
 };
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
@@ -299,11 +300,16 @@ void CreateBlit() {
   g_depth24 = ext && std::strstr(ext, "GL_OES_depth24");
 }
 
-void CreateTarget(Target& t, int w, int h, bool withDepth) {
-  if (t.texture) glDeleteTextures(1, &t.texture);
-  if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
-  if (t.depth) glDeleteRenderbuffers(1, &t.depth);
+void ReleaseTarget(Target& t) {
+  if (!t.shared) {
+    if (t.texture) glDeleteTextures(1, &t.texture);
+    if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
+    if (t.depth) glDeleteRenderbuffers(1, &t.depth);
+  }
   t = Target{};
+}
+void CreateTarget(Target& t, int w, int h, bool withDepth) {
+  ReleaseTarget(t);
   t.w = w; t.h = h;
   glGenTextures(1, &t.texture);
   glBindTexture(GL_TEXTURE_2D, t.texture);
@@ -349,7 +355,7 @@ void ClearOncePerFrame(Target& t) {
 // FBO próprio do destino de Resolve (passe desenhado direto, sem cópia): tamanho do destino na escala interna.
 Target& DirectTarget(uint64_t key, int w, int h) {
   Target& t = g_resolved[key];
-  if (t.w != w || t.h != h || !t.depth) CreateTarget(t, w, h, true);
+  if (t.w != w || t.h != h || !t.depth || t.shared) CreateTarget(t, w, h, true);
   glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
   ClearOncePerFrame(t);
   return t;
@@ -765,11 +771,6 @@ void PlanDirectPasses(const Frame& f) {
     draws.clear();
   }
 }
-// Liga a textura de cor ao FBO do alvo (depois da troca de texturas).
-void Attach(Target& t) {
-  glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
-}
 void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
   const uint8_t* state = f.blob.data() + c.state;
   uint64_t srcKey = TargetKeyOf(state);
@@ -799,22 +800,33 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
         // do destino (ping-pong) e o próximo desenho nele limpa/sobrescreve como antes.
         FlushCopiesFrom(srcKey);
         Target& dst = g_resolved[key];
-        if (dst.w != dw || dst.h != dh || !dst.texture) CreateTarget(dst, dw, dh, false);
+        // destino com FBO completo (cor+profundidade) para a troca ser de FBO inteiro: zero chamadas GL
+        if (dst.w != dw || dst.h != dh || !dst.texture || !dst.depth || dst.shared) CreateTarget(dst, dw, dh, true);
         std::swap(src.texture, dst.texture);
-        Attach(dst);
-        Attach(src);
+        std::swap(src.fbo, dst.fbo);
+        std::swap(src.depth, dst.depth);
+        // a textura que volta ao alvo vai ser desenhada: destinos que a emprestavam deixam de valer
+        for (auto& [k, r] : g_resolved) if (r.shared && r.texture == src.texture) r = Target{};
         dst.from3D = src.drew3DFrame == g_frames.load();
         src.holder = key;
         ++g_aliases;
       } else if (src.holder && src.holder != key) {
-        // conteúdo está numa textura resolvida (alias/passe direto anterior): copia dela, na hora
+        // conteúdo está numa textura resolvida (alias/passe direto anterior)
+        Target& holder = g_resolved[src.holder];
         Target& dst = g_resolved[key];
-        if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
-        if (g_frameSampled.count(key) || g_everSampled.count(key)) DoCopy(PendingCopy{src.holder, key, int(x0 * s), int(y0 * s), dw, dh, true});
-        else ++g_copiesSkipped;
+        if (full && holder.w == dw && holder.h == dh && holder.texture) {
+          // mesma tela inteira para um segundo destino: empresta a textura (sem cópia)
+          ReleaseTarget(dst);
+          dst = holder; dst.shared = true; dst.holder = 0;
+          ++g_aliases;
+        } else {
+          if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
+          if (g_frameSampled.count(key) || g_everSampled.count(key)) DoCopy(PendingCopy{src.holder, key, int(x0 * s), int(y0 * s), dw, dh, true});
+          else ++g_copiesSkipped;
+        }
       } else if (!src.holder) {
         Target& dst = g_resolved[key];
-        if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
+        if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
         // Retângulo parcial: copia só se o destino for amostrado (neste quadro ou alguma vez).
         if (g_frameSampled.count(key) || g_everSampled.count(key)) {
           g_pendingCopies.push_back({srcKey, key, int(x0 * s), int(y0 * s), dw, dh, false});
