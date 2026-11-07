@@ -182,10 +182,45 @@ inline bool DecodeK8LumAlpha(Reader read, const TextureFetch& t, std::vector<uin
       continue;
     }
     const int32_t base = TiledOuter(int32_t(y), int32_t(alignedW), 0);
-    for (uint32_t x = 0; x < t.width; ++x) {
+    // 1 byte/elemento: x..x+7 (x múltiplo de 8) ocupam 8 bytes contíguos; troca de bytes = XOR dentro deles.
+    uint32_t x = 0;
+    for (; x + 8 <= t.width; x += 8) {
+      uint32_t off = uint32_t(TiledInner(int32_t(x), int32_t(y), 0, base));
+      if (off + 8 > span) { for (int k = 0; k < 8; ++k) { *o++ = 0; *o++ = 0; } continue; }
+      const uint8_t* run = src + off;
+      for (uint32_t k = 0; k < 8; ++k) { uint8_t v = run[k ^ flip]; *o++ = v; *o++ = v; }
+    }
+    for (; x < t.width; ++x) {
       uint32_t off = uint32_t(TiledInner(int32_t(x), int32_t(y), 0, base)) ^ flip;
       uint8_t v = off < span ? src[off] : 0;
       *o++ = v; *o++ = v;
+    }
+  }
+  return true;
+}
+
+// k8 com swizzle (x,x,x,1) (planos de vídeo SFD): 1 byte por texel para GL_LUMINANCE.
+inline bool DecodeK8Luminance(Reader read, const TextureFetch& t, std::vector<uint8_t>& out) {
+  if (t.format != k8 || t.dimension != 1) return false;
+  const uint32_t pitchE = std::max(t.pitch, t.width);
+  const uint32_t alignedW = (pitchE + 31) & ~31u, alignedH = (t.height + 31) & ~31u;
+  const uint32_t span = t.tiled ? alignedW * alignedH : pitchE * t.height;
+  const uint8_t* src = read(t.base, span);
+  if (!src) return false;
+  const uint32_t flip = t.endian == 1 ? 1 : t.endian == 2 ? 3 : t.endian == 3 ? 2 : 0;
+  out.resize(size_t(t.width) * t.height);
+  for (uint32_t y = 0; y < t.height; ++y) {
+    uint8_t* o = out.data() + size_t(y) * t.width;
+    if (!t.tiled) {
+      const uint8_t* row = src + size_t(y) * pitchE;
+      if (!flip) std::memcpy(o, row, t.width);
+      else for (uint32_t x = 0; x < t.width; ++x) o[x] = row[x ^ flip];
+      continue;
+    }
+    const int32_t base = TiledOuter(int32_t(y), int32_t(alignedW), 0);
+    for (uint32_t x = 0; x < t.width; x += 8) {
+      uint32_t off = uint32_t(TiledInner(int32_t(x), int32_t(y), 0, base));
+      for (uint32_t k = 0; k < 8 && x + k < t.width; ++k) { uint32_t a = (off + k) ^ flip; o[x + k] = a < span ? src[a] : 0; }
     }
   }
   return true;

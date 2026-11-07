@@ -398,12 +398,22 @@ GLuint TextureForImpl(const xenos::TextureFetch& t) {
   auto td = Clock::now();
   g_sigMs += std::chrono::duration<double, std::milli>(td - ts).count();
   if (tex.id && sig == tex.signature) return tex.id;
+  if (t.format == xenos::k8) { static int n = 0; if (n++ < 4) std::fprintf(stderr, "[nier-k8] %ux%u swizzle %03X endian %u tiled %d\n", t.width, t.height, t.swizzle, t.endian, int(t.tiled)); }
   // k8 com swizzle identidade (planos de vídeo): caminho rápido direto para LUMINANCE_ALPHA.
   td = Clock::now();
   static std::vector<uint8_t> lumAlpha;
-  bool la = t.format == xenos::k8 && t.swizzle == 0x688 && xenos::DecodeK8LumAlpha(Physical, t, lumAlpha);
-  if (!la && !xenos::DecodeLevel0(Physical, t, g_pixels)) { Skip("decodificação de textura (branco)"); return tex.id ? tex.id : White(); }
-  if (const char* dump = std::getenv("NIER_DUMP_TEXTURES"); dump && !la && tex.uploads < 3) {  // diagnóstico
+  bool lum = t.format == xenos::k8 && t.swizzle == 0xA00 && xenos::DecodeK8Luminance(Physical, t, lumAlpha);
+  bool la = !lum && t.format == xenos::k8 && t.swizzle == 0x688 && xenos::DecodeK8LumAlpha(Physical, t, lumAlpha);
+  if ((la || lum) && std::getenv("NIER_K8_CHECK")) {  // diagnóstico: compara com o decodificador genérico
+    static int checks = 0;
+    if (checks++ < 40 && xenos::DecodeLevel0(Physical, t, g_pixels)) {
+      size_t bad = 0;
+      for (size_t i = 0, n = size_t(t.width) * t.height; i < n; ++i) bad += lumAlpha[(lum ? 1 : 2) * i] != g_pixels[4 * i];
+      std::fprintf(stderr, "[nier-k8] %ux%u diferenças %zu\n", t.width, t.height, bad);
+    }
+  }
+  if (!la && !lum && !xenos::DecodeLevel0(Physical, t, g_pixels)) { Skip("decodificação de textura (branco)"); return tex.id ? tex.id : White(); }
+  if (const char* dump = std::getenv("NIER_DUMP_TEXTURES"); dump && !la && !lum && tex.uploads < 3) {  // diagnóstico
     char name[160];
     std::snprintf(name, sizeof name, "%s/tex_%08X_%ux%u_f%u_u%u.ppm", dump, t.base, t.width, t.height, t.format, tex.uploads);
     if (FILE* f = std::fopen(name, "wb")) {
@@ -424,8 +434,8 @@ GLuint TextureForImpl(const xenos::TextureFetch& t) {
   if (!tex.id) glGenTextures(1, &tex.id);
   glBindTexture(GL_TEXTURE_2D, tex.id);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  const uint8_t* upload = la ? lumAlpha.data() : g_pixels.data();
-  GLenum glFormat = la ? GL_LUMINANCE_ALPHA : GL_RGBA;
+  const uint8_t* upload = (la || lum) ? lumAlpha.data() : g_pixels.data();
+  GLenum glFormat = lum ? GL_LUMINANCE : la ? GL_LUMINANCE_ALPHA : GL_RGBA;
   if (fresh || tex.glFormat != glFormat) glTexImage2D(GL_TEXTURE_2D, 0, GLint(glFormat), GLsizei(t.width), GLsizei(t.height), 0, glFormat, GL_UNSIGNED_BYTE, upload);
   else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GLsizei(t.width), GLsizei(t.height), glFormat, GL_UNSIGNED_BYTE, upload);
   tex.glFormat = glFormat;
