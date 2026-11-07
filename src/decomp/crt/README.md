@@ -119,3 +119,20 @@ Ambas passaram em 2.000 comparações aleatórias, sem falhas. A prova extra
 passou 1.441.792 casos: todos os 32.768 expoentes, dois sinais, onze padrões
 de significando (zeros, extremos, empates e valores logo acima) e duas larguras.
 O teste usa as configurações originais da PE; não certifica tabelas corrompidas.
+
+## Lote X1-12 — aproximações trigonométricas, exponencial e logaritmo
+
+Seis kernels (1.512 bytes) preservam redução de intervalo, polinômios/racionais,
+ordem das FMA, tabelas guest e casos especiais: seno `825D8E50`, cosseno
+`825D8F30`, inversa selecionável `825D9010`, arco-seno `825D9108`, exponencial
+`825D9AC0` e logaritmo `825D4568`. São os contratos das aproximações vinculadas
+a esta imagem, não substituições pela libm do host. Preservamos também o spill
+de argumento do logaritmo, incluindo sua atualização ao escalar subnormais.
+
+Todas passaram em 2.000 comparações. `nier_math_approx_probe` passou 56.064
+casos em quatro modos FP, limiares e vizinhos de cada ramo, padrões binary64
+aleatórios, todos os bits individuais de payload NaN e ambos os sinais.
+A primeira prova encontrou 64 diferenças no sinal de NaNs de seno/cosseno:
+o compilador do host escolhia outro sinal nas operações intermediárias.
+A reconstrução explicita o NaN quieto positivo, preservando o payload como
+o original. A prova certifica resultados e memória ABI, não todos os flags FP.
