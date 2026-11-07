@@ -184650,11 +184650,15 @@
    "address": 2186662200,
    "size": 12,
    "name": "sub_8255D138",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 12,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/kernel/thread.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186662216,
@@ -190410,11 +190414,15 @@
    "address": 2186779984,
    "size": 216,
    "name": "sub_82579D50",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 216,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/gpu_wait.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186780200,

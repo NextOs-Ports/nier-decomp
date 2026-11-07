@@ -46,6 +46,28 @@
    "both_faulted": 482,
    "pass": true,
    "error": ""
+  },
+  {
+   "name": "sub_8255D138",
+   "address": "0x8255D138",
+   "size": 12,
+   "source": "src/decomp/kernel/thread.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82579D50",
+   "address": "0x82579D50",
+   "size": 216,
+   "source": "src/decomp/d3d/gpu_wait.cpp",
+   "trials": 2000,
+   "equal": 1283,
+   "both_faulted": 717,
+   "pass": true,
+   "error": ""
   }
  ]
 }

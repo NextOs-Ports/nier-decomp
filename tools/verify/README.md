@@ -36,7 +36,7 @@ No jogo, `NIER_DECOMP(sub_X)` define o símbolo forte `sub_X` e substitui o alia
 cmake -S tools/verify -B <build> -G Ninja -DCMAKE_CXX_COMPILER=clang++ \
   -DNIER_GENERATED_DIR=<generated/default privado> -Drexglue_DIR=<sdk linux-amd64>/lib/cmake/rexglue
 cmake --build <build>
-NIER_PE=<default.pe privado> <build>/nierverify > run.json
+NIER_PE=<default.pe privado> NIER_OUT=run.json <build>/nierverify
 python3 tools/verify/apply_results.py run.json
 python3 tools/progress.py --snapshot && python3 tools/progress.py --check
 ```

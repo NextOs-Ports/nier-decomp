@@ -309,7 +309,9 @@ int main(int argc, char** argv) {
   struct sigaction sa{}; sa.sa_sigaction = on_segv; sa.sa_flags = SA_SIGINFO | SA_NODEFER;
   sigaction(SIGSEGV, &sa, nullptr); sigaction(SIGBUS, &sa, nullptr);
 
-  printf("{\"tool\":\"nierverify\",\"functions_in_table\":%zu,\"trials\":%d,\"results\":[\n", nfn, trials);
+  FILE* out = fopen(getenv("NIER_OUT") ? getenv("NIER_OUT") : "/dev/stdout", "w");
+  if (!out) { perror("NIER_OUT"); return 2; }
+  fprintf(out, "{\"tool\":\"nierverify\",\"functions_in_table\":%zu,\"trials\":%d,\"results\":[\n", nfn, trials);
   int bad = 0; bool first = true;
   for (auto& e : nierverify::registry()) {
     if (only && strcmp(only, e.name)) continue;
@@ -368,11 +370,12 @@ int main(int argc, char** argv) {
     const int min_ok = trials < 2000 ? trials / 4 : 500;
     bool pass = err.empty() && ok >= min_ok;
     if (!pass) ++bad;
-    printf("%s{\"name\":\"%s\",\"address\":\"0x%08X\",\"file\":\"%s\",\"pass\":%s,\"equal\":%d,\"both_faulted\":%d,\"error\":\"%s\"}",
+    fprintf(out, "%s{\"name\":\"%s\",\"address\":\"0x%08X\",\"file\":\"%s\",\"pass\":%s,\"equal\":%d,\"both_faulted\":%d,\"error\":\"%s\"}",
            first ? "" : ",\n", e.name, e.addr, e.file, pass ? "true" : "false", ok, both_fault,
            err.empty() && !pass ? "poucas tentativas executaram sem falha de acesso" : err.c_str());
-    first = false; fflush(stdout);
+    first = false; fflush(out);
   }
-  printf("\n],\"failed\":%d}\n", bad);
+  fprintf(out, "\n],\"failed\":%d}\n", bad);
+  fclose(out);
   return bad ? 1 : 0;
 }
