@@ -125,3 +125,52 @@ Cada endereço do `docs/D3D_MAP.md` do NieR vai registrar a âncora usada e a co
 3. Fetch constant da textura destino do Resolve (`+0x18` no 20871), bit de limpeza do Resolve (`0x100`, a confirmar) e argumentos exatos do DrawVerticesUP.
 4. Compactação de constantes e literais como `const` (docs/SHADERS.md).
 5. Δt do jogo igual ao tempo real do quadro desenhado (regra do coordenador). O render state 94 é só registrado e a apresentação não espera vblanks do guest.
+
+## 8. Etapa F — primeira imagem 3D (07/11)
+
+**Estado medido.**
+- **PC:** o jogo inteiro passa pelo GLES2. Logos, vídeo SFD, título, menus (texto correto), dificuldade, nome "Nier", NOW LOADING com modelo 3D animado, abertura do prólogo em 3D (cidade em ruínas com neve) e o tutorial de gameplay com HUD. Provas em `nier-build/c1/provas/` (privado): `f1-pc-criware.png`, `f1-pc-menu-dificuldade.png`, `f1-pc-3d-now-loading.png`, `f1-pc-3d-cidade-prologo.png`.
+- **Mali-450 (.164):** shaders compilam e linkam (0 falhas nas telas cobertas), uniformes compactados dentro de 256 vec4. Sem captura: logos 10–20 ms/quadro, menus 20–35 ms, vídeo SFD 28–45 ms. Velocidade lógica 100,1% (Δt do jogo = tempo real). RSS 506–511 MB, 63→70 °C em 295 s. A cena 3D **ainda não foi medida na Mali**: o roteiro por quadro não chega ao prólogo no tempo autorizado.
+
+**Correções do caminho (todas no código público, MIT).**
+
+| Problema | Causa | Correção |
+|---|---|---|
+| Sprites com textura do vizinho | `0x82571070` é **BeginVertices**: o jogo escreve os vértices depois do retorno | Estado do device e shaders congelados no Begin; vértices copiados na próxima chamada D3D |
+| Texto trocado | Swizzle da fetch constant ignorado | Canais na ordem da memória e swizzle da palavra 3, como a Xenia |
+| Travamento no 1º 3D | SIGSEGV meu (faixa de vértices em `uint32`), tratado pelo runtime em laço | Faixa em 64 bits com sinal e tamanho real do elemento |
+| Cena 3D invisível | Textura destino do Resolve lida em `+0x18` (20871); no 9328 é `+0x1C`. Endereço `0xE0000000+` = físico + `0x1000` | Offset `+0x1C` e chave física com `+0x1000` |
+| Resolve de profundidade copiado como cor | Flag de profundidade é `4` | `flags & 4` ignora |
+| 23 ms/quadro de Resolve na Mali | 4 cópias de 1280x720 por quadro, sem uso | Cópia só se o destino é amostrado no quadro, já foi amostrado, ou nas 3 primeiras vezes |
+| Vídeo SFD lento na Mali | Planos k8 (x,x,x,1) lineares decodificados texel a texel em RGBA | `GL_LUMINANCE` com cópia de linha; hash amostrado nos planos reenviados |
+
+**Tradutor (dependência privada).** Pino original `dmc3-hd-nextos@c76b074` (`xenos_shader.cpp` `d46a61fe…`). Patch NieR em `nier-data/deps/dmc3-xenos-c76b074-nier/` (`d707e60e…`, diff `nier-xenos-patch-c76b074.diff` `11379d39…`):
+- op. vetorial 18 (CUBE) sem projeção de face;
+- fetch 3D/cúbico devolve cor neutra;
+- `setTextureLod`/gradientes sem efeito;
+- textura no VS devolve 0 (a Mali-450 não tem busca de textura no vértice).
+
+Cada desvio é visível: reflexos e efeitos cúbicos ficam neutros. Build: `-DNIER_XENOS_TRANSLATOR_DIR=…-nier -DNIER_XENOS_TRANSLATOR_PATCHED=ON`.
+
+**Como rodar (PC).**
+
+```sh
+NIER_RENDER_PBUFFER=1 SDL_VIDEO_DRIVER=offscreen \
+NIER_INPUT_SCRIPT="300:start,800:start,1300:start,1900:start,2500:left:4,2515:a:4,…" \
+tools/render/run_host.sh <build> <game> <saída> 290
+```
+
+O roteiro aceita `Ns:botão` (segundos desde o 1º quadro). Diagnósticos:
+- `NIER_RENDER_TRACE_SCENE=N`: rastro do quadro N depois da 1ª cena 3D;
+- `NIER_FLAT_3D`: desenhos 3D em vermelho;
+- `NIER_GL_PROFILE`: tempos por fase com `glFinish`;
+- `NIER_DUMP_TEXTURES`, `NIER_K8_CHECK`.
+
+**Atenção:** o build do CMake recopia o `librexruntime.so` do SDK por cima do diretório do binário. A DLL do X1 precisa ser copiada de novo depois de cada build.
+
+**Pendências.**
+1. Faixas brancas nos menus desde que a composição passou a usar a tela resolvida (fundo do menu = tela anterior). O ClearF do 9328 ainda não foi localizado; a limpeza por quadro é heurística.
+2. Texturas de profundidade amostradas (formato 22) saem brancas: Resolve de profundidade ainda não é implementado.
+3. 2 PS escrevem profundidade (sem `gl_FragDepth` na Mali).
+4. Texturas de cenário claras demais: conferir formatos e ETC1.
+5. Medir a cena 3D na Mali com roteiro por tempo (`Ns:`) ou save depois do prólogo.
