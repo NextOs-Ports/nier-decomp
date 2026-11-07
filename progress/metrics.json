@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "baseline_id": "67585b46de5e17dd2779c1deb04e8427107cb3093c39cbe0271ee66559b0bcf7",
+  "executable_sha256": null,
+  "inventory_complete": false,
+  "inventory_functions": 0,
+  "inventory_bytes": 0,
+  "coverage": {
+    "discovered": {
+      "functions": 0,
+      "bytes": 0,
+      "percent": null
+    },
+    "recompiled": {
+      "functions": 0,
+      "bytes": 0,
+      "percent": null
+    },
+    "decompiled": {
+      "functions": 0,
+      "bytes": 0,
+      "percent": null
+    },
+    "verified": {
+      "functions": 0,
+      "bytes": 0,
+      "percent": null
+    }
+  }
+}

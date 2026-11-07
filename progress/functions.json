@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "title": "NieR (Xbox 360, 2010)",
+    "version": null,
+    "executable_sha256": null,
+    "inventory_complete": false,
+    "inventory_evidence": null,
+    "code_ranges": []
+  },
+  "functions": []
+}

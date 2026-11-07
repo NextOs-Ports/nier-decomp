@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="340" viewBox="0 0 960 340" role="img" aria-labelledby="title desc">
+<title id="title">Histórico da decompilação verificada</title><desc id="desc">Percentual por bytes; sem medição, não se desenha um ponto em zero.</desc>
+<style>text{font-family:DejaVu Sans,Arial,sans-serif;fill:#e2e8f0}.muted{fill:#94a3b8}.small{font-size:14px}.label{font-size:18px}.heading{font-size:28px;font-weight:bold}</style>
+<rect width="960" height="340" rx="18" fill="#0f172a"/>
+<text x="36" y="48" class="heading" >Histórico da decompilação verificada</text>
+<path d="M80 265.0 H920" stroke="#334155"/>
+<text x="65" y="270.0" class="small muted" text-anchor="end">0%</text>
+<path d="M80 223.75 H920" stroke="#334155"/>
+<text x="65" y="228.75" class="small muted" text-anchor="end">25%</text>
+<path d="M80 182.5 H920" stroke="#334155"/>
+<text x="65" y="187.5" class="small muted" text-anchor="end">50%</text>
+<path d="M80 141.25 H920" stroke="#334155"/>
+<text x="65" y="146.25" class="small muted" text-anchor="end">75%</text>
+<path d="M80 100.0 H920" stroke="#334155"/>
+<text x="65" y="105.0" class="small muted" text-anchor="end">100%</text>
+<text x="500" y="294" class="small muted" text-anchor="middle">11-06</text>
+<text x="500" y="180" class="label" text-anchor="middle">Aguardando a primeira medição</text>
+<text x="36" y="326" class="small muted" >Até 12 snapshots diários · lacunas = sem medição · bases distintas não são unidas</text>
+</svg>

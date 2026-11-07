@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "milestones": [
+    {"id": "setup", "label": "Estrutura pública e acompanhamento", "status": "done", "evidence": "evidence/setup.md"},
+    {"id": "identity", "label": "Executável e timing original identificados", "status": "pending", "evidence": null},
+    {"id": "inventory", "label": "Inventário completo de funções", "status": "pending", "evidence": null},
+    {"id": "runtime", "label": "Execução e carregamento ARM64", "status": "pending", "evidence": null},
+    {"id": "graphics", "label": "Primeira área com imagem GLES2", "status": "pending", "evidence": null},
+    {"id": "gameplay", "label": "Movimento, câmera e combate", "status": "pending", "evidence": null},
+    {"id": "functionality", "label": "Áudio, controles, transições e saves", "status": "pending", "evidence": null},
+    {"id": "performance", "label": "FPS e velocidade medidos no aparelho", "status": "pending", "evidence": null}
+  ]
+}

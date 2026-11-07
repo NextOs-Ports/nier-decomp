@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="850" viewBox="0 0 960 850" role="img" aria-labelledby="title desc">
+<title id="title">NieR: progresso de código e port</title><desc id="desc">Coberturas por bytes e marcos independentes do port.</desc>
+<style>text{font-family:DejaVu Sans,Arial,sans-serif;fill:#e2e8f0}.muted{fill:#94a3b8}.small{font-size:14px}.label{font-size:18px}.heading{font-size:28px;font-weight:bold}</style>
+<rect width="960" height="850" rx="18" fill="#0f172a"/>
+<text x="36" y="52" class="heading" >NieR / Xbox 360 → ARM64</text>
+<text x="36" y="83" class="small muted" >Decompilação e port NextOS · GLES2 · Mali-450</text>
+<text x="36" y="132" class="label" >Código traduzido ou reconstruído</text>
+<text x="920" y="132" class="label" text-anchor="end">Não medida</text>
+<rect x="36" y="147" width="888" height="13" rx="6" fill="#334155"/>
+<text x="36" y="183" class="small muted" >0 funções · 0 bytes</text>
+<text x="36" y="226" class="label" >Fonte reconstruída</text>
+<text x="920" y="226" class="label" text-anchor="end">Não medida</text>
+<rect x="36" y="241" width="888" height="13" rx="6" fill="#334155"/>
+<text x="36" y="277" class="small muted" >0 funções · 0 bytes</text>
+<text x="36" y="320" class="label" >Decompilação verificada</text>
+<text x="920" y="320" class="label" text-anchor="end">Não medida</text>
+<rect x="36" y="335" width="888" height="13" rx="6" fill="#334155"/>
+<text x="36" y="371" class="small muted" >0 funções · 0 bytes</text>
+<text x="36" y="421" class="small muted" >Inventário: 0 funções · 0 bytes</text>
+<text x="36" y="446" class="small muted" >Aguardando executável e inventário completo; porcentagem indisponível.</text>
+<text x="36" y="493" class="heading" >Marcos do port</text>
+<circle cx="44" cy="524" r="6" fill="#34d399"/>
+<text x="64" y="530" class="small" >Estrutura pública e acompanhamento</text>
+<text x="920" y="530" class="small muted" text-anchor="end">Concluído</text>
+<circle cx="44" cy="559" r="6" fill="#475569"/>
+<text x="64" y="565" class="small" >Executável e timing original identificados</text>
+<text x="920" y="565" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="594" r="6" fill="#475569"/>
+<text x="64" y="600" class="small" >Inventário completo de funções</text>
+<text x="920" y="600" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="629" r="6" fill="#475569"/>
+<text x="64" y="635" class="small" >Execução e carregamento ARM64</text>
+<text x="920" y="635" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="664" r="6" fill="#475569"/>
+<text x="64" y="670" class="small" >Primeira área com imagem GLES2</text>
+<text x="920" y="670" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="699" r="6" fill="#475569"/>
+<text x="64" y="705" class="small" >Movimento, câmera e combate</text>
+<text x="920" y="705" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="734" r="6" fill="#475569"/>
+<text x="64" y="740" class="small" >Áudio, controles, transições e saves</text>
+<text x="920" y="740" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="769" r="6" fill="#475569"/>
+<text x="64" y="775" class="small" >FPS e velocidade medidos no aparelho</text>
+<text x="920" y="775" class="small muted" text-anchor="end">Pendente</text>
+<text x="36" y="830" class="small muted" >Cobertura de código e marcos não equivalem a porcentagem da campanha.</text>
+</svg>

@@ -1,0 +1,21 @@
+name: Validate progress
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  progress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate tracker behavior
+        run: python3 -m unittest discover -s tests -v
+      - name: Verify generated dashboard
+        run: python3 tools/progress.py --check
+      - name: Check whitespace
+        run: git diff --check
