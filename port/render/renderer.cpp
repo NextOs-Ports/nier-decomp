@@ -597,7 +597,8 @@ struct Program {
 std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs, std::vector<std::pair<int, int>>& slots) {
   std::string out = src;
   int budget = int(g_vsUniformVectors) - int(vs->constMap.size()) - 24;
-  int k = std::clamp(budget, 32, 1024);  // Mali-450: ~220 (55 ossos); host: 1024
+  static int capK = std::getenv("NIER_VT_K") ? std::atoi(std::getenv("NIER_VT_K")) : 1024;  // emular a Mali no PC: NIER_VT_K=220
+  int k = std::clamp(std::min(budget, capK), 32, 1024);  // Mali-450: ~220 (55 ossos); host: 1024
   for (int t = 0; t < 32; ++t) {
     if (!(vs->textureMask & (1u << t))) continue;
     std::string n = std::to_string(t);
@@ -895,7 +896,58 @@ bool g_bufferAuditReference = false; // render-thread-only diagnostic
 // Paleta de ossos para o VS: lê a textura float4 1024x1 (fmt 38) da memória do guest e envia só a janela de
 // texels [4*osso_min, 4*osso_max+4) que o desenho usa (ossos = atributo inteiro 8_8_8_8 do VS).
 std::unordered_map<uint64_t, std::pair<int, int>> g_boneRange;  // serial do atributo -> (min, max)
+// Remapeamento de ossos por malha (Mali: ~55 ossos cabem): os índices únicos viram slots 0..n-1, o atributo é
+// reescrito uma vez por malha (payload próprio, VBO em cache pelo X1) e só os ossos usados vão para VT<t>.
+struct BoneRemap { std::vector<int> bones; uint8_t slotOf[256]; buffers::Ref payload; };
+std::unordered_map<uint64_t, BoneRemap> g_boneRemap;  // serial do atributo original -> remapeamento
+buffers::Ref g_drawRemap[kMaxInputs];                 // por desenho: payload remapeado a ligar no lugar do original
+const BoneRemap* BoneRemapFor(const buffers::Ref& data, uint32_t vertexCount) {
+  if (!data || data->layout.type != GL_UNSIGNED_BYTE || data->layout.components != 4 || data->layout.normalized) return nullptr;
+  auto it = g_boneRemap.find(data->serial);
+  if (it != g_boneRemap.end()) return &it->second;
+  BoneRemap r{};
+  bool used[256] = {};
+  size_t n = std::min<size_t>(size_t(vertexCount) * 4, data->bytes.size());
+  for (size_t i = 0; i < n; ++i) used[data->bytes[i]] = true;
+  for (int b = 0; b < 256; ++b) if (used[b]) { r.slotOf[b] = uint8_t(r.bones.size()); r.bones.push_back(b); }
+  auto pl = std::make_shared<buffers::Payload>();
+  pl->serial = data->serial ^ 0x426F6E65A5A5A5A5ull; pl->sample = data->sample; pl->input = data->input; pl->endian = data->endian;
+  pl->count = data->count; pl->layout = data->layout; pl->raw = data->raw; pl->bytes = data->bytes;
+  pl->cacheable.store(true);
+  for (size_t i = 0; i < pl->bytes.size(); ++i) pl->bytes[i] = r.slotOf[pl->bytes[i]];
+  r.payload = pl;
+  return &(g_boneRemap[data->serial] = std::move(r));
+}
 void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
+  for (auto& r : g_drawRemap) r.reset();
+  // 1) remapeamento compacto (ossos únicos da malha cabem em k/4 slots)
+  if (p.vtf.size() == 1) {
+    const auto& vt = p.vtf[0];
+    for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+      const auto& in = c.vs->inputs[i];
+      if (in.format != 6 || !in.isInteger) continue;
+      const BoneRemap* rm = BoneRemapFor(c.vertexData[i], c.vertexCount);
+      if (!rm) break;
+      int nb = int(rm->bones.size());
+      if (GlProfile()) { static std::set<uint64_t> seen; if (seen.insert(c.vertexData[i]->serial).second) std::fprintf(stderr, "[nier-perfil] malha com ossos: %d únicos (%s em %d texels)\n", nb, 4 * nb <= vt.k ? "cabem" : "NÃO cabem", vt.k); }
+      if (4 * nb > vt.k) break;  // não cabe: cai na janela min..max abaixo
+      const uint8_t* fetch = Field(state, kFetchConstants + 24 * vt.slot);
+      auto t = xenos::DecodeFetch(fetch);
+      if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) break;
+      static std::vector<float> vals; vals.resize(size_t(nb) * 16);
+      bool ok = true;
+      for (int j = 0; j < nb && ok; ++j) {
+        const uint8_t* src = Physical(t.base + uint32_t(rm->bones[j]) * 64, 64);
+        if (!src) { ok = false; break; }
+        for (int k = 0; k < 16; ++k) { uint8_t e[4]; std::memcpy(e, src + 4 * k, 4); xenos::Swap(e, 4, t.endian); std::memcpy(&vals[size_t(j) * 16 + k], e, 4); }
+      }
+      if (!ok) break;
+      if (vt.loc >= 0) { g_vtVec4Sent += uint64_t(nb) * 4; glUniform4fv(vt.loc, nb * 4, vals.data()); }
+      if (vt.params >= 0) glUniform2f(vt.params, float(t.width), 0.0f);
+      g_drawRemap[i] = rm->payload;
+      return;
+    }
+  }
   int bmin = 0, bmax = -1;
   for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
     const auto& in = c.vs->inputs[i];
@@ -995,10 +1047,10 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
     const auto& stream = g_streamSlots[g_frames.load() % g_streamSlots.size()];
     bool streamBound = false;
     for (uint32_t i = 0; i < c.inputCount; ++i) {
-      const auto& data = c.vertexData[i];
+      const auto& data = g_drawRemap[i] ? g_drawRemap[i] : c.vertexData[i];
       auto layout = data ? data->layout : buffers::Layout{};
       size_t offset = 0;
-      if (c.residentInputs & (1u << i)) { BindSnapshot(GL_ARRAY_BUFFER, data); streamBound = false; }
+      if (g_drawRemap[i] || (c.residentInputs & (1u << i))) { BindSnapshot(GL_ARRAY_BUFFER, data); streamBound = false; }
       else {
         if (!streamBound) glBindBuffer(GL_ARRAY_BUFFER, stream.vertex);
         streamBound = true; offset = c.streamInputs[i];
