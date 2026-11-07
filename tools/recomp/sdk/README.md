@@ -84,3 +84,10 @@ CREATE_NEW evita sobrescrever uma fixture existente. A raiz de testes é
 privada e o payload SYSTEM_DATA é sintético. A DLL C5 passou em ARM64/QEMU sem
 nova alteração. A correção de implantação está no launcher e no patch da receita
 C1, separados do NFS de dados e com verificação de escrita antes do jogo.
+
+## Aviso de CPU — X1-H1
+
+`processor-warning-once.patch` limita o aviso de menos de seis processadores
+lógicos a uma emissão por processo. Usa `static std::atomic_flag` com ordem
+relaxada: somente arbitra o aviso entre threads, sem alterar afinidades.
+Recompilar apenas `rexruntime` nas duas arquiteturas com os caches existentes.
