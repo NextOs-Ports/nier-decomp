@@ -1,16 +1,13 @@
 --- a/src/input/input_system.cpp
 +++ b/src/input/input_system.cpp
-@@ -28,6 +28,8 @@
-     .allowed({"sdl", "xinput"});
+@@ -29,4 +29,6 @@
  
  REXCVAR_DEFINE_BOOL(guide_button, false, "Input", "Enable guide button pass-through");
 +REXCVAR_DEFINE_BOOL(local_profile_shared_input, true, "Input",
 +                    "Route every controller to local signed-in user 0 for this single-player port");
  namespace rex::input {
  
- namespace {
-@@ -351,7 +353,15 @@
-   // NOP driver (primary in tool mode, fallback otherwise)
+@@ -352,5 +354,13 @@
    uint8_t nop_index = tool_mode ? 0 : 1;
    input->AddDriver(std::make_unique<nop::NopInputDriver>(nullptr, nop_index));
 -  input->SetDeviceAssignment(std::make_unique<SlotAssignment>());
@@ -25,4 +22,3 @@
 +  }
    return input;
  }
- 
