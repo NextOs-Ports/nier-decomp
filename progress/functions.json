@@ -141210,10 +141210,40 @@
   },
   {
    "address": 2185876608,
-   "size": 32,
+   "size": 8,
    "name": "sub_8249D480",
    "status": "recompiled",
-   "original_extent_before_partition": 32,
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185876616,
+   "size": 8,
+   "name": "sub_8249D488",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185876624,
+   "size": 8,
+   "name": "sub_8249D490",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185876632,
+   "size": 8,
+   "name": "sub_8249D498",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
    "boundary_origin": "explicit-reviewed-extent",
    "library": null,
    "library_evidence": null
@@ -141230,10 +141260,30 @@
   },
   {
    "address": 2185876648,
-   "size": 24,
+   "size": 8,
    "name": "sub_8249D4A8",
    "status": "recompiled",
-   "original_extent_before_partition": 24,
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185876656,
+   "size": 8,
+   "name": "sub_8249D4B0",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185876664,
+   "size": 8,
+   "name": "sub_8249D4B8",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
    "boundary_origin": "explicit-reviewed-extent",
    "library": null,
    "library_evidence": null
@@ -142180,10 +142230,60 @@
   },
   {
    "address": 2185894728,
-   "size": 48,
+   "size": 8,
    "name": "sub_824A1B48",
    "status": "recompiled",
-   "original_extent_before_partition": 48,
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185894736,
+   "size": 8,
+   "name": "sub_824A1B50",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185894744,
+   "size": 8,
+   "name": "sub_824A1B58",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185894752,
+   "size": 8,
+   "name": "sub_824A1B60",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185894760,
+   "size": 8,
+   "name": "sub_824A1B68",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185894768,
+   "size": 8,
+   "name": "sub_824A1B70",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
    "boundary_origin": "explicit-reviewed-extent",
    "library": null,
    "library_evidence": null
@@ -142200,10 +142300,30 @@
   },
   {
    "address": 2185894784,
-   "size": 24,
+   "size": 8,
    "name": "sub_824A1B80",
    "status": "recompiled",
-   "original_extent_before_partition": 24,
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185894792,
+   "size": 8,
+   "name": "sub_824A1B88",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
+   "boundary_origin": "explicit-reviewed-extent",
+   "library": null,
+   "library_evidence": null
+  },
+  {
+   "address": 2185894800,
+   "size": 8,
+   "name": "sub_824A1B90",
+   "status": "recompiled",
+   "original_extent_before_partition": 8,
    "boundary_origin": "explicit-reviewed-extent",
    "library": null,
    "library_evidence": null
@@ -224189,7 +224309,7 @@
  ],
  "analysis": {
   "pe_sha256": "ff218ae38697223b5f76de3141f3afdb24f9077c90375e7f051c3d4fbdc5b4df",
-  "translated_entries": 22411,
+  "translated_entries": 22423,
   "emitted_switches": 248,
   "pdata_entries": 15087,
   "boundary_issues": [

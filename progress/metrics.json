@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
-  "baseline_id": "1b7723fce3c179a6ddf0491fce22f617ac2d49c441e1acaadbf1f63a0a2e31fc",
+  "baseline_id": "f7978f6999ff15e69ca91852ecc17b25ee58ec911052b7ea81932187a3d6dbd6",
   "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
   "inventory_complete": true,
-  "inventory_functions": 22411,
+  "inventory_functions": 22423,
   "inventory_bytes": 5372176,
   "coverage": {
     "discovered": {
-      "functions": 22411,
+      "functions": 22423,
       "bytes": 5372176,
       "percent": 100.0
     },
     "recompiled": {
-      "functions": 22411,
+      "functions": 22423,
       "bytes": 5372176,
       "percent": 100.0
     },
