@@ -16,6 +16,7 @@ Funções inventariadas: **0**; bytes: **0**.
 | Marco | Estado | Evidência |
 | --- | --- | --- |
 | Estrutura pública e acompanhamento | done | [registro](../../evidence/setup.md) |
+| Arquivo do jogo recebido e íntegro | done | [registro](../../evidence/input-20261107.md) |
 | Executável e timing original identificados | pending | — |
 | Inventário completo de funções | pending | — |
 | Execução e carregamento ARM64 | pending | — |

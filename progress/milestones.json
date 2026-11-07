@@ -2,6 +2,7 @@
   "schema_version": 1,
   "milestones": [
     {"id": "setup", "label": "Estrutura pública e acompanhamento", "status": "done", "evidence": "evidence/setup.md"},
+    {"id": "input", "label": "Arquivo do jogo recebido e íntegro", "status": "done", "evidence": "evidence/input-20261107.md"},
     {"id": "identity", "label": "Executável e timing original identificados", "status": "pending", "evidence": null},
     {"id": "inventory", "label": "Inventário completo de funções", "status": "pending", "evidence": null},
     {"id": "runtime", "label": "Execução e carregamento ARM64", "status": "pending", "evidence": null},

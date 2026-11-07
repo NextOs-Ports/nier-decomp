@@ -22,26 +22,29 @@
 <circle cx="44" cy="524" r="6" fill="#34d399"/>
 <text x="64" y="530" class="small" >Estrutura pública e acompanhamento</text>
 <text x="920" y="530" class="small muted" text-anchor="end">Concluído</text>
-<circle cx="44" cy="559" r="6" fill="#475569"/>
-<text x="64" y="565" class="small" >Executável e timing original identificados</text>
-<text x="920" y="565" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="559" r="6" fill="#34d399"/>
+<text x="64" y="565" class="small" >Arquivo do jogo recebido e íntegro</text>
+<text x="920" y="565" class="small muted" text-anchor="end">Concluído</text>
 <circle cx="44" cy="594" r="6" fill="#475569"/>
-<text x="64" y="600" class="small" >Inventário completo de funções</text>
+<text x="64" y="600" class="small" >Executável e timing original identificados</text>
 <text x="920" y="600" class="small muted" text-anchor="end">Pendente</text>
 <circle cx="44" cy="629" r="6" fill="#475569"/>
-<text x="64" y="635" class="small" >Execução e carregamento ARM64</text>
+<text x="64" y="635" class="small" >Inventário completo de funções</text>
 <text x="920" y="635" class="small muted" text-anchor="end">Pendente</text>
 <circle cx="44" cy="664" r="6" fill="#475569"/>
-<text x="64" y="670" class="small" >Primeira área com imagem GLES2</text>
+<text x="64" y="670" class="small" >Execução e carregamento ARM64</text>
 <text x="920" y="670" class="small muted" text-anchor="end">Pendente</text>
 <circle cx="44" cy="699" r="6" fill="#475569"/>
-<text x="64" y="705" class="small" >Movimento, câmera e combate</text>
+<text x="64" y="705" class="small" >Primeira área com imagem GLES2</text>
 <text x="920" y="705" class="small muted" text-anchor="end">Pendente</text>
 <circle cx="44" cy="734" r="6" fill="#475569"/>
-<text x="64" y="740" class="small" >Áudio, controles, transições e saves</text>
+<text x="64" y="740" class="small" >Movimento, câmera e combate</text>
 <text x="920" y="740" class="small muted" text-anchor="end">Pendente</text>
 <circle cx="44" cy="769" r="6" fill="#475569"/>
-<text x="64" y="775" class="small" >FPS e velocidade medidos no aparelho</text>
+<text x="64" y="775" class="small" >Áudio, controles, transições e saves</text>
 <text x="920" y="775" class="small muted" text-anchor="end">Pendente</text>
+<circle cx="44" cy="804" r="6" fill="#475569"/>
+<text x="64" y="810" class="small" >FPS e velocidade medidos no aparelho</text>
+<text x="920" y="810" class="small muted" text-anchor="end">Pendente</text>
 <text x="36" y="830" class="small muted" >Cobertura de código e marcos não equivalem a porcentagem da campanha.</text>
 </svg>

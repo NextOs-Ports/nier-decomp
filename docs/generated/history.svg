@@ -13,7 +13,8 @@
 <text x="65" y="146.25" class="small muted" text-anchor="end">75%</text>
 <path d="M80 100.0 H920" stroke="#334155"/>
 <text x="65" y="105.0" class="small muted" text-anchor="end">100%</text>
-<text x="500" y="294" class="small muted" text-anchor="middle">11-06</text>
+<text x="80.0" y="294" class="small muted" text-anchor="middle">11-06</text>
+<text x="920.0" y="294" class="small muted" text-anchor="middle">11-07</text>
 <text x="500" y="180" class="label" text-anchor="middle">Aguardando a primeira medição</text>
 <text x="36" y="326" class="small muted" >Até 12 snapshots diários · lacunas = sem medição · bases distintas não são unidas</text>
 </svg>
