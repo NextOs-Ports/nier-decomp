@@ -321,8 +321,9 @@ GLuint CompileShader(GLenum type, const char* source, const char* name) {
 
 void CreateBlit() {
   // r = (escala.xy, deslocamento.xy) da janela de origem em UV; flip = 1 desvira (apresentação), 0 copia reto (Resolve).
-  const char* vs = "attribute vec2 p; varying vec2 uv; uniform vec4 r; uniform float flip; void main(){ vec2 q = p * 0.5 + 0.5; q.y = mix(q.y, 1.0 - q.y, flip); uv = q * r.xy + r.zw; gl_Position = vec4(p, 0.0, 1.0); }";
-  const char* fs = "precision mediump float; varying vec2 uv; uniform sampler2D t; void main(){ gl_FragColor = vec4(texture2D(t, uv).rgb, 1.0); }";
+  const char* vs = "attribute vec2 p; varying vec2 uv; uniform vec4 r; uniform mediump float flip; void main(){ vec2 q = p * 0.5 + 0.5; q.y = mix(q.y, 1.0 - q.y, flip); uv = q * r.xy + r.zw; gl_Position = vec4(p, 0.0, 1.0); }";
+  // Resolve preserves HDR metadata in alpha. Only presentation (flip=1) is opaque.
+  const char* fs = "precision mediump float; varying vec2 uv; uniform sampler2D t; uniform mediump float flip; void main(){ gl_FragColor = texture2D(t, uv); gl_FragColor.a = mix(gl_FragColor.a, 1.0, flip); }";
   GLuint v = CompileShader(GL_VERTEX_SHADER, vs, "blit"), f = CompileShader(GL_FRAGMENT_SHADER, fs, "blit");
   g_blitProgram = glCreateProgram();
   glAttachShader(g_blitProgram, v); glAttachShader(g_blitProgram, f);
@@ -367,6 +368,17 @@ void CreateTarget(Target& t, int w, int h, bool withDepth) {
   glGenFramebuffers(1, &t.fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
+  static bool reportedStorage = false;
+  if (!reportedStorage) {
+    reportedStorage = true;
+    GLint bits[4]{};
+    glGetIntegerv(GL_RED_BITS, &bits[0]); // LEVE_OK: actual RGBA texture storage, once at first target creation
+    glGetIntegerv(GL_GREEN_BITS, &bits[1]); // LEVE_OK: actual RGBA texture storage, once at first target creation
+    glGetIntegerv(GL_BLUE_BITS, &bits[2]); // LEVE_OK: actual RGBA texture storage, once at first target creation
+    glGetIntegerv(GL_ALPHA_BITS, &bits[3]); // LEVE_OK: actual RGBA texture storage, once at first target creation
+    std::fprintf(stderr, "[nier-gl] alvo RGBA/UNSIGNED_BYTE: bits efetivos %d/%d/%d/%d%s\n", bits[0], bits[1], bits[2], bits[3],
+                 bits[0]>=8 && bits[1]>=8 && bits[2]>=8 && bits[3]>=8 ? "" : " INSUFICIENTES para HDR alpha");
+  }
   if (withDepth && g_depthTexture) {
     glGenTextures(1, &t.depth);
     glBindTexture(GL_TEXTURE_2D, t.depth);
