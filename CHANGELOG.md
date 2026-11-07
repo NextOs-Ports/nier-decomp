@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 14: templates de construtor e destrutor C++ (destrutor com delete, com alocador global e construtor com base). Das 152 instâncias localizadas, contam só as que executaram em ao menos 500 tentativas sem falha. Comparador com limite de tempo por execução e tratamento de divisão por zero. Lotes 5 e 6 de áudio do X1 (PCM, ADPCM, filtro, filas).
 - Lote 13 e lote 4 de bibliotecas: template de inicialização do pool a partir do armazenamento (29 instâncias provadas) e funções numéricas do CRT. Inventário na 4ª rodada: 22.441 entradas, com os stubs cujo endereço é montado no código.
 - Lote 12: o template de devolução ao pool (tira da lista em uso e empilha na lista livre) e suas 42 instâncias, cada uma provada pelo comparador. 239 funções verificadas.
 - Lote 11: o template de pool (lista livre + lista em uso) foi isolado num cabeçalho; um localizador por estrutura de instruções achou 33 instâncias adicionais, cada uma provada pelo comparador. 196 funções verificadas.
