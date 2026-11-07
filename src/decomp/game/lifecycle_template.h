@@ -9,10 +9,10 @@ using namespace nier::guest;
 // Destrutor "com delete": restaura a vtable da classe; se flags & 1, libera o objeto
 // com operator delete(this, size). Devolve this.
 inline void dtor_vtable_delete(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vtable, uint32_t size,
-                               uint32_t op_delete) {
+                               uint32_t op_delete, uint32_t vt_off = 0) {
   const uint32_t self = ctx.r3.u32;
   const uint32_t flags = ctx.r4.u32;
-  st32(base, self, vtable);
+  st32(base, self + vt_off, vtable);
   if (flags & 1) {
     GuestFrame f(ctx, base, frame);
     ctx.r3.u64 = self;
@@ -24,7 +24,7 @@ inline void dtor_vtable_delete(PPCContext& ctx, uint8_t* base, uint32_t frame, u
 
 // Construtor: chama o construtor da base com (this, arg), zera um campo e grava a vtable.
 inline void ctor_base_field_vtable(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t base_ctor, uint32_t arg,
-                                   uint32_t field, uint32_t vtable) {
+                                   uint32_t field, uint32_t vtable, uint32_t vt_off = 0) {
   const uint32_t self = ctx.r3.u32;
   {
     GuestFrame f(ctx, base, frame);
@@ -32,7 +32,7 @@ inline void ctor_base_field_vtable(PPCContext& ctx, uint8_t* base, uint32_t fram
     call_guest(ctx, base, base_ctor);
   }
   st32(base, self + field, 0);
-  st32(base, self, vtable);
+  st32(base, self + vt_off, vtable);
   ctx.r3.u64 = self;
 }
 
@@ -69,9 +69,10 @@ inline void forward_swapped_virtual(PPCContext& ctx, uint8_t* base, uint32_t slo
 }
 
 // Destrutor com delete sem tamanho: restaura a vtable; se flags & 1, delete(this).
-inline void dtor_vtable_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vtable, uint32_t op_delete) {
+inline void dtor_vtable_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vtable, uint32_t op_delete,
+                             uint32_t vt_off = 0) {
   const uint32_t self = ctx.r3.u32;
-  st32(base, self, vtable);
+  st32(base, self + vt_off, vtable);
   if (ctx.r4.u32 & 1) {
     GuestFrame f(ctx, base, frame);
     call_guest(ctx, base, op_delete);

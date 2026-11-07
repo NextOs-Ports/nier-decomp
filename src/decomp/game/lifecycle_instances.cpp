@@ -3,43 +3,43 @@
 #include "lifecycle_template.h"
 
 // sub_82106118 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82106118) { dtor_vtable_free(ctx, base, 96, 0x8200BC54, 0x8258BC58); }
+NIER_DECOMP(sub_82106118) { dtor_vtable_free(ctx, base, 96, 0x8200BC54, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82106118, 0x82106118, "r3=ptr r4=range:0..1");
 
 // sub_82107398 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82107398) { dtor_vtable_free(ctx, base, 96, 0x8200BE08, 0x8258BC58); }
+NIER_DECOMP(sub_82107398) { dtor_vtable_free(ctx, base, 96, 0x8200BE08, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82107398, 0x82107398, "r3=ptr r4=range:0..1");
 
 // sub_8210CBC0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8210CBC0) { dtor_vtable_free(ctx, base, 96, 0x8200BFCC, 0x8258BC58); }
+NIER_DECOMP(sub_8210CBC0) { dtor_vtable_free(ctx, base, 96, 0x8200BFCC, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8210CBC0, 0x8210CBC0, "r3=ptr r4=range:0..1");
 
 // sub_8210E7C0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8210E7C0) { dtor_vtable_free(ctx, base, 96, 0x8200C1F4, 0x8258BC58); }
+NIER_DECOMP(sub_8210E7C0) { dtor_vtable_free(ctx, base, 96, 0x8200C1F4, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8210E7C0, 0x8210E7C0, "r3=ptr r4=range:0..1");
 
 // sub_82116028 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82116028) { dtor_vtable_free(ctx, base, 96, 0x8200C428, 0x8258BC58); }
+NIER_DECOMP(sub_82116028) { dtor_vtable_free(ctx, base, 96, 0x8200C428, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82116028, 0x82116028, "r3=ptr r4=range:0..1");
 
 // sub_8211D8D8 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8211D8D8) { dtor_vtable_free(ctx, base, 96, 0x8200C670, 0x8258BC58); }
+NIER_DECOMP(sub_8211D8D8) { dtor_vtable_free(ctx, base, 96, 0x8200C670, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8211D8D8, 0x8211D8D8, "r3=ptr r4=range:0..1");
 
 // sub_8213C5A8 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8213C5A8) { dtor_vtable_free(ctx, base, 96, 0x8200EA00, 0x8258BC58); }
+NIER_DECOMP(sub_8213C5A8) { dtor_vtable_free(ctx, base, 96, 0x8200EA00, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8213C5A8, 0x8213C5A8, "r3=ptr r4=range:0..1");
 
 // sub_82147E58 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82147E58) { dtor_vtable_free(ctx, base, 96, 0x820D7FF0, 0x8258BC58); }
+NIER_DECOMP(sub_82147E58) { dtor_vtable_free(ctx, base, 96, 0x820D7FF0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82147E58, 0x82147E58, "r3=ptr r4=range:0..1");
 
 // sub_82148F60 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82148F60) { dtor_vtable_free(ctx, base, 96, 0x8200EE10, 0x8258BC58); }
+NIER_DECOMP(sub_82148F60) { dtor_vtable_free(ctx, base, 96, 0x8200EE10, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82148F60, 0x82148F60, "r3=ptr r4=range:0..1");
 
 // sub_82149270 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82149270) { dtor_vtable_free(ctx, base, 96, 0x8209E304, 0x8258BC58); }
+NIER_DECOMP(sub_82149270) { dtor_vtable_free(ctx, base, 96, 0x8209E304, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82149270, 0x82149270, "r3=ptr r4=range:0..1");
 
 // sub_8214E970 (108 bytes) — dtor_allocator_delete
@@ -55,39 +55,39 @@ NIER_DECOMP(sub_8216D1F0) { dtor_allocator_delete(ctx, base, 112, 0x8215F270, 0x
 NIER_VERIFY_SPEC(sub_8216D1F0, 0x8216D1F0, "r3=ptr r4=range:0..1");
 
 // sub_821713D0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_821713D0) { dtor_vtable_free(ctx, base, 96, 0x8200F7D0, 0x8258BC58); }
+NIER_DECOMP(sub_821713D0) { dtor_vtable_free(ctx, base, 96, 0x8200F7D0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_821713D0, 0x821713D0, "r3=ptr r4=range:0..1");
 
 // sub_82180578 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82180578) { dtor_vtable_free(ctx, base, 96, 0x82017634, 0x8258BC58); }
+NIER_DECOMP(sub_82180578) { dtor_vtable_free(ctx, base, 96, 0x82017634, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82180578, 0x82180578, "r3=ptr r4=range:0..1");
 
 // sub_82183210 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82183210) { dtor_vtable_free(ctx, base, 96, 0x82017BF0, 0x8258BC58); }
+NIER_DECOMP(sub_82183210) { dtor_vtable_free(ctx, base, 96, 0x82017BF0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82183210, 0x82183210, "r3=ptr r4=range:0..1");
 
 // sub_8218D9D0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8218D9D0) { dtor_vtable_free(ctx, base, 96, 0x82018430, 0x8258BC58); }
+NIER_DECOMP(sub_8218D9D0) { dtor_vtable_free(ctx, base, 96, 0x82018430, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8218D9D0, 0x8218D9D0, "r3=ptr r4=range:0..1");
 
 // sub_8218EF78 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8218EF78) { dtor_vtable_free(ctx, base, 96, 0x82018438, 0x8258BC58); }
+NIER_DECOMP(sub_8218EF78) { dtor_vtable_free(ctx, base, 96, 0x82018438, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8218EF78, 0x8218EF78, "r3=ptr r4=range:0..1");
 
 // sub_82196EF0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82196EF0) { dtor_vtable_free(ctx, base, 96, 0x820184E0, 0x8258BC58); }
+NIER_DECOMP(sub_82196EF0) { dtor_vtable_free(ctx, base, 96, 0x820184E0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82196EF0, 0x82196EF0, "r3=ptr r4=range:0..1");
 
 // sub_8219BC28 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8219BC28) { dtor_vtable_free(ctx, base, 96, 0x820197E0, 0x8258BC58); }
+NIER_DECOMP(sub_8219BC28) { dtor_vtable_free(ctx, base, 96, 0x820197E0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8219BC28, 0x8219BC28, "r3=ptr r4=range:0..1");
 
 // sub_821A86D0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_821A86D0) { dtor_vtable_free(ctx, base, 96, 0x82019DA4, 0x8258BC58); }
+NIER_DECOMP(sub_821A86D0) { dtor_vtable_free(ctx, base, 96, 0x82019DA4, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_821A86D0, 0x821A86D0, "r3=ptr r4=range:0..1");
 
 // sub_821AA418 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_821AA418) { dtor_vtable_free(ctx, base, 96, 0x82019DA4, 0x8258BC58); }
+NIER_DECOMP(sub_821AA418) { dtor_vtable_free(ctx, base, 96, 0x82019DA4, 0x8258BC58, 1216); }
 NIER_VERIFY_SPEC(sub_821AA418, 0x821AA418, "r3=ptr r4=range:0..1");
 
 // sub_821BFBA0 (108 bytes) — dtor_allocator_delete
@@ -95,7 +95,7 @@ NIER_DECOMP(sub_821BFBA0) { dtor_allocator_delete(ctx, base, 112, 0x821BD590, 0x
 NIER_VERIFY_SPEC(sub_821BFBA0, 0x821BFBA0, "r3=ptr r4=range:0..1");
 
 // sub_821C6720 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_821C6720) { dtor_vtable_free(ctx, base, 96, 0x8201AFB8, 0x8258BC58); }
+NIER_DECOMP(sub_821C6720) { dtor_vtable_free(ctx, base, 96, 0x8201AFB8, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_821C6720, 0x821C6720, "r3=ptr r4=range:0..1");
 
 // sub_821C7330 (28 bytes) — forward_swapped_virtual
@@ -155,11 +155,11 @@ NIER_DECOMP(sub_821C7618) { forward_swapped_virtual(ctx, base, 4); }
 NIER_VERIFY_SPEC(sub_821C7618, 0x821C7618, "r3=ptr r4=obj");
 
 // sub_821C7B10 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_821C7B10) { dtor_vtable_free(ctx, base, 96, 0x8201B17C, 0x8258BC58); }
+NIER_DECOMP(sub_821C7B10) { dtor_vtable_free(ctx, base, 96, 0x8201B17C, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_821C7B10, 0x821C7B10, "r3=ptr r4=range:0..1");
 
 // sub_821C7EE0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_821C7EE0) { dtor_vtable_free(ctx, base, 96, 0x8201AFB0, 0x8258BC58); }
+NIER_DECOMP(sub_821C7EE0) { dtor_vtable_free(ctx, base, 96, 0x8201AFB0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_821C7EE0, 0x821C7EE0, "r3=ptr r4=range:0..1");
 
 // sub_821CB078 (108 bytes) — dtor_allocator_delete
@@ -267,11 +267,11 @@ NIER_DECOMP(sub_821ED930) { dtor_allocator_delete(ctx, base, 112, 0x821E8A30, 0x
 NIER_VERIFY_SPEC(sub_821ED930, 0x821ED930, "r3=ptr r4=range:0..1");
 
 // sub_82200EF8 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82200EF8) { dtor_vtable_free(ctx, base, 96, 0x8200EE30, 0x8258BC58); }
+NIER_DECOMP(sub_82200EF8) { dtor_vtable_free(ctx, base, 96, 0x8200EE30, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82200EF8, 0x82200EF8, "r3=ptr r4=range:0..1");
 
 // sub_82256968 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82256968) { dtor_vtable_free(ctx, base, 96, 0x82022B84, 0x8258BC58); }
+NIER_DECOMP(sub_82256968) { dtor_vtable_free(ctx, base, 96, 0x82022B84, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82256968, 0x82256968, "r3=ptr r4=range:0..1");
 
 // sub_8225DA90 (108 bytes) — dtor_allocator_delete
@@ -291,7 +291,7 @@ NIER_DECOMP(sub_8226BAF8) { dtor_allocator_delete(ctx, base, 112, 0x8226B9E8, 0x
 NIER_VERIFY_SPEC(sub_8226BAF8, 0x8226BAF8, "r3=ptr r4=range:0..1");
 
 // sub_8226C400 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8226C400) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x820285DC); }
+NIER_DECOMP(sub_8226C400) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x820285DC, 0); }
 NIER_VERIFY_SPEC(sub_8226C400, 0x8226C400, "r3=ptr");
 
 // sub_8226FC20 (76 bytes) — forward_member_then_self
@@ -303,7 +303,7 @@ NIER_DECOMP(sub_82270658) { dtor_allocator_delete(ctx, base, 112, 0x822705C0, 0x
 NIER_VERIFY_SPEC(sub_82270658, 0x82270658, "r3=ptr r4=range:0..1");
 
 // sub_82270DA8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82270DA8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x82028C7C); }
+NIER_DECOMP(sub_82270DA8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x82028C7C, 0); }
 NIER_VERIFY_SPEC(sub_82270DA8, 0x82270DA8, "r3=ptr");
 
 // sub_82273A30 (76 bytes) — forward_member_then_self
@@ -311,7 +311,7 @@ NIER_DECOMP(sub_82273A30) { forward_member_then_self(ctx, base, 112, 10616, 0x82
 NIER_VERIFY_SPEC(sub_82273A30, 0x82273A30, "r3=ptr f1=f32");
 
 // sub_822750F8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822750F8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82028E64); }
+NIER_DECOMP(sub_822750F8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82028E64, 0); }
 NIER_VERIFY_SPEC(sub_822750F8, 0x822750F8, "r3=ptr");
 
 // sub_82275690 (108 bytes) — dtor_allocator_delete
@@ -319,7 +319,7 @@ NIER_DECOMP(sub_82275690) { dtor_allocator_delete(ctx, base, 112, 0x82275510, 0x
 NIER_VERIFY_SPEC(sub_82275690, 0x82275690, "r3=ptr r4=range:0..1");
 
 // sub_82279910 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82279910) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x820299E0); }
+NIER_DECOMP(sub_82279910) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x820299E0, 0); }
 NIER_VERIFY_SPEC(sub_82279910, 0x82279910, "r3=ptr");
 
 // sub_8227AAC8 (108 bytes) — dtor_allocator_delete
@@ -327,7 +327,7 @@ NIER_DECOMP(sub_8227AAC8) { dtor_allocator_delete(ctx, base, 112, 0x8227AA30, 0x
 NIER_VERIFY_SPEC(sub_8227AAC8, 0x8227AAC8, "r3=ptr r4=range:0..1");
 
 // sub_82280A90 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82280A90) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8202A100); }
+NIER_DECOMP(sub_82280A90) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8202A100, 0); }
 NIER_VERIFY_SPEC(sub_82280A90, 0x82280A90, "r3=ptr");
 
 // sub_82280F40 (108 bytes) — dtor_allocator_delete
@@ -339,11 +339,11 @@ NIER_DECOMP(sub_822825B8) { dtor_allocator_delete(ctx, base, 112, 0x822824A8, 0x
 NIER_VERIFY_SPEC(sub_822825B8, 0x822825B8, "r3=ptr r4=range:0..1");
 
 // sub_82285370 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82285370) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202A828); }
+NIER_DECOMP(sub_82285370) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202A828, 0); }
 NIER_VERIFY_SPEC(sub_82285370, 0x82285370, "r3=ptr");
 
 // sub_82289358 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82289358) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8202A910); }
+NIER_DECOMP(sub_82289358) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8202A910, 0); }
 NIER_VERIFY_SPEC(sub_82289358, 0x82289358, "r3=ptr");
 
 // sub_8228A368 (108 bytes) — dtor_allocator_delete
@@ -355,7 +355,7 @@ NIER_DECOMP(sub_8228F7A8) { forward_member_then_self(ctx, base, 112, 11628, 0x82
 NIER_VERIFY_SPEC(sub_8228F7A8, 0x8228F7A8, "r3=ptr f1=f32");
 
 // sub_8228FC28 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8228FC28) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202B054); }
+NIER_DECOMP(sub_8228FC28) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202B054, 0); }
 NIER_VERIFY_SPEC(sub_8228FC28, 0x8228FC28, "r3=ptr");
 
 // sub_82290990 (108 bytes) — dtor_allocator_delete
@@ -371,7 +371,7 @@ NIER_DECOMP(sub_822940D0) { forward_member_then_self(ctx, base, 112, 11516, 0x82
 NIER_VERIFY_SPEC(sub_822940D0, 0x822940D0, "r3=ptr f1=f32");
 
 // sub_822951E0 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822951E0) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x8202B758); }
+NIER_DECOMP(sub_822951E0) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x8202B758, 0); }
 NIER_VERIFY_SPEC(sub_822951E0, 0x822951E0, "r3=ptr");
 
 // sub_82295438 (108 bytes) — dtor_allocator_delete
@@ -383,7 +383,7 @@ NIER_DECOMP(sub_82297080) { forward_member_then_self(ctx, base, 112, 11640, 0x82
 NIER_VERIFY_SPEC(sub_82297080, 0x82297080, "r3=ptr f1=f32");
 
 // sub_82297378 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82297378) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202BCF4); }
+NIER_DECOMP(sub_82297378) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202BCF4, 0); }
 NIER_VERIFY_SPEC(sub_82297378, 0x82297378, "r3=ptr");
 
 // sub_822981B0 (108 bytes) — dtor_allocator_delete
@@ -399,7 +399,7 @@ NIER_DECOMP(sub_8229E5C0) { forward_member_then_self(ctx, base, 112, 11592, 0x82
 NIER_VERIFY_SPEC(sub_8229E5C0, 0x8229E5C0, "r3=ptr f1=f32");
 
 // sub_8229EC28 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8229EC28) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202C8AC); }
+NIER_DECOMP(sub_8229EC28) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202C8AC, 0); }
 NIER_VERIFY_SPEC(sub_8229EC28, 0x8229EC28, "r3=ptr");
 
 // sub_8229F248 (108 bytes) — dtor_allocator_delete
@@ -411,7 +411,7 @@ NIER_DECOMP(sub_822A1690) { forward_member_then_self(ctx, base, 112, 13136, 0x82
 NIER_VERIFY_SPEC(sub_822A1690, 0x822A1690, "r3=ptr f1=f32");
 
 // sub_822A1F48 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822A1F48) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202CF18); }
+NIER_DECOMP(sub_822A1F48) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202CF18, 0); }
 NIER_VERIFY_SPEC(sub_822A1F48, 0x822A1F48, "r3=ptr");
 
 // sub_822A2AD0 (108 bytes) — dtor_allocator_delete
@@ -427,7 +427,7 @@ NIER_DECOMP(sub_822A6010) { forward_member_then_self(ctx, base, 112, 13104, 0x82
 NIER_VERIFY_SPEC(sub_822A6010, 0x822A6010, "r3=ptr f1=f32");
 
 // sub_822A6558 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822A6558) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202D5D8); }
+NIER_DECOMP(sub_822A6558) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202D5D8, 0); }
 NIER_VERIFY_SPEC(sub_822A6558, 0x822A6558, "r3=ptr");
 
 // sub_822A7298 (108 bytes) — dtor_allocator_delete
@@ -439,7 +439,7 @@ NIER_DECOMP(sub_822AB110) { forward_member_then_self(ctx, base, 112, 13104, 0x82
 NIER_VERIFY_SPEC(sub_822AB110, 0x822AB110, "r3=ptr f1=f32");
 
 // sub_822AB3A8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822AB3A8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202DC44); }
+NIER_DECOMP(sub_822AB3A8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202DC44, 0); }
 NIER_VERIFY_SPEC(sub_822AB3A8, 0x822AB3A8, "r3=ptr");
 
 // sub_822ACB48 (108 bytes) — dtor_allocator_delete
@@ -463,11 +463,11 @@ NIER_DECOMP(sub_822B3CC0) { dtor_allocator_delete(ctx, base, 112, 0x822B3C10, 0x
 NIER_VERIFY_SPEC(sub_822B3CC0, 0x822B3CC0, "r3=ptr r4=range:0..1");
 
 // sub_822B4FF8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822B4FF8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202EE14); }
+NIER_DECOMP(sub_822B4FF8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202EE14, 0); }
 NIER_VERIFY_SPEC(sub_822B4FF8, 0x822B4FF8, "r3=ptr");
 
 // sub_822B8180 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822B8180) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8202EEB0); }
+NIER_DECOMP(sub_822B8180) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8202EEB0, 0); }
 NIER_VERIFY_SPEC(sub_822B8180, 0x822B8180, "r3=ptr");
 
 // sub_822BB3D0 (76 bytes) — forward_member_then_self
@@ -475,7 +475,7 @@ NIER_DECOMP(sub_822BB3D0) { forward_member_then_self(ctx, base, 112, 11592, 0x82
 NIER_VERIFY_SPEC(sub_822BB3D0, 0x822BB3D0, "r3=ptr f1=f32");
 
 // sub_822BB8D8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822BB8D8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202F09C); }
+NIER_DECOMP(sub_822BB8D8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202F09C, 0); }
 NIER_VERIFY_SPEC(sub_822BB8D8, 0x822BB8D8, "r3=ptr");
 
 // sub_822BDD08 (108 bytes) — dtor_allocator_delete
@@ -491,7 +491,7 @@ NIER_DECOMP(sub_822C0D48) { forward_member_then_self(ctx, base, 112, 11588, 0x82
 NIER_VERIFY_SPEC(sub_822C0D48, 0x822C0D48, "r3=ptr f1=f32");
 
 // sub_822C1320 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822C1320) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202F754); }
+NIER_DECOMP(sub_822C1320) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202F754, 0); }
 NIER_VERIFY_SPEC(sub_822C1320, 0x822C1320, "r3=ptr");
 
 // sub_822C3718 (108 bytes) — dtor_allocator_delete
@@ -499,7 +499,7 @@ NIER_DECOMP(sub_822C3718) { dtor_allocator_delete(ctx, base, 112, 0x822C3608, 0x
 NIER_VERIFY_SPEC(sub_822C3718, 0x822C3718, "r3=ptr r4=range:0..1");
 
 // sub_822C5EC0 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822C5EC0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202FDF8); }
+NIER_DECOMP(sub_822C5EC0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8202FDF8, 0); }
 NIER_VERIFY_SPEC(sub_822C5EC0, 0x822C5EC0, "r3=ptr");
 
 // sub_822C85A0 (108 bytes) — dtor_allocator_delete
@@ -519,7 +519,7 @@ NIER_DECOMP(sub_822CD1C0) { forward_member_then_self(ctx, base, 112, 11572, 0x82
 NIER_VERIFY_SPEC(sub_822CD1C0, 0x822CD1C0, "r3=ptr f1=f32");
 
 // sub_822CDFA8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822CDFA8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x820309A0); }
+NIER_DECOMP(sub_822CDFA8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x820309A0, 0); }
 NIER_VERIFY_SPEC(sub_822CDFA8, 0x822CDFA8, "r3=ptr");
 
 // sub_822CE2F0 (108 bytes) — dtor_allocator_delete
@@ -563,7 +563,7 @@ NIER_DECOMP(sub_822D1ED8) { dtor_allocator_delete(ctx, base, 112, 0x822D1CC8, 0x
 NIER_VERIFY_SPEC(sub_822D1ED8, 0x822D1ED8, "r3=ptr r4=range:0..1");
 
 // sub_822D5D38 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822D5D38) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820325B0); }
+NIER_DECOMP(sub_822D5D38) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820325B0, 0); }
 NIER_VERIFY_SPEC(sub_822D5D38, 0x822D5D38, "r3=ptr");
 
 // sub_822D9220 (108 bytes) — dtor_allocator_delete
@@ -571,7 +571,7 @@ NIER_DECOMP(sub_822D9220) { dtor_allocator_delete(ctx, base, 112, 0x822D9128, 0x
 NIER_VERIFY_SPEC(sub_822D9220, 0x822D9220, "r3=ptr r4=range:0..1");
 
 // sub_822DC500 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822DC500) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82032CBC); }
+NIER_DECOMP(sub_822DC500) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82032CBC, 0); }
 NIER_VERIFY_SPEC(sub_822DC500, 0x822DC500, "r3=ptr");
 
 // sub_822E21B8 (76 bytes) — forward_member_then_self
@@ -599,19 +599,19 @@ NIER_DECOMP(sub_822EB5E8) { dtor_allocator_delete(ctx, base, 112, 0x822EB530, 0x
 NIER_VERIFY_SPEC(sub_822EB5E8, 0x822EB5E8, "r3=ptr r4=range:0..1");
 
 // sub_822EC6D0 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822EC6D0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8203465C); }
+NIER_DECOMP(sub_822EC6D0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8203465C, 0); }
 NIER_VERIFY_SPEC(sub_822EC6D0, 0x822EC6D0, "r3=ptr");
 
 // sub_822EF6C8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822EF6C8) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820346F8); }
+NIER_DECOMP(sub_822EF6C8) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820346F8, 0); }
 NIER_VERIFY_SPEC(sub_822EF6C8, 0x822EF6C8, "r3=ptr");
 
 // sub_822F44E8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822F44E8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82034834); }
+NIER_DECOMP(sub_822F44E8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82034834, 0); }
 NIER_VERIFY_SPEC(sub_822F44E8, 0x822F44E8, "r3=ptr");
 
 // sub_822F45C0 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822F45C0) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82034854); }
+NIER_DECOMP(sub_822F45C0) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82034854, 0); }
 NIER_VERIFY_SPEC(sub_822F45C0, 0x822F45C0, "r3=ptr");
 
 // sub_822F6B08 (108 bytes) — dtor_allocator_delete
@@ -619,7 +619,7 @@ NIER_DECOMP(sub_822F6B08) { dtor_allocator_delete(ctx, base, 112, 0x822F6988, 0x
 NIER_VERIFY_SPEC(sub_822F6B08, 0x822F6B08, "r3=ptr r4=range:0..1");
 
 // sub_822F82F8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822F82F8) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82034E50); }
+NIER_DECOMP(sub_822F82F8) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82034E50, 0); }
 NIER_VERIFY_SPEC(sub_822F82F8, 0x822F82F8, "r3=ptr");
 
 // sub_822FCC48 (108 bytes) — dtor_allocator_delete
@@ -627,11 +627,11 @@ NIER_DECOMP(sub_822FCC48) { dtor_allocator_delete(ctx, base, 112, 0x822FCBB0, 0x
 NIER_VERIFY_SPEC(sub_822FCC48, 0x822FCC48, "r3=ptr r4=range:0..1");
 
 // sub_822FD7B8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822FD7B8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8203554C); }
+NIER_DECOMP(sub_822FD7B8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8203554C, 0); }
 NIER_VERIFY_SPEC(sub_822FD7B8, 0x822FD7B8, "r3=ptr");
 
 // sub_822FEFE0 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_822FEFE0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x820355CC); }
+NIER_DECOMP(sub_822FEFE0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x820355CC, 0); }
 NIER_VERIFY_SPEC(sub_822FEFE0, 0x822FEFE0, "r3=ptr");
 
 // sub_823014B0 (76 bytes) — forward_member_then_self
@@ -639,7 +639,7 @@ NIER_DECOMP(sub_823014B0) { forward_member_then_self(ctx, base, 112, 10548, 0x82
 NIER_VERIFY_SPEC(sub_823014B0, 0x823014B0, "r3=ptr f1=f32");
 
 // sub_82301740 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82301740) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82035720); }
+NIER_DECOMP(sub_82301740) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82035720, 0); }
 NIER_VERIFY_SPEC(sub_82301740, 0x82301740, "r3=ptr");
 
 // sub_82301D50 (108 bytes) — dtor_allocator_delete
@@ -651,7 +651,7 @@ NIER_DECOMP(sub_82302940) { dtor_allocator_delete(ctx, base, 112, 0x823028A8, 0x
 NIER_VERIFY_SPEC(sub_82302940, 0x82302940, "r3=ptr r4=range:0..1");
 
 // sub_82304320 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82304320) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x82035D64); }
+NIER_DECOMP(sub_82304320) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x82035D64, 0); }
 NIER_VERIFY_SPEC(sub_82304320, 0x82304320, "r3=ptr");
 
 // sub_8230D5A0 (108 bytes) — dtor_allocator_delete
@@ -659,7 +659,7 @@ NIER_DECOMP(sub_8230D5A0) { dtor_allocator_delete(ctx, base, 112, 0x8230D508, 0x
 NIER_VERIFY_SPEC(sub_8230D5A0, 0x8230D5A0, "r3=ptr r4=range:0..1");
 
 // sub_8230DE60 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8230DE60) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820369E4); }
+NIER_DECOMP(sub_8230DE60) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820369E4, 0); }
 NIER_VERIFY_SPEC(sub_8230DE60, 0x8230DE60, "r3=ptr");
 
 // sub_82311B58 (76 bytes) — forward_member_then_self
@@ -671,7 +671,7 @@ NIER_DECOMP(sub_823122D0) { dtor_allocator_delete(ctx, base, 112, 0x823121C0, 0x
 NIER_VERIFY_SPEC(sub_823122D0, 0x823122D0, "r3=ptr r4=range:0..1");
 
 // sub_82312780 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82312780) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82037064); }
+NIER_DECOMP(sub_82312780) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82037064, 0); }
 NIER_VERIFY_SPEC(sub_82312780, 0x82312780, "r3=ptr");
 
 // sub_82315CA0 (76 bytes) — forward_member_then_self
@@ -683,7 +683,7 @@ NIER_DECOMP(sub_82316430) { dtor_allocator_delete(ctx, base, 112, 0x82316320, 0x
 NIER_VERIFY_SPEC(sub_82316430, 0x82316430, "r3=ptr r4=range:0..1");
 
 // sub_82316D60 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82316D60) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820376AC); }
+NIER_DECOMP(sub_82316D60) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820376AC, 0); }
 NIER_VERIFY_SPEC(sub_82316D60, 0x82316D60, "r3=ptr");
 
 // sub_82317CF0 (76 bytes) — forward_member_then_self
@@ -695,7 +695,7 @@ NIER_DECOMP(sub_82318440) { dtor_allocator_delete(ctx, base, 112, 0x82318330, 0x
 NIER_VERIFY_SPEC(sub_82318440, 0x82318440, "r3=ptr r4=range:0..1");
 
 // sub_82318630 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82318630) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82037C7C); }
+NIER_DECOMP(sub_82318630) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82037C7C, 0); }
 NIER_VERIFY_SPEC(sub_82318630, 0x82318630, "r3=ptr");
 
 // sub_82319610 (108 bytes) — dtor_allocator_delete
@@ -703,7 +703,7 @@ NIER_DECOMP(sub_82319610) { dtor_allocator_delete(ctx, base, 112, 0x82319440, 0x
 NIER_VERIFY_SPEC(sub_82319610, 0x82319610, "r3=ptr r4=range:0..1");
 
 // sub_82319680 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82319680) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8203818C); }
+NIER_DECOMP(sub_82319680) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x8203818C, 0); }
 NIER_VERIFY_SPEC(sub_82319680, 0x82319680, "r3=ptr");
 
 // sub_8231A190 (76 bytes) — forward_member_then_self
@@ -719,7 +719,7 @@ NIER_DECOMP(sub_8231A468) { dtor_allocator_delete(ctx, base, 112, 0x8231A3B8, 0x
 NIER_VERIFY_SPEC(sub_8231A468, 0x8231A468, "r3=ptr r4=range:0..1");
 
 // sub_8231A618 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8231A618) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820386BC); }
+NIER_DECOMP(sub_8231A618) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x820386BC, 0); }
 NIER_VERIFY_SPEC(sub_8231A618, 0x8231A618, "r3=ptr");
 
 // sub_8231B3B8 (76 bytes) — forward_member_then_self
@@ -731,15 +731,15 @@ NIER_DECOMP(sub_8231BA58) { dtor_allocator_delete(ctx, base, 112, 0x8231B948, 0x
 NIER_VERIFY_SPEC(sub_8231BA58, 0x8231BA58, "r3=ptr r4=range:0..1");
 
 // sub_8231BAC8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8231BAC8) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82038CEC); }
+NIER_DECOMP(sub_8231BAC8) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82038CEC, 0); }
 NIER_VERIFY_SPEC(sub_8231BAC8, 0x8231BAC8, "r3=ptr");
 
 // sub_82338748 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82338748) { dtor_vtable_free(ctx, base, 96, 0x8203A188, 0x8258BC58); }
+NIER_DECOMP(sub_82338748) { dtor_vtable_free(ctx, base, 96, 0x8203A188, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82338748, 0x82338748, "r3=ptr r4=range:0..1");
 
 // sub_82338790 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82338790) { dtor_vtable_free(ctx, base, 96, 0x8203A16C, 0x8258BC58); }
+NIER_DECOMP(sub_82338790) { dtor_vtable_free(ctx, base, 96, 0x8203A16C, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82338790, 0x82338790, "r3=ptr r4=range:0..1");
 
 // sub_8235F500 (28 bytes) — forward_swapped_virtual
@@ -759,7 +759,7 @@ NIER_DECOMP(sub_8235F560) { forward_swapped_virtual(ctx, base, 13); }
 NIER_VERIFY_SPEC(sub_8235F560, 0x8235F560, "r3=ptr r4=obj");
 
 // sub_8235FB38 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8235FB38) { dtor_vtable_free(ctx, base, 96, 0x8203B380, 0x8258BC58); }
+NIER_DECOMP(sub_8235FB38) { dtor_vtable_free(ctx, base, 96, 0x8203B380, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8235FB38, 0x8235FB38, "r3=ptr r4=range:0..1");
 
 // sub_82367FA0 (28 bytes) — forward_swapped_virtual
@@ -935,7 +935,7 @@ NIER_DECOMP(sub_824561D0) { dtor_allocator_delete(ctx, base, 112, 0x82456098, 0x
 NIER_VERIFY_SPEC(sub_824561D0, 0x824561D0, "r3=ptr r4=range:0..1");
 
 // sub_824618D8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_824618D8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8206365C); }
+NIER_DECOMP(sub_824618D8) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x8206365C, 0); }
 NIER_VERIFY_SPEC(sub_824618D8, 0x824618D8, "r3=ptr");
 
 // sub_82461CB8 (108 bytes) — dtor_allocator_delete
@@ -943,15 +943,15 @@ NIER_DECOMP(sub_82461CB8) { dtor_allocator_delete(ctx, base, 112, 0x824616B0, 0x
 NIER_VERIFY_SPEC(sub_82461CB8, 0x82461CB8, "r3=ptr r4=range:0..1");
 
 // sub_8246DCA0 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8246DCA0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x82063D08); }
+NIER_DECOMP(sub_8246DCA0) { ctor_base_field_vtable(ctx, base, 96, 0x8226C070, 4, 160, 0x82063D08, 0); }
 NIER_VERIFY_SPEC(sub_8246DCA0, 0x8246DCA0, "r3=ptr");
 
 // sub_82489470 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_82489470) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82064F40); }
+NIER_DECOMP(sub_82489470) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82064F40, 0); }
 NIER_VERIFY_SPEC(sub_82489470, 0x82489470, "r3=ptr");
 
 // sub_824894B8 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_824894B8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82064F60); }
+NIER_DECOMP(sub_824894B8) { ctor_base_field_vtable(ctx, base, 96, 0x822D1130, 0, 28, 0x82064F60, 0); }
 NIER_VERIFY_SPEC(sub_824894B8, 0x824894B8, "r3=ptr");
 
 // sub_8248A1D8 (108 bytes) — dtor_allocator_delete
@@ -963,7 +963,7 @@ NIER_DECOMP(sub_8248BAD0) { dtor_allocator_delete(ctx, base, 112, 0x82489380, 0x
 NIER_VERIFY_SPEC(sub_8248BAD0, 0x8248BAD0, "r3=ptr r4=range:0..1");
 
 // sub_8248E608 (72 bytes) — ctor_base_field_vtable
-NIER_DECOMP(sub_8248E608) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82065228); }
+NIER_DECOMP(sub_8248E608) { ctor_base_field_vtable(ctx, base, 96, 0x822748B8, 0, 68, 0x82065228, 0); }
 NIER_VERIFY_SPEC(sub_8248E608, 0x8248E608, "r3=ptr");
 
 // sub_82497AA8 (76 bytes) — dtor_body_free
@@ -1043,211 +1043,211 @@ NIER_DECOMP(sub_824DBB98) { dtor_body_free(ctx, base, 112, 0x824DBAD8, 0x824A75E
 NIER_VERIFY_SPEC(sub_824DBB98, 0x824DBB98, "r3=ptr r4=range:0..1");
 
 // sub_824DEAB8 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824DEAB8) { dtor_vtable_delete(ctx, base, 96, 0x82086F9C, 16, 0x82508AE0); }
+NIER_DECOMP(sub_824DEAB8) { dtor_vtable_delete(ctx, base, 96, 0x82086F9C, 16, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824DEAB8, 0x824DEAB8, "r3=ptr r4=range:0..1");
 
 // sub_824DEB08 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824DEB08) { dtor_vtable_delete(ctx, base, 96, 0x82086F9C, 68, 0x82508AE0); }
+NIER_DECOMP(sub_824DEB08) { dtor_vtable_delete(ctx, base, 96, 0x82086F9C, 68, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824DEB08, 0x824DEB08, "r3=ptr r4=range:0..1");
 
 // sub_824DEE40 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824DEE40) { dtor_vtable_delete(ctx, base, 96, 0x82087204, 4, 0x82508AE0); }
+NIER_DECOMP(sub_824DEE40) { dtor_vtable_delete(ctx, base, 96, 0x82087204, 4, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824DEE40, 0x824DEE40, "r3=ptr r4=range:0..1");
 
 // sub_824E0760 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E0760) { dtor_vtable_delete(ctx, base, 96, 0x820872C0, 180, 0x82508AE0); }
+NIER_DECOMP(sub_824E0760) { dtor_vtable_delete(ctx, base, 96, 0x820872C0, 180, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E0760, 0x824E0760, "r3=ptr r4=range:0..1");
 
 // sub_824E0870 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E0870) { dtor_vtable_delete(ctx, base, 96, 0x820872D8, 108, 0x82508AE0); }
+NIER_DECOMP(sub_824E0870) { dtor_vtable_delete(ctx, base, 96, 0x820872D8, 108, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E0870, 0x824E0870, "r3=ptr r4=range:0..1");
 
 // sub_824E2128 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E2128) { dtor_vtable_delete(ctx, base, 96, 0x82087204, 64, 0x82508AE0); }
+NIER_DECOMP(sub_824E2128) { dtor_vtable_delete(ctx, base, 96, 0x82087204, 64, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E2128, 0x824E2128, "r3=ptr r4=range:0..1");
 
 // sub_824E2EC8 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E2EC8) { dtor_vtable_delete(ctx, base, 96, 0x8208770C, 12, 0x82508AE0); }
+NIER_DECOMP(sub_824E2EC8) { dtor_vtable_delete(ctx, base, 96, 0x8208770C, 12, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E2EC8, 0x824E2EC8, "r3=ptr r4=range:0..1");
 
 // sub_824E3198 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E3198) { dtor_vtable_delete(ctx, base, 96, 0x8208770C, 60, 0x82508AE0); }
+NIER_DECOMP(sub_824E3198) { dtor_vtable_delete(ctx, base, 96, 0x8208770C, 60, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E3198, 0x824E3198, "r3=ptr r4=range:0..1");
 
 // sub_824E4378 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E4378) { dtor_vtable_delete(ctx, base, 96, 0x82087824, 12, 0x82508AE0); }
+NIER_DECOMP(sub_824E4378) { dtor_vtable_delete(ctx, base, 96, 0x82087824, 12, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E4378, 0x824E4378, "r3=ptr r4=range:0..1");
 
 // sub_824E5D58 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E5D58) { dtor_vtable_delete(ctx, base, 96, 0x82087838, 12, 0x82508AE0); }
+NIER_DECOMP(sub_824E5D58) { dtor_vtable_delete(ctx, base, 96, 0x82087838, 12, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E5D58, 0x824E5D58, "r3=ptr r4=range:0..1");
 
 // sub_824E5DB0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E5DB0) { dtor_vtable_delete(ctx, base, 96, 0x82087838, 340, 0x82508AE0); }
+NIER_DECOMP(sub_824E5DB0) { dtor_vtable_delete(ctx, base, 96, 0x82087838, 340, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E5DB0, 0x824E5DB0, "r3=ptr r4=range:0..1");
 
 // sub_824E8418 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E8418) { dtor_vtable_delete(ctx, base, 96, 0x820882E0, 4, 0x82508AE0); }
+NIER_DECOMP(sub_824E8418) { dtor_vtable_delete(ctx, base, 96, 0x820882E0, 4, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E8418, 0x824E8418, "r3=ptr r4=range:0..1");
 
 // sub_824E93F0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824E93F0) { dtor_vtable_delete(ctx, base, 96, 0x820882E0, 1984, 0x82508AE0); }
+NIER_DECOMP(sub_824E93F0) { dtor_vtable_delete(ctx, base, 96, 0x820882E0, 1984, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824E93F0, 0x824E93F0, "r3=ptr r4=range:0..1");
 
 // sub_824EAF78 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824EAF78) { dtor_vtable_delete(ctx, base, 96, 0x82088B40, 12, 0x82508AE0); }
+NIER_DECOMP(sub_824EAF78) { dtor_vtable_delete(ctx, base, 96, 0x82088B40, 12, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824EAF78, 0x824EAF78, "r3=ptr r4=range:0..1");
 
 // sub_824EBB80 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824EBB80) { dtor_vtable_delete(ctx, base, 96, 0x82088B40, 28, 0x82508AE0); }
+NIER_DECOMP(sub_824EBB80) { dtor_vtable_delete(ctx, base, 96, 0x82088B40, 28, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824EBB80, 0x824EBB80, "r3=ptr r4=range:0..1");
 
 // sub_824EBCA0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824EBCA0) { dtor_vtable_delete(ctx, base, 96, 0x82088BA8, 72, 0x82508AE0); }
+NIER_DECOMP(sub_824EBCA0) { dtor_vtable_delete(ctx, base, 96, 0x82088BA8, 72, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824EBCA0, 0x824EBCA0, "r3=ptr r4=range:0..1");
 
 // sub_824EFA98 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824EFA98) { dtor_vtable_delete(ctx, base, 96, 0x82088D54, 28, 0x82508AE0); }
+NIER_DECOMP(sub_824EFA98) { dtor_vtable_delete(ctx, base, 96, 0x82088D54, 28, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824EFA98, 0x824EFA98, "r3=ptr r4=range:0..1");
 
 // sub_824EFD38 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824EFD38) { dtor_vtable_delete(ctx, base, 96, 0x82088D84, 12, 0x82508AE0); }
+NIER_DECOMP(sub_824EFD38) { dtor_vtable_delete(ctx, base, 96, 0x82088D84, 12, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824EFD38, 0x824EFD38, "r3=ptr r4=range:0..1");
 
 // sub_824EFE50 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824EFE50) { dtor_vtable_delete(ctx, base, 96, 0x82088DA4, 16, 0x82508AE0); }
+NIER_DECOMP(sub_824EFE50) { dtor_vtable_delete(ctx, base, 96, 0x82088DA4, 16, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824EFE50, 0x824EFE50, "r3=ptr r4=range:0..1");
 
 // sub_824F0030 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F0030) { dtor_vtable_delete(ctx, base, 96, 0x82088E38, 48, 0x82508AE0); }
+NIER_DECOMP(sub_824F0030) { dtor_vtable_delete(ctx, base, 96, 0x82088E38, 48, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F0030, 0x824F0030, "r3=ptr r4=range:0..1");
 
 // sub_824F0600 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F0600) { dtor_vtable_delete(ctx, base, 96, 0x82089068, 40, 0x82508AE0); }
+NIER_DECOMP(sub_824F0600) { dtor_vtable_delete(ctx, base, 96, 0x82089068, 40, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F0600, 0x824F0600, "r3=ptr r4=range:0..1");
 
 // sub_824F06C0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F06C0) { dtor_vtable_delete(ctx, base, 96, 0x82089070, 24, 0x82508AE0); }
+NIER_DECOMP(sub_824F06C0) { dtor_vtable_delete(ctx, base, 96, 0x82089070, 24, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F06C0, 0x824F06C0, "r3=ptr r4=range:0..1");
 
 // sub_824F0808 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F0808) { dtor_vtable_delete(ctx, base, 96, 0x820890B8, 32, 0x82508AE0); }
+NIER_DECOMP(sub_824F0808) { dtor_vtable_delete(ctx, base, 96, 0x820890B8, 32, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F0808, 0x824F0808, "r3=ptr r4=range:0..1");
 
 // sub_824F0960 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F0960) { dtor_vtable_delete(ctx, base, 96, 0x820890C0, 20, 0x82508AE0); }
+NIER_DECOMP(sub_824F0960) { dtor_vtable_delete(ctx, base, 96, 0x820890C0, 20, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F0960, 0x824F0960, "r3=ptr r4=range:0..1");
 
 // sub_824F0D38 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_824F0D38) { dtor_vtable_free(ctx, base, 96, 0x8208917C, 0x8258BC58); }
+NIER_DECOMP(sub_824F0D38) { dtor_vtable_free(ctx, base, 96, 0x8208917C, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_824F0D38, 0x824F0D38, "r3=ptr r4=range:0..1");
 
 // sub_824F16D0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F16D0) { dtor_vtable_delete(ctx, base, 96, 0x820891E0, 392, 0x82508AE0); }
+NIER_DECOMP(sub_824F16D0) { dtor_vtable_delete(ctx, base, 96, 0x820891E0, 392, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F16D0, 0x824F16D0, "r3=ptr r4=range:0..1");
 
 // sub_824F2F00 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F2F00) { dtor_vtable_delete(ctx, base, 96, 0x82088B40, 52, 0x82508AE0); }
+NIER_DECOMP(sub_824F2F00) { dtor_vtable_delete(ctx, base, 96, 0x82088B40, 52, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F2F00, 0x824F2F00, "r3=ptr r4=range:0..1");
 
 // sub_824F7980 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F7980) { dtor_vtable_delete(ctx, base, 96, 0x82089674, 32, 0x82508AE0); }
+NIER_DECOMP(sub_824F7980) { dtor_vtable_delete(ctx, base, 96, 0x82089674, 32, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F7980, 0x824F7980, "r3=ptr r4=range:0..1");
 
 // sub_824F79D0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F79D0) { dtor_vtable_delete(ctx, base, 96, 0x82089678, 1928, 0x82508AE0); }
+NIER_DECOMP(sub_824F79D0) { dtor_vtable_delete(ctx, base, 96, 0x82089678, 1928, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F79D0, 0x824F79D0, "r3=ptr r4=range:0..1");
 
 // sub_824F84D0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F84D0) { dtor_vtable_delete(ctx, base, 96, 0x82089678, 1936, 0x82508AE0); }
+NIER_DECOMP(sub_824F84D0) { dtor_vtable_delete(ctx, base, 96, 0x82089678, 1936, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F84D0, 0x824F84D0, "r3=ptr r4=range:0..1");
 
 // sub_824F87D8 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F87D8) { dtor_vtable_delete(ctx, base, 96, 0x82089678, 1984, 0x82508AE0); }
+NIER_DECOMP(sub_824F87D8) { dtor_vtable_delete(ctx, base, 96, 0x82089678, 1984, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F87D8, 0x824F87D8, "r3=ptr r4=range:0..1");
 
 // sub_824F9370 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_824F9370) { dtor_vtable_free(ctx, base, 96, 0x82089A84, 0x8258BC58); }
+NIER_DECOMP(sub_824F9370) { dtor_vtable_free(ctx, base, 96, 0x82089A84, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_824F9370, 0x824F9370, "r3=ptr r4=range:0..1");
 
 // sub_824F94E0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824F94E0) { dtor_vtable_delete(ctx, base, 96, 0x82089A84, 8, 0x82508AE0); }
+NIER_DECOMP(sub_824F94E0) { dtor_vtable_delete(ctx, base, 96, 0x82089A84, 8, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824F94E0, 0x824F94E0, "r3=ptr r4=range:0..1");
 
 // sub_824FA850 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FA850) { dtor_vtable_delete(ctx, base, 96, 0x82089B30, 208, 0x82508AE0); }
+NIER_DECOMP(sub_824FA850) { dtor_vtable_delete(ctx, base, 96, 0x82089B30, 208, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FA850, 0x824FA850, "r3=ptr r4=range:0..1");
 
 // sub_824FB508 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FB508) { dtor_vtable_delete(ctx, base, 96, 0x82089C68, 48, 0x82508AE0); }
+NIER_DECOMP(sub_824FB508) { dtor_vtable_delete(ctx, base, 96, 0x82089C68, 48, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FB508, 0x824FB508, "r3=ptr r4=range:0..1");
 
 // sub_824FC258 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_824FC258) { dtor_vtable_free(ctx, base, 96, 0x82089DE0, 0x8258BC58); }
+NIER_DECOMP(sub_824FC258) { dtor_vtable_free(ctx, base, 96, 0x82089DE0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_824FC258, 0x824FC258, "r3=ptr r4=range:0..1");
 
 // sub_824FC5F8 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FC5F8) { dtor_vtable_delete(ctx, base, 96, 0x82089DE0, 56, 0x82508AE0); }
+NIER_DECOMP(sub_824FC5F8) { dtor_vtable_delete(ctx, base, 96, 0x82089DE0, 56, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FC5F8, 0x824FC5F8, "r3=ptr r4=range:0..1");
 
 // sub_824FCDF0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FCDF0) { dtor_vtable_delete(ctx, base, 96, 0x82089F10, 40, 0x82508AE0); }
+NIER_DECOMP(sub_824FCDF0) { dtor_vtable_delete(ctx, base, 96, 0x82089F10, 40, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FCDF0, 0x824FCDF0, "r3=ptr r4=range:0..1");
 
 // sub_824FCF60 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FCF60) { dtor_vtable_delete(ctx, base, 96, 0x82089FDC, 180, 0x82508AE0); }
+NIER_DECOMP(sub_824FCF60) { dtor_vtable_delete(ctx, base, 96, 0x82089FDC, 180, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FCF60, 0x824FCF60, "r3=ptr r4=range:0..1");
 
 // sub_824FDEF0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FDEF0) { dtor_vtable_delete(ctx, base, 96, 0x82089FDC, 188, 0x82508AE0); }
+NIER_DECOMP(sub_824FDEF0) { dtor_vtable_delete(ctx, base, 96, 0x82089FDC, 188, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FDEF0, 0x824FDEF0, "r3=ptr r4=range:0..1");
 
 // sub_824FE028 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FE028) { dtor_vtable_delete(ctx, base, 96, 0x82089FDC, 456, 0x82508AE0); }
+NIER_DECOMP(sub_824FE028) { dtor_vtable_delete(ctx, base, 96, 0x82089FDC, 456, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FE028, 0x824FE028, "r3=ptr r4=range:0..1");
 
 // sub_824FE078 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FE078) { dtor_vtable_delete(ctx, base, 96, 0x8208A018, 64, 0x82508AE0); }
+NIER_DECOMP(sub_824FE078) { dtor_vtable_delete(ctx, base, 96, 0x8208A018, 64, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FE078, 0x824FE078, "r3=ptr r4=range:0..1");
 
 // sub_824FE2D0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FE2D0) { dtor_vtable_delete(ctx, base, 96, 0x8208A018, 72, 0x82508AE0); }
+NIER_DECOMP(sub_824FE2D0) { dtor_vtable_delete(ctx, base, 96, 0x8208A018, 72, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FE2D0, 0x824FE2D0, "r3=ptr r4=range:0..1");
 
 // sub_824FE388 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FE388) { dtor_vtable_delete(ctx, base, 96, 0x8208A018, 80, 0x82508AE0); }
+NIER_DECOMP(sub_824FE388) { dtor_vtable_delete(ctx, base, 96, 0x8208A018, 80, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FE388, 0x824FE388, "r3=ptr r4=range:0..1");
 
 // sub_824FEB00 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FEB00) { dtor_vtable_delete(ctx, base, 96, 0x8208A124, 20, 0x82508AE0); }
+NIER_DECOMP(sub_824FEB00) { dtor_vtable_delete(ctx, base, 96, 0x8208A124, 20, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FEB00, 0x824FEB00, "r3=ptr r4=range:0..1");
 
 // sub_824FECA8 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FECA8) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 80, 0x82508AE0); }
+NIER_DECOMP(sub_824FECA8) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 80, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FECA8, 0x824FECA8, "r3=ptr r4=range:0..1");
 
 // sub_824FF188 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_824FF188) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 312, 0x82508AE0); }
+NIER_DECOMP(sub_824FF188) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 312, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_824FF188, 0x824FF188, "r3=ptr r4=range:0..1");
 
 // sub_82501020 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_82501020) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 84, 0x82508AE0); }
+NIER_DECOMP(sub_82501020) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 84, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_82501020, 0x82501020, "r3=ptr r4=range:0..1");
 
 // sub_82501A28 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_82501A28) { dtor_vtable_delete(ctx, base, 96, 0x8208A3F0, 56, 0x82508AE0); }
+NIER_DECOMP(sub_82501A28) { dtor_vtable_delete(ctx, base, 96, 0x8208A3F0, 56, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_82501A28, 0x82501A28, "r3=ptr r4=range:0..1");
 
 // sub_825035D0 (76 bytes) — dtor_vtable_delete
-NIER_DECOMP(sub_825035D0) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 12424, 0x82508AE0); }
+NIER_DECOMP(sub_825035D0) { dtor_vtable_delete(ctx, base, 96, 0x8208A170, 12424, 0x82508AE0, 0); }
 NIER_VERIFY_SPEC(sub_825035D0, 0x825035D0, "r3=ptr r4=range:0..1");
 
 // sub_8258BCE0 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8258BCE0) { dtor_vtable_free(ctx, base, 96, 0x8209E304, 0x8258BC58); }
+NIER_DECOMP(sub_8258BCE0) { dtor_vtable_free(ctx, base, 96, 0x8209E304, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8258BCE0, 0x8258BCE0, "r3=ptr r4=range:0..1");
 
 // sub_8258C8B8 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_8258C8B8) { dtor_vtable_free(ctx, base, 96, 0x8209E384, 0x8258BC58); }
+NIER_DECOMP(sub_8258C8B8) { dtor_vtable_free(ctx, base, 96, 0x8209E384, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_8258C8B8, 0x8258C8B8, "r3=ptr r4=range:0..1");
 
 // sub_8258D840 (76 bytes) — dtor_body_free
@@ -1291,9 +1291,9 @@ NIER_DECOMP(sub_825D0E48) { dtor_body_free(ctx, base, 112, 0x825D0DE0, 0x8258BC5
 NIER_VERIFY_SPEC(sub_825D0E48, 0x825D0E48, "r3=ptr r4=range:0..1");
 
 // sub_825FB910 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_825FB910) { dtor_vtable_free(ctx, base, 96, 0x820D7FF0, 0x8258BC58); }
+NIER_DECOMP(sub_825FB910) { dtor_vtable_free(ctx, base, 96, 0x820D7FF0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_825FB910, 0x825FB910, "r3=ptr r4=range:0..1");
 
 // sub_82605700 (72 bytes) — dtor_vtable_free
-NIER_DECOMP(sub_82605700) { dtor_vtable_free(ctx, base, 96, 0x820D8BB0, 0x8258BC58); }
+NIER_DECOMP(sub_82605700) { dtor_vtable_free(ctx, base, 96, 0x820D8BB0, 0x8258BC58, 0); }
 NIER_VERIFY_SPEC(sub_82605700, 0x82605700, "r3=ptr r4=range:0..1");

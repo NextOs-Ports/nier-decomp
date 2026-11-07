@@ -40,16 +40,16 @@ for fn in inv:
         hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
         if kind == 'dtor_vtable_delete':
             vt = ((s16(w[4]) << 16) + s16(w[6])) & 0xFFFFFFFF
-            args = f'{frame}, 0x{vt:08X}, {s16(w[11])}, 0x{bl_target(a + 48, w[12]):08X}'
+            args = f'{frame}, 0x{vt:08X}, {s16(w[11])}, 0x{bl_target(a + 48, w[12]):08X}, {s16(w[9])}'
             spec = 'r3=ptr r4=range:0..1'
         elif kind == 'ctor_base_field_vtable':
             vt = ((s16(w[7]) << 16) + s16(w[9])) & 0xFFFFFFFF
-            args = f'{frame}, 0x{bl_target(a + 24, w[6]):08X}, {s16(w[4])}, {s16(w[10])}, 0x{vt:08X}'
+            args = f'{frame}, 0x{bl_target(a + 24, w[6]):08X}, {s16(w[4])}, {s16(w[10])}, 0x{vt:08X}, {s16(w[12])}'
             spec = 'r3=ptr'
         elif kind == 'forward_swapped_virtual':
             args = f'{s16(w[4]) // 4}'; spec = 'r3=ptr r4=obj'
         elif kind == 'dtor_vtable_free':
-            args = f'{frame}, 0x{hi_lo(4, 6):08X}, 0x{bl_target(a + 44, w[11]):08X}'; spec = 'r3=ptr r4=range:0..1'
+            args = f'{frame}, 0x{hi_lo(4, 6):08X}, 0x{bl_target(a + 44, w[11]):08X}, {s16(w[9])}'; spec = 'r3=ptr r4=range:0..1'
         elif kind == 'dtor_body_free':
             args = f'{frame}, 0x{bl_target(a + 28, w[7]):08X}, 0x{bl_target(a + 44, w[11]):08X}'; spec = 'r3=ptr r4=range:0..1'
         elif kind == 'forward_member_then_self':
