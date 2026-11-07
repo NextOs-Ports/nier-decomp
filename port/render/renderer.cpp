@@ -1135,6 +1135,10 @@ bool CullDraw(const Frame& f, const Cmd& c) {
   if (allFront) {
     float px = (sx1 - sx0) * 0.5f * float(g_config.renderWidth), py = (sy1 - sy0) * 0.5f * float(g_config.renderHeight);
     if (px < 2.0f && py < 2.0f) return true;
+    // LOD por área (só com autorização do dono): NIER_CULL_AREA=<fração da tela>, ex. 0.01 = desenhos de cenário
+    // cuja caixa projetada cobre menos de 1 % da tela não são desenhados. Padrão 0 = desligado.
+    static float areaFrac = std::getenv("NIER_CULL_AREA") ? float(std::atof(std::getenv("NIER_CULL_AREA"))) : 0.0f;
+    if (areaFrac > 0 && px * py < areaFrac * float(g_config.renderWidth) * float(g_config.renderHeight)) return true;
   }
   return false;
 }
