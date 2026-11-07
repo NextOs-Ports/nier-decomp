@@ -8,12 +8,14 @@
 
 #include <cstdint>
 
+#include "shader_runtime.h"
+
 namespace nier::render {
 
 // Leitores de memória guest, fornecidos pelo runtime (X1): endereço virtual e físico (GPU).
 struct GuestMemory {
-  uint8_t* virtualBase = nullptr;   // runtime()->virtual_membase()
-  uint8_t* physicalBase = nullptr;  // runtime()->memory()->physical_membase()
+  VirtualReader virtualRead = nullptr;  // Memory::TranslateVirtual (soma o deslocamento de cada heap)
+  uint8_t* physicalBase = nullptr;      // Memory::physical_membase()
 };
 
 struct Config {
@@ -22,6 +24,7 @@ struct Config {
   bool mipmaps = true;     // mipmap em toda textura estática POT (lição do Rayman)
   const char* shaderDir = nullptr;  // cache ESSL por hash (tools/shaders/nier_shaders)
   bool bypassGuestPM4 = false;      // modelo DMC3: não chamar o D3D original nos desenhos
+  bool cull = true;                 // NIER_NO_CULL=1 desliga (diagnóstico)
 };
 
 // Cria a janela/contexto GLES2 (thread que chamou) e libera o contexto para a thread de render.

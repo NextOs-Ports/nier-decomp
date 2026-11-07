@@ -1,12 +1,20 @@
 // Ganchos do Direct3D do NieR (endereços em nier_d3d.h / docs/D3D_MAP.md) sobre o código recompilado
 // pelo ReXGlue. Cada gancho grava o comando para o renderizador GLES2 e, por padrão, ainda chama o D3D
-// original (o rexgpu-null mantém fences/vblank). Com Config::bypassGuestPM4 os desenhos não geram PM4
+// original (o rexgpu-null mantém fences/vblank). NIER_BYPASS_PM4=1 deixa de gerar PM4 nos desenhos
 // (modelo DMC3), depois de provado que nada no jogo espera por eles.
+//
+// O renderizador liga sozinho no primeiro gancho quando NIER_NATIVE_RENDER está definido:
+//   NIER_RENDER_WIDTH (>= 640, padrão 854), NIER_GLES2_SHADERS (dump ESSL privado), NIER_NO_CULL=1.
 #include "nier_d3d.h"
 #include "renderer.h"
 
 #include <rex/hook.h>
 #include <rex/ppc/func.h>
+#include <rex/system/kernel_state.h>
+#include <rex/system/xmemory.h>
+
+#include <cstdlib>
+#include <mutex>
 
 REX_EXTERN(__imp__sub_82571508);  // DrawVertices
 REX_EXTERN(__imp__sub_825718F8);  // DrawIndexedVertices
@@ -16,52 +24,69 @@ REX_EXTERN(__imp__sub_8257AB38);  // Swap
 REX_EXTERN(__imp__sub_8256BB90);  // SetRenderState(94) = intervalo de apresentação
 
 namespace {
-bool Bypass() { return nier::render::Enabled() && nier::render::Settings().bypassGuestPM4; }
+const uint8_t* ReadVirtual(uint32_t address, uint32_t size) {
+  if (!address || uint64_t(address) + size > 0x100000000ull) return nullptr;
+  return rex::system::kernel_memory()->TranslateVirtual<const uint8_t*>(address);
 }
 
+bool Ready() {
+  static std::once_flag once;
+  static bool on = false;
+  std::call_once(once, [] {
+    if (!std::getenv("NIER_NATIVE_RENDER")) return;
+    nier::render::Config c;
+    if (const char* w = std::getenv("NIER_RENDER_WIDTH")) { c.renderWidth = std::atoi(w); c.renderHeight = c.renderWidth * 9 / 16; }
+    c.shaderDir = std::getenv("NIER_GLES2_SHADERS");
+    c.bypassGuestPM4 = std::getenv("NIER_BYPASS_PM4") && std::atoi(std::getenv("NIER_BYPASS_PM4"));
+    c.cull = !(std::getenv("NIER_NO_CULL") && std::atoi(std::getenv("NIER_NO_CULL")));
+    nier::render::GuestMemory m{ReadVirtual, rex::system::kernel_memory()->physical_membase()};
+    on = nier::render::Init(c, m);
+  });
+  return on;
+}
+bool Bypass() { return Ready() && nier::render::Settings().bypassGuestPM4; }
+}  // namespace
+
 REX_HOOK_RAW(sub_82571508) {
-  if (nier::render::Enabled())
-    nier::render::RecordDraw(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, 0, ctx.r6.u32, false);
+  if (Ready()) nier::render::RecordDraw(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, 0, ctx.r6.u32, false);
   if (Bypass()) return;
   __imp__sub_82571508(ctx, base);
 }
 
 REX_HOOK_RAW(sub_825718F8) {
-  if (nier::render::Enabled())
-    nier::render::RecordDraw(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, ctx.r6.u32, ctx.r7.u32, true);
+  if (Ready()) nier::render::RecordDraw(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, ctx.r6.u32, ctx.r7.u32, true);
   if (Bypass()) return;
   __imp__sub_825718F8(ctx, base);
 }
 
-// DrawVerticesUP: stride em r6 (medido: grava r6>>2 em +0x31A0). O ponteiro dos dados ainda não foi
-// fixado (r7 no DMC3); até a captura confirmar, o comando só é gravado quando r7 aponta para memória.
+// DrawVerticesUP: stride em r6 (medido: grava r6>>2 em +0x31A0); dados em r7 (a confirmar pela captura).
 REX_HOOK_RAW(sub_82571070) {
-  if (nier::render::Enabled() && ctx.r7.u32)
-    nier::render::RecordDrawUP(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, base + ctx.r7.u32, ctx.r6.u32);
+  if (Ready() && ctx.r7.u32)
+    if (const uint8_t* data = ReadVirtual(ctx.r7.u32, ctx.r5.u32 * ctx.r6.u32))
+      nier::render::RecordDrawUP(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, data, ctx.r6.u32);
   if (Bypass()) return;
   __imp__sub_82571070(ctx, base);
 }
 
 // Resolve(dev, flags, srcRect, destTex, destPoint, level, slice, clearColor*, clearZ=f1, …)
 REX_HOOK_RAW(sub_82585888) {
-  if (nier::render::Enabled()) {
+  if (Ready()) {
     int32_t rect[4];
-    bool hasRect = ctx.r5.u32 != 0;
-    if (hasRect)
-      for (int i = 0; i < 4; ++i) rect[i] = int32_t(nier::d3d::BE32(base + ctx.r5.u32 + 4 * i));
+    const uint8_t* r = ctx.r5.u32 ? ReadVirtual(ctx.r5.u32, 16) : nullptr;
+    if (r) for (int i = 0; i < 4; ++i) rect[i] = int32_t(nier::d3d::BE32(r + 4 * i));
     uint32_t argb = 0;
-    if (ctx.r10.u32) {  // D3DVECTOR4 RGBA em float
-      auto c = [&](int i) { float v = nier::d3d::BEF(base + ctx.r10.u32 + 4 * i); return uint32_t(v <= 0 ? 0 : v >= 1 ? 255 : v * 255 + 0.5f); };
+    if (const uint8_t* cc = ctx.r10.u32 ? ReadVirtual(ctx.r10.u32, 16) : nullptr) {  // D3DVECTOR4 RGBA
+      auto c = [&](int i) { float v = nier::d3d::BEF(cc + 4 * i); return uint32_t(v <= 0 ? 0 : v >= 1 ? 255 : v * 255 + 0.5f); };
       argb = c(3) << 24 | c(0) << 16 | c(1) << 8 | c(2);
     }
-    nier::render::RecordResolve(ctx.r3.u32, ctx.r4.u32, hasRect ? rect : nullptr, ctx.r6.u32, argb);
+    nier::render::RecordResolve(ctx.r3.u32, ctx.r4.u32, r ? rect : nullptr, ctx.r6.u32, argb);
   }
   __imp__sub_82585888(ctx, base);
 }
 
 REX_HOOK_RAW(sub_8257AB38) {
   __imp__sub_8257AB38(ctx, base);
-  nier::render::Present();
+  if (Ready()) nier::render::Present();
 }
 
 REX_HOOK_RAW(sub_8256BB90) {

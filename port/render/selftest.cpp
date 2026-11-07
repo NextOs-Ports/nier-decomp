@@ -12,8 +12,8 @@
 
 int main() {
   if (!SDL_Init(SDL_INIT_VIDEO)) { std::fprintf(stderr, "SDL_Init: %s\n", SDL_GetError()); return 2; }
-  std::vector<uint8_t> virt(0x100000, 0), phys(0x100000, 0);
-  nier::render::GuestMemory mem{virt.data(), phys.data()};
+  static std::vector<uint8_t> virt(0x100000, 0), phys(0x100000, 0);
+  nier::render::GuestMemory mem{[](uint32_t a, uint32_t n) -> const uint8_t* { return uint64_t(a) + n <= virt.size() ? virt.data() + a : nullptr; }, phys.data()};
   nier::render::Config cfg;
   cfg.renderWidth = 854; cfg.renderHeight = 480;
   if (!nier::render::Init(cfg, mem)) return 3;
