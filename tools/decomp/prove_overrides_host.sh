@@ -28,7 +28,7 @@ out = sys.argv[1]
 rep = {}
 for name in ('referencia', 'candidato'):
     con = open(f'{out}/{name}/run/console.log', errors='replace').read()
-    gl = re.findall(r'\[nier-gl\] (\d+) quadros, ([\d.]+) ms, (\d+) draws no quadro', con)
+    gl = re.findall(r'\[nier-gl\] (\d+) quadros(?: \(janela \d+\))?, ([\d.]+) ms, (\d+) draws no quadro', con)
     frames = [(int(a), float(b), int(c)) for a, b, c in gl]
     max_draws = max((c for _, _, c in frames), default=0)
     late = [c for f, _, c in frames if f >= frames[-1][0] - 600] if frames else []

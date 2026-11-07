@@ -15,6 +15,7 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <time.h>
+#include <xmmintrin.h>
 #include <unistd.h>
 #include <algorithm>
 #include <cinttypes>
@@ -78,8 +79,8 @@ void on_segv(int, siginfo_t* si, void*) {
   g_fault_addr = a;
   if (g_armed) siglongjmp(g_jmp, 1);
   char msg[160];
-  int n = snprintf(msg, sizeof msg, "falha fora da execução: sinal %d host %p guest 0x%llx armed=%d tid=%ld main=%ld\n", si->si_signo, si->si_addr,
-                   (unsigned long long)(a - (uintptr_t)g_base), (int)g_armed, (long)gettid(), (long)getpid());
+  int n = snprintf(msg, sizeof msg, "falha fora da execução: sinal %d host %p (on_segv%+ld) guest 0x%llx armed=%d\n", si->si_signo, si->si_addr,
+                   (long)((uintptr_t)si->si_addr - (uintptr_t)&on_segv), (unsigned long long)(a - (uintptr_t)g_base), (int)g_armed);
   write(2, msg, n);
   _exit(99);
 }
@@ -149,6 +150,9 @@ State run(PPCFunc* fn, const PPCContext& in, const std::vector<uint8_t>& s,
   State out;
   static PPCContext ctx;          // fora da pilha: sobrevive ao siglongjmp
   ctx = in;
+  // Código do guest pode destravar exceções de ponto flutuante no MXCSR (fpscr); restaurar
+  // depois, senão a próxima divisão do próprio comparador levanta SIGFPE desarmado.
+  const unsigned csr = _mm_getcsr();
   g_armed = 1;
   struct itimerval tv{}; tv.it_value.tv_usec = 100000;   // 100 ms
   setitimer(ITIMER_REAL, &tv, nullptr);
@@ -161,6 +165,7 @@ State run(PPCFunc* fn, const PPCContext& in, const std::vector<uint8_t>& s,
     out.faulted = true; out.fault = g_fault_addr - (uintptr_t)g_base;
   }
   g_armed = 0;
+  _mm_setcsr(csr);
   struct itimerval off{}; setitimer(ITIMER_REAL, &off, nullptr);
   out.ctx = ctx;
   out.calls = g_calls;
@@ -504,6 +509,27 @@ int main(int argc, char** argv) {
       State b = run(e.decomp, in, s, t, st);
       if (trace) {
         fprintf(stderr, "TRACE reconstruída: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\n", b.faulted, (unsigned long long)b.fault, b.calls.size(), (unsigned long long)b.ctx.r3.u64);
+        for (int side = 0; side < 2; ++side) {
+          const State& st = side ? b : a;
+          for (size_t c = 0; c < st.calls.size() && c < 2; ++c) {
+            fprintf(stderr, "TRACE %s chamada %zu -> 0x%08x r3..r8:", side ? "reconstruída" : "original", c, st.calls[c].target);
+            for (int k = 0; k < 6; ++k) fprintf(stderr, " %llx", (unsigned long long)st.calls[c].r[k]);
+            fprintf(stderr, " f1..f4:");
+            for (int k = 0; k < 4; ++k) { double d; std::memcpy(&d, &st.calls[c].f[k], 8); fprintf(stderr, " %g", d); }
+            fprintf(stderr, "\n");
+          }
+        }
+        // NIER_TRACE_IMAGE=<addr guest hex>: 32 bytes da imagem nesse endereço após a execução original
+        if (getenv("NIER_TRACE_IMAGE")) {
+          const uint32_t ia = (uint32_t)strtoul(getenv("NIER_TRACE_IMAGE"), nullptr, 0);
+          fprintf(stderr, "TRACE imagem original @0x%08x:", ia);
+          for (int k = 0; k < 32; ++k) {
+            const size_t off = ia - kImageBase + k, pg = off / kPage;
+            const uint8_t* src = a.image_pages.count(pg) ? a.image_pages.at(pg).data() + off % kPage : g_pristine.data() + off;
+            fprintf(stderr, "%s%02x", k % 4 ? "" : " ", *src);
+          }
+          fprintf(stderr, "\n");
+        }
         // 8 palavras a partir do r3 de entrada, nos dois lados (quando aponta para a área de teste)
         if (in.r3.u32 >= kScratch && in.r3.u32 + 32 <= kScratch + kScratchSize) {
           for (int side = 0; side < 2; ++side) {

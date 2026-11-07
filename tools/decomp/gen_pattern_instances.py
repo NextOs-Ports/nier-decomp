@@ -191,6 +191,33 @@ def list_push_back(a, w):
          f'{s16(w[20])}, {s16(w[21])}}}')
     return f'static constexpr ListPush p = {p}; list_push_back(ctx, base, {-s16(w[4])}, p)', 'r3=ptr r4=int'
 
+def effect_start(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    if hi_lo(5, 10) != hi_lo(5, 27): return None
+    p = (f'{{0x{hi_lo(5, 10):08X}, {s16(w[34])}, 0x{hi_lo(3, 9):08X}, 0x{hi_lo(6, 13):08X}, 0x{hi_lo(7, 15):08X}, '
+         f'0x{hi_lo(8, 18):08X}, 0x{hi_lo(39, 42):08X}, 0x{hi_lo(57, 62):08X}, 0x{hi_lo(53, 55):08X}, 0x{hi_lo(75, 77):08X}}}')
+    return f'static constexpr EffectStart p = {p}; effect_start(ctx, base, {-s16(w[2])}, p)', 'r3=obj r4=ptr nan=payload'
+
+def script_fire(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    p = (f'{{{sym(bl_target(a + 32, w[8]))}, {sym(bl_target(a + 352, w[88]))}, 0x{hi_lo(24, 28):08X}, 0x{hi_lo(32, 42):08X}, '
+         f'0x{hi_lo(40, 44):08X}, 0x{hi_lo(20, 22):08X}, 0x{hi_lo(52, 56):08X}, 0x{hi_lo(98, 103):08X}, '
+         f'{s16(w[60])}, 4, {s16(w[97])}}}')
+    return f'static constexpr ScriptFire p = {p}; script_fire(ctx, base, {-s16(w[5])}, p)', 'r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload'
+
+def pool_ring_init(a, w):
+    sh = (w[29] >> 11) & 31
+    if s16(w[9]) != (1 << sh) or s16(w[20]) != (1 << sh): return None
+    prev, nxt = s16(w[26]), s16(w[37])
+    return f'pool_ring_init(ctx, base, {1 << sh}, {prev}, {nxt})', 'r3=ptr @r3.0=range:0..32 @r3.4=ptr'
+
+def vector_table_init(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    ref = words(0x82615390, 128)
+    for i in range(32):
+        if i != 8 and w[i] != ref[i]: return None
+    return f'vector_table_init_ret(ctx, base, 0x{hi_lo(4, 8):08X})', ''
+
 KINDS = {'alloc_then_init': (0x821F4C50, 116, alloc_then_init), 'ctor_vec_rand': (0x8226BCB8, 268, ctor_vec_rand),
          'fir16': (0x825047C0, 276, fir16), 'dtor_body_free2': (0x82102F88, 80, dtor_body_free2),
          'ctor_base_vt_fields': (0x82289650, 84, ctor_base_vt_fields), 'chain2x_global': (0x82386F00, 104, chain2x_global),
@@ -199,14 +226,15 @@ KINDS = {'alloc_then_init': (0x821F4C50, 116, alloc_then_init), 'ctor_vec_rand':
          'sub_virtual_then_set': (0x823F6318, 80, sub_virtual_then_set), 'ctor_base_vt_byte_float': (0x8228FB70, 84, ctor_base_vt_byte_float),
          'singleton_register': (0x82594690, 88, singleton_register), 'angle_wrap': (0x821B2C40, 148, angle_wrap),
          'ctor_vt2_link': (0x8227A730, 148, ctor_vt2_link), 'five_flag_calls': (0x82207AB0, 176, five_flag_calls),
-         'effect_init': (0x82351228, 196, effect_init),
-         # clone_if_type (0x822D8268, 184): a chamada base traduzida dispara SIGFPE com o comparador desarmado; fora até entender.
+         'effect_init': (0x82351228, 196, effect_init), 'clone_if_type': (0x822D8268, 184, clone_if_type),
          'bounded_string_copy': (0x82100540, 180, bounded_string_copy), 'make_node2': (0x825A7690, 176, make_node2),
          'vcall_tail': (0x8213FFB8, 16, vcall_tail), 'bitset_probe': (0x82174710, 100, bitset_probe),
          'ctor_vt_init_opt': (0x824E02C8, 96, ctor_vt_init_opt), 'make_pair_result2': (0x82551108, 112, make_pair_result2),
          'chain_flag_global': (0x82383F08, 64, chain_flag_global), 'ctor_base_vt_byte_word': (0x8226B1B8, 76, ctor_base_vt_byte_word),
          'list_unlink': (0x821AE3F0, 120, list_unlink), 'seh_thunk': (0x825D19E0, 56, seh_thunk),
-         'list_push_back': (0x82498B80, 124, list_push_back)}
+         'list_push_back': (0x82498B80, 124, list_push_back),
+         'effect_start': (0x8226B2B0, 400, effect_start), 'script_fire': (0x82281570, 452, script_fire),
+         'pool_ring_init': (0x8219C130, 244, pool_ring_init), 'vector_table_init': (0x82615390, 128, vector_table_init)}
 refs = {k: shape(words(a, n)) for k, (a, n, _) in KINDS.items()}
 done = set()
 for f in (root / 'src/decomp').rglob('*.cpp'):

@@ -3,6 +3,7 @@
 #include "pattern_template.h"
 #include "lifecycle_template.h"
 // Alvos chamados diretamente pelas instâncias.
+DECLARE_REX_FUNC(sub_82100000);
 DECLARE_REX_FUNC(sub_821027C8);
 DECLARE_REX_FUNC(sub_82102BD0);
 DECLARE_REX_FUNC(sub_82103830);
@@ -81,20 +82,30 @@ DECLARE_REX_FUNC(sub_82270490);
 DECLARE_REX_FUNC(sub_822753A8);
 DECLARE_REX_FUNC(sub_82278018);
 DECLARE_REX_FUNC(sub_8227A8F8);
+DECLARE_REX_FUNC(sub_822812C8);
 DECLARE_REX_FUNC(sub_82282288);
 DECLARE_REX_FUNC(sub_82289FF0);
+DECLARE_REX_FUNC(sub_822902B8);
 DECLARE_REX_FUNC(sub_82290728);
 DECLARE_REX_FUNC(sub_82295228);
+DECLARE_REX_FUNC(sub_82297A08);
 DECLARE_REX_FUNC(sub_82297E78);
 DECLARE_REX_FUNC(sub_8229C7B0);
 DECLARE_REX_FUNC(sub_8229EFB8);
+DECLARE_REX_FUNC(sub_822A2660);
 DECLARE_REX_FUNC(sub_822A2B40);
+DECLARE_REX_FUNC(sub_822A6C18);
 DECLARE_REX_FUNC(sub_822A7088);
+DECLARE_REX_FUNC(sub_822AB9B8);
+DECLARE_REX_FUNC(sub_822AC450);
 DECLARE_REX_FUNC(sub_822AC8C0);
 DECLARE_REX_FUNC(sub_822B1160);
 DECLARE_REX_FUNC(sub_822B3AE8);
+DECLARE_REX_FUNC(sub_822BC2E8);
 DECLARE_REX_FUNC(sub_822BDB38);
+DECLARE_REX_FUNC(sub_822C1C08);
 DECLARE_REX_FUNC(sub_822C34D0);
+DECLARE_REX_FUNC(sub_822C6688);
 DECLARE_REX_FUNC(sub_822C83D0);
 DECLARE_REX_FUNC(sub_822CB608);
 DECLARE_REX_FUNC(sub_822CE0B0);
@@ -102,21 +113,29 @@ DECLARE_REX_FUNC(sub_822D0E20);
 DECLARE_REX_FUNC(sub_822D1130);
 DECLARE_REX_FUNC(sub_822D1550);
 DECLARE_REX_FUNC(sub_822D1B40);
+DECLARE_REX_FUNC(sub_822D5BB8);
 DECLARE_REX_FUNC(sub_822D9008);
+DECLARE_REX_FUNC(sub_822DC380);
 DECLARE_REX_FUNC(sub_822E3528);
 DECLARE_REX_FUNC(sub_822EA110);
 DECLARE_REX_FUNC(sub_822EB318);
+DECLARE_REX_FUNC(sub_822EF3D8);
 DECLARE_REX_FUNC(sub_822F6808);
 DECLARE_REX_FUNC(sub_822FCA38);
 DECLARE_REX_FUNC(sub_822FCF68);
+DECLARE_REX_FUNC(sub_822FE608);
 DECLARE_REX_FUNC(sub_82302778);
+DECLARE_REX_FUNC(sub_823069C0);
 DECLARE_REX_FUNC(sub_8230D3E8);
+DECLARE_REX_FUNC(sub_8230ED30);
 DECLARE_REX_FUNC(sub_82312088);
+DECLARE_REX_FUNC(sub_823142D0);
 DECLARE_REX_FUNC(sub_82316190);
 DECLARE_REX_FUNC(sub_82318178);
 DECLARE_REX_FUNC(sub_823192E8);
 DECLARE_REX_FUNC(sub_8231A230);
 DECLARE_REX_FUNC(sub_8231B800);
+DECLARE_REX_FUNC(sub_8231DB18);
 DECLARE_REX_FUNC(sub_82320A28);
 DECLARE_REX_FUNC(sub_8233B128);
 DECLARE_REX_FUNC(sub_8233B1A8);
@@ -155,6 +174,7 @@ DECLARE_REX_FUNC(sub_823E8650);
 DECLARE_REX_FUNC(sub_82428600);
 DECLARE_REX_FUNC(sub_8243F5C8);
 DECLARE_REX_FUNC(sub_824461D8);
+DECLARE_REX_FUNC(sub_82480B90);
 DECLARE_REX_FUNC(sub_824984B8);
 DECLARE_REX_FUNC(sub_8249A428);
 DECLARE_REX_FUNC(sub_8249D790);
@@ -336,6 +356,10 @@ NIER_VERIFY_SPEC(sub_82183400, 0x82183400, "r3=obj");
 // sub_82190938 (180 bytes) — bounded_string_copy
 NIER_DECOMP(sub_82190938) { bounded_string_copy(ctx, base, 96, 0, 31, sub_825D1240, 31); }
 NIER_VERIFY_SPEC(sub_82190938, 0x82190938, "r3=ptr r4=bptr");
+
+// sub_8219C130 (244 bytes) — pool_ring_init
+NIER_DECOMP(sub_8219C130) { pool_ring_init(ctx, base, 16, 8, 4); }
+NIER_VERIFY_SPEC(sub_8219C130, 0x8219C130, "r3=ptr @r3.0=range:0..32 @r3.4=ptr");
 
 // sub_8219D980 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_8219D980) { dtor_body_free(ctx, base, 112, sub_8219D8C8, sub_8258BC58); }
@@ -657,6 +681,10 @@ NIER_VERIFY_SPEC(sub_82207F80, 0x82207F80, "r3=ptr r4=range:0..6");
 NIER_DECOMP(sub_82208030) { static constexpr FiveFlags p = {sub_82207808, sub_82207878, sub_822078E8, sub_82207958, sub_822079C8, 1, -1, 2, 3, -3, -4}; five_flag_calls(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_82208030, 0x82208030, "r3=ptr r4=range:0..6");
 
+// sub_82217AF8 (244 bytes) — pool_ring_init
+NIER_DECOMP(sub_82217AF8) { pool_ring_init(ctx, base, 256, 244, 240); }
+NIER_VERIFY_SPEC(sub_82217AF8, 0x82217AF8, "r3=ptr @r3.0=range:0..32 @r3.4=ptr");
+
 // sub_822569C8 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_822569C8) { dtor_body_free(ctx, base, 112, sub_82256310, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_822569C8, 0x822569C8, "r3=ptr r4=range:0..1");
@@ -769,6 +797,10 @@ NIER_VERIFY_SPEC(sub_8226AFC8, 0x8226AFC8, "r3=obj");
 NIER_DECOMP(sub_8226B1B8) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82027D94, 0, 32); }
 NIER_VERIFY_SPEC(sub_8226B1B8, 0x8226B1B8, "r3=ptr");
 
+// sub_8226B2B0 (400 bytes) — effect_start
+NIER_DECOMP(sub_8226B2B0) { static constexpr EffectStart p = {0x8202783C, 10408, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8226B2B0, 0x8226B2B0, "r3=obj r4=ptr nan=payload");
+
 // sub_8226B440 (76 bytes) — ctor_base_vt_byte_word
 NIER_DECOMP(sub_8226B440) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82027DB4, 0, 32); }
 NIER_VERIFY_SPEC(sub_8226B440, 0x8226B440, "r3=ptr");
@@ -781,9 +813,17 @@ NIER_VERIFY_SPEC(sub_8226BCB8, 0x8226BCB8, "r3=ptr:16");
 NIER_DECOMP(sub_8226FE10) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202877C, 0, 32); }
 NIER_VERIFY_SPEC(sub_8226FE10, 0x8226FE10, "r3=ptr");
 
+// sub_8226FF78 (400 bytes) — effect_start
+NIER_DECOMP(sub_8226FF78) { static constexpr EffectStart p = {0x8202875C, 10408, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8226FF78, 0x8226FF78, "r3=obj r4=ptr nan=payload");
+
 // sub_822706E0 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822706E0) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82028C1C, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822706E0, 0x822706E0, "r3=ptr:16");
+
+// sub_82279AB0 (400 bytes) — effect_start
+NIER_DECOMP(sub_82279AB0) { static constexpr EffectStart p = {0x820299B0, 10408, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_82279AB0, 0x82279AB0, "r3=obj r4=ptr nan=payload");
 
 // sub_8227A730 (148 bytes) — ctor_vt2_link
 NIER_DECOMP(sub_8227A730) { ctor_vt2_link(ctx, base, 112, 0x8200BC54, 36, 0x8202DBEC, 0, 80, sub_82149BE0, 4, 4, 4, 2); }
@@ -801,9 +841,17 @@ NIER_VERIFY_SPEC(sub_82280CD0, 0x82280CD0, "r3=ptr r4=range:0..1 callargs=2");
 NIER_DECOMP(sub_822811B8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202A268, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822811B8, 0x822811B8, "r3=ptr:16");
 
+// sub_82281570 (452 bytes) — script_fire
+NIER_DECOMP(sub_82281570) { static constexpr ScriptFire p = {sub_822812C8, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_82281570, 0x82281570, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
 // sub_82289650 (84 bytes) — ctor_base_vt_fields
 NIER_DECOMP(sub_82289650) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x8202A974, 0, 0x8200BC54, 28, 0, 32); }
 NIER_VERIFY_SPEC(sub_82289650, 0x82289650, "r3=ptr");
+
+// sub_8228F9E0 (400 bytes) — effect_start
+NIER_DECOMP(sub_8228F9E0) { static constexpr EffectStart p = {0x8202AFAC, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8228F9E0, 0x8228F9E0, "r3=obj r4=ptr nan=payload");
 
 // sub_8228FB70 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_8228FB70) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202AFC0, 0, 0x8200EEA8, 32); }
@@ -813,6 +861,14 @@ NIER_VERIFY_SPEC(sub_8228FB70, 0x8228FB70, "r3=ptr");
 NIER_DECOMP(sub_822901A8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202B0D8, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822901A8, 0x822901A8, "r3=ptr:16");
 
+// sub_82290560 (452 bytes) — script_fire
+NIER_DECOMP(sub_82290560) { static constexpr ScriptFire p = {sub_822902B8, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_82290560, 0x82290560, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
+// sub_822970D0 (400 bytes) — effect_start
+NIER_DECOMP(sub_822970D0) { static constexpr EffectStart p = {0x8202BC4C, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822970D0, 0x822970D0, "r3=obj r4=ptr nan=payload");
+
 // sub_82297260 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_82297260) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202BC94, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_82297260, 0x82297260, "r3=ptr");
@@ -820,6 +876,10 @@ NIER_VERIFY_SPEC(sub_82297260, 0x82297260, "r3=ptr");
 // sub_822978F8 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822978F8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202BD78, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822978F8, 0x822978F8, "r3=ptr:16");
+
+// sub_82297CB0 (452 bytes) — script_fire
+NIER_DECOMP(sub_82297CB0) { static constexpr ScriptFire p = {sub_82297A08, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_82297CB0, 0x82297CB0, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
 
 // sub_8229F4B8 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_8229F4B8) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202CD3C, 0, 0x8200EEA8, 32); }
@@ -829,6 +889,10 @@ NIER_VERIFY_SPEC(sub_8229F4B8, 0x8229F4B8, "r3=ptr");
 NIER_DECOMP(sub_8229F9B0) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202CD7C, 0, 32); }
 NIER_VERIFY_SPEC(sub_8229F9B0, 0x8229F9B0, "r3=ptr");
 
+// sub_822A1BA8 (400 bytes) — effect_start
+NIER_DECOMP(sub_822A1BA8) { static constexpr EffectStart p = {0x8202CE8C, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822A1BA8, 0x822A1BA8, "r3=obj r4=ptr nan=payload");
+
 // sub_822A1E90 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822A1E90) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202CED8, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822A1E90, 0x822A1E90, "r3=ptr");
@@ -836,6 +900,14 @@ NIER_VERIFY_SPEC(sub_822A1E90, 0x822A1E90, "r3=ptr");
 // sub_822A2550 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822A2550) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202CFCC, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822A2550, 0x822A2550, "r3=ptr:16");
+
+// sub_822A2908 (452 bytes) — script_fire
+NIER_DECOMP(sub_822A2908) { static constexpr ScriptFire p = {sub_822A2660, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_822A2908, 0x822A2908, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
+// sub_822A61C8 (400 bytes) — effect_start
+NIER_DECOMP(sub_822A61C8) { static constexpr EffectStart p = {0x8202D56C, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822A61C8, 0x822A61C8, "r3=obj r4=ptr nan=payload");
 
 // sub_822A64A0 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822A64A0) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202D598, 0, 0x8200EEA8, 32); }
@@ -845,6 +917,14 @@ NIER_VERIFY_SPEC(sub_822A64A0, 0x822A64A0, "r3=ptr");
 NIER_DECOMP(sub_822A6B08) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202D674, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822A6B08, 0x822A6B08, "r3=ptr:16");
 
+// sub_822A6EC0 (452 bytes) — script_fire
+NIER_DECOMP(sub_822A6EC0) { static constexpr ScriptFire p = {sub_822A6C18, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_822A6EC0, 0x822A6EC0, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
+// sub_822AB160 (400 bytes) — effect_start
+NIER_DECOMP(sub_822AB160) { static constexpr EffectStart p = {0x8202DBDC, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822AB160, 0x822AB160, "r3=obj r4=ptr nan=payload");
+
 // sub_822AB2F0 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822AB2F0) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202DC04, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822AB2F0, 0x822AB2F0, "r3=ptr");
@@ -853,9 +933,17 @@ NIER_VERIFY_SPEC(sub_822AB2F0, 0x822AB2F0, "r3=ptr");
 NIER_DECOMP(sub_822AC340) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202DCE0, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822AC340, 0x822AC340, "r3=ptr:16");
 
+// sub_822AC6F8 (452 bytes) — script_fire
+NIER_DECOMP(sub_822AC6F8) { static constexpr ScriptFire p = {sub_822AC450, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_822AC6F8, 0x822AC6F8, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
 // sub_822B1BA0 (76 bytes) — ctor_base_vt_byte_word
 NIER_DECOMP(sub_822B1BA0) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202E744, 0, 32); }
 NIER_VERIFY_SPEC(sub_822B1BA0, 0x822B1BA0, "r3=ptr");
+
+// sub_822B3480 (400 bytes) — effect_start
+NIER_DECOMP(sub_822B3480) { static constexpr EffectStart p = {0x8202E7EC, 10408, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822B3480, 0x822B3480, "r3=obj r4=ptr nan=payload");
 
 // sub_822B38E0 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822B38E0) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202E85C, 0, 0x8200EEA8, 32); }
@@ -873,6 +961,10 @@ NIER_VERIFY_SPEC(sub_822B3A08, 0x822B3A08, "r3=ptr");
 NIER_DECOMP(sub_822B4988) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202EDB4, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822B4988, 0x822B4988, "r3=ptr:16");
 
+// sub_822BB458 (400 bytes) — effect_start
+NIER_DECOMP(sub_822BB458) { static constexpr EffectStart p = {0x8202EFEC, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822BB458, 0x822BB458, "r3=obj r4=ptr nan=payload");
+
 // sub_822BB7C8 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822BB7C8) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202F03C, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822BB7C8, 0x822BB7C8, "r3=ptr");
@@ -880,6 +972,14 @@ NIER_VERIFY_SPEC(sub_822BB7C8, 0x822BB7C8, "r3=ptr");
 // sub_822BC1D8 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822BC1D8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202F138, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822BC1D8, 0x822BC1D8, "r3=ptr:16");
+
+// sub_822BC590 (452 bytes) — script_fire
+NIER_DECOMP(sub_822BC590) { static constexpr ScriptFire p = {sub_822BC2E8, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_822BC590, 0x822BC590, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
+// sub_822C1048 (400 bytes) — effect_start
+NIER_DECOMP(sub_822C1048) { static constexpr EffectStart p = {0x8202F69C, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822C1048, 0x822C1048, "r3=obj r4=ptr nan=payload");
 
 // sub_822C1268 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822C1268) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202F6F4, 0, 0x8200EEA8, 32); }
@@ -889,9 +989,17 @@ NIER_VERIFY_SPEC(sub_822C1268, 0x822C1268, "r3=ptr");
 NIER_DECOMP(sub_822C1AF8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202F7D8, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822C1AF8, 0x822C1AF8, "r3=ptr:16");
 
+// sub_822C1EB0 (452 bytes) — script_fire
+NIER_DECOMP(sub_822C1EB0) { static constexpr ScriptFire p = {sub_822C1C08, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_822C1EB0, 0x822C1EB0, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
 // sub_822C5A58 (16 bytes) — vcall_tail
 NIER_DECOMP(sub_822C5A58) { vcall_tail(ctx, base, 6); }
 NIER_VERIFY_SPEC(sub_822C5A58, 0x822C5A58, "r3=obj");
+
+// sub_822C5AC8 (400 bytes) — effect_start
+NIER_DECOMP(sub_822C5AC8) { static constexpr EffectStart p = {0x8202FD6C, 11448, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822C5AC8, 0x822C5AC8, "r3=obj r4=ptr nan=payload");
 
 // sub_822C5DB0 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822C5DB0) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202FD98, 0, 0x8200EEA8, 32); }
@@ -901,6 +1009,10 @@ NIER_VERIFY_SPEC(sub_822C5DB0, 0x822C5DB0, "r3=ptr");
 NIER_DECOMP(sub_822C6578) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202FE7C, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822C6578, 0x822C6578, "r3=ptr:16");
 
+// sub_822C6930 (452 bytes) — script_fire
+NIER_DECOMP(sub_822C6930) { static constexpr ScriptFire p = {sub_822C6688, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_822C6930, 0x822C6930, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
+
 // sub_822C6AF8 (148 bytes) — ctor_vt2_link
 NIER_DECOMP(sub_822C6AF8) { ctor_vt2_link(ctx, base, 112, 0x8200BC54, 112, 0x8202DBEC, 0, 80, sub_82149BE0, 4, 4, 4, 2); }
 NIER_VERIFY_SPEC(sub_822C6AF8, 0x822C6AF8, "r3=ptr r4=range:0..1 callargs=2");
@@ -908,6 +1020,10 @@ NIER_VERIFY_SPEC(sub_822C6AF8, 0x822C6AF8, "r3=ptr r4=range:0..1 callargs=2");
 // sub_822CB110 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822CB110) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82030410, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822CB110, 0x822CB110, "r3=ptr");
+
+// sub_822D1FA0 (400 bytes) — effect_start
+NIER_DECOMP(sub_822D1FA0) { static constexpr EffectStart p = {0x82031EC0, 10488, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822D1FA0, 0x822D1FA0, "r3=obj r4=ptr nan=payload");
 
 // sub_822D22B8 (76 bytes) — ctor_base_vt_byte_word
 NIER_DECOMP(sub_822D22B8) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82032354, 0, 32); }
@@ -921,9 +1037,25 @@ NIER_VERIFY_SPEC(sub_822D23E8, 0x822D23E8, "r3=ptr");
 NIER_DECOMP(sub_822D29F8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x820324B4, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822D29F8, 0x822D29F8, "r3=ptr:16");
 
+// sub_822D8268 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_822D8268) { static constexpr CloneIf p = {sub_822AB9B8, sub_822D5BB8, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_822D8268, 0x822D8268, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
+
+// sub_822D9830 (400 bytes) — effect_start
+NIER_DECOMP(sub_822D9830) { static constexpr EffectStart p = {0x820326A0, 10488, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822D9830, 0x822D9830, "r3=obj r4=ptr nan=payload");
+
 // sub_822D9E78 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822D9E78) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82032BF0, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822D9E78, 0x822D9E78, "r3=ptr:16");
+
+// sub_822DF4E8 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_822DF4E8) { static constexpr CloneIf p = {sub_822AB9B8, sub_822DC380, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_822DF4E8, 0x822DF4E8, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
+
+// sub_822E23C0 (400 bytes) — effect_start
+NIER_DECOMP(sub_822E23C0) { static constexpr EffectStart p = {0x820332CC, 10408, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822E23C0, 0x822E23C0, "r3=obj r4=ptr nan=payload");
 
 // sub_822E2B48 (76 bytes) — ctor_base_vt_byte_word
 NIER_DECOMP(sub_822E2B48) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82033330, 0, 32); }
@@ -937,6 +1069,10 @@ NIER_VERIFY_SPEC(sub_822E2CE8, 0x822E2CE8, "r3=ptr");
 NIER_DECOMP(sub_822E4158) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82033944, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822E4158, 0x822E4158, "r3=ptr:16");
 
+// sub_822EAA48 (400 bytes) — effect_start
+NIER_DECOMP(sub_822EAA48) { static constexpr EffectStart p = {0x8203402C, 10408, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_822EAA48, 0x822EAA48, "r3=obj r4=ptr nan=payload");
+
 // sub_822EAEB0 (76 bytes) — ctor_base_vt_byte_word
 NIER_DECOMP(sub_822EAEB0) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8203407C, 0, 32); }
 NIER_VERIFY_SPEC(sub_822EAEB0, 0x822EAEB0, "r3=ptr");
@@ -948,6 +1084,10 @@ NIER_VERIFY_SPEC(sub_822EB250, 0x822EB250, "r3=ptr");
 // sub_822EBE58 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822EBE58) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x820345FC, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822EBE58, 0x822EBE58, "r3=ptr:16");
+
+// sub_822F2310 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_822F2310) { static constexpr CloneIf p = {sub_822AB9B8, sub_822EF3D8, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_822F2310, 0x822F2310, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
 
 // sub_822F47A0 (84 bytes) — ctor_base_vt_fields
 NIER_DECOMP(sub_822F47A0) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x82034894, 0, 0x8200BC54, 28, 0, 32); }
@@ -969,6 +1109,14 @@ NIER_VERIFY_SPEC(sub_822F85F0, 0x822F85F0, "r3=ptr");
 NIER_DECOMP(sub_822FCF68) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x820354BC, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822FCF68, 0x822FCF68, "r3=ptr:16");
 
+// sub_823005E0 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_823005E0) { static constexpr CloneIf p = {sub_822AB9B8, sub_822FE608, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_823005E0, 0x823005E0, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
+
+// sub_82301858 (400 bytes) — effect_start
+NIER_DECOMP(sub_82301858) { static constexpr EffectStart p = {0x820356D0, 10408, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_82301858, 0x82301858, "r3=obj r4=ptr nan=payload");
+
 // sub_82301CB8 (76 bytes) — ctor_base_vt_byte_word
 NIER_DECOMP(sub_82301CB8) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82035740, 0, 32); }
 NIER_VERIFY_SPEC(sub_82301CB8, 0x82301CB8, "r3=ptr");
@@ -976,6 +1124,10 @@ NIER_VERIFY_SPEC(sub_82301CB8, 0x82301CB8, "r3=ptr");
 // sub_823038C8 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_823038C8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82035D34, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_823038C8, 0x823038C8, "r3=ptr:16");
+
+// sub_82309C68 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_82309C68) { static constexpr CloneIf p = {sub_822AB9B8, sub_823069C0, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_82309C68, 0x82309C68, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
 
 // sub_8230C8B0 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_8230C8B0) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82036018, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
@@ -989,13 +1141,29 @@ NIER_VERIFY_SPEC(sub_8230EEA8, 0x8230EEA8, "r3=ptr");
 NIER_DECOMP(sub_8230F068) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82036A78, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_8230F068, 0x8230F068, "r3=ptr");
 
+// sub_82310D68 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_82310D68) { static constexpr CloneIf p = {sub_822AB9B8, sub_8230ED30, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_82310D68, 0x82310D68, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
+
+// sub_82311DA8 (400 bytes) — effect_start
+NIER_DECOMP(sub_82311DA8) { static constexpr EffectStart p = {0x82036BBC, 10456, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_82311DA8, 0x82311DA8, "r3=obj r4=ptr nan=payload");
+
 // sub_823127C8 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_823127C8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8203709C, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_823127C8, 0x823127C8, "r3=ptr:16");
 
+// sub_823150F0 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_823150F0) { static constexpr CloneIf p = {sub_822AB9B8, sub_823142D0, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_823150F0, 0x823150F0, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
+
 // sub_823164A0 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_823164A0) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8203767C, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_823164A0, 0x823164A0, "r3=ptr:16");
+
+// sub_8231B548 (400 bytes) — effect_start
+NIER_DECOMP(sub_8231B548) { static constexpr EffectStart p = {0x820387DC, 10456, 0x8200F1AC, 0x820007A0, 0x820454E0, 0x8200EEA4, 0x8200C2B4, 0x8201FF44, 0x8200EE04, 0x82000730}; effect_start(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8231B548, 0x8231B548, "r3=obj r4=ptr nan=payload");
 
 // sub_8231B6D8 (84 bytes) — ctor_base_vt_fields
 NIER_DECOMP(sub_8231B6D8) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x820387E8, 0, 0x8200BC54, 28, 0, 32); }
@@ -1005,6 +1173,14 @@ NIER_VERIFY_SPEC(sub_8231B6D8, 0x8231B6D8, "r3=ptr");
 NIER_DECOMP(sub_8231BB10) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82038D24, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_8231BB10, 0x8231BB10, "r3=ptr:16");
 
+// sub_8231F498 (184 bytes) — clone_if_type
+NIER_DECOMP(sub_8231F498) { static constexpr CloneIf p = {sub_822AB9B8, sub_8231DB18, 16, 29, 24, 20, 24, 32, 32, 173, 1, 1}; clone_if_type(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_8231F498, 0x8231F498, "r3=ptr:16 r5=ptr @r5.16=range:28..30 @r3.24=ptr callret=ptr");
+
+// sub_82328FD8 (244 bytes) — pool_ring_init
+NIER_DECOMP(sub_82328FD8) { pool_ring_init(ctx, base, 128, 116, 112); }
+NIER_VERIFY_SPEC(sub_82328FD8, 0x82328FD8, "r3=ptr @r3.0=range:0..32 @r3.4=ptr");
+
 // sub_8232A340 (180 bytes) — bounded_string_copy
 NIER_DECOMP(sub_8232A340) { bounded_string_copy(ctx, base, 96, 0, 511, sub_825D1240, 511); }
 NIER_VERIFY_SPEC(sub_8232A340, 0x8232A340, "r3=ptr r4=bptr");
@@ -1012,6 +1188,10 @@ NIER_VERIFY_SPEC(sub_8232A340, 0x8232A340, "r3=ptr r4=bptr");
 // sub_8232A3F8 (180 bytes) — bounded_string_copy
 NIER_DECOMP(sub_8232A3F8) { bounded_string_copy(ctx, base, 96, 0, 63, sub_825D1240, 63); }
 NIER_VERIFY_SPEC(sub_8232A3F8, 0x8232A3F8, "r3=ptr r4=bptr");
+
+// sub_82337150 (244 bytes) — pool_ring_init
+NIER_DECOMP(sub_82337150) { pool_ring_init(ctx, base, 64, 52, 48); }
+NIER_VERIFY_SPEC(sub_82337150, 0x82337150, "r3=ptr @r3.0=range:0..32 @r3.4=ptr");
 
 // sub_8233B1A8 (100 bytes) — bitset_probe
 NIER_DECOMP(sub_8233B1A8) { static constexpr BitsetProbe p = {sub_8233B128, 800, 0, 4, 23, 9, 31, 29, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
@@ -1056,6 +1236,10 @@ NIER_VERIFY_SPEC(sub_8233BAD8, 0x8233BAD8, "r3=ptr:8 r4=range:0..0x3FFF");
 // sub_8233BEF0 (136 bytes) — bitset_find_resolve
 NIER_DECOMP(sub_8233BEF0) { static constexpr BitsetFind p = {sub_8233BAD8, sub_8233BA60, 1002, 1, 1, 19, 13, 31, 25, 26, 31, 3, 0, 28, 25, 7, 31, 31, 1, 31, 1, 0, 30}; bitset_find_resolve(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_8233BEF0, 0x8233BEF0, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_82346890 (244 bytes) — pool_ring_init
+NIER_DECOMP(sub_82346890) { pool_ring_init(ctx, base, 32, 24, 20); }
+NIER_VERIFY_SPEC(sub_82346890, 0x82346890, "r3=ptr @r3.0=range:0..32 @r3.4=ptr");
 
 // sub_82351228 (196 bytes) — effect_init
 NIER_DECOMP(sub_82351228) { static constexpr EffectInit p = {sub_822041B0, sub_82145B50, 0x848BE4B0, 0x820454E0, 0x820007A4, 0x820007E0, 0, 276, 0, 2, 160, 9, 168, 164, -1, 9, 0, 0, -1, 164}; effect_init(ctx, base, 112, p); }
@@ -1456,6 +1640,10 @@ NIER_VERIFY_SPEC(sub_82473410, 0x82473410, "r3=ptr r4=range:0..1 callargs=2");
 // sub_82480A80 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_82480A80) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82064B74, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_82480A80, 0x82480A80, "r3=ptr:16");
+
+// sub_824814B0 (452 bytes) — script_fire
+NIER_DECOMP(sub_824814B0) { static constexpr ScriptFire p = {sub_82480B90, sub_82100000, 0x8201C920, 0x8200EE98, 0x820205C4, 0x82000730, 0x820007A4, 0x8200EE70, 36, 4, 51}; script_fire(ctx, base, 144, p); }
+NIER_VERIFY_SPEC(sub_824814B0, 0x824814B0, "r3=ptr @r3.96=range:0..4 @r3.156=range:0..1 r4=ptr @r4.0=ptr @r4.0.1008=const:0x8262AB08 nan=payload");
 
 // sub_82483AD8 (84 bytes) — ctor_base_vt_fields
 NIER_DECOMP(sub_82483AD8) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x82064D08, 0, 0x8200BC54, 28, 0, 32); }
@@ -1928,3 +2116,43 @@ NIER_VERIFY_SPEC(sub_82609B18, 0x82609B18, "r3=ptr r4=range:0..1");
 // sub_8260A4F8 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_8260A4F8) { dtor_body_free(ctx, base, 112, sub_82609F70, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_8260A4F8, 0x8260A4F8, "r3=ptr r4=range:0..1");
+
+// sub_82615390 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615390) { vector_table_init_ret(ctx, base, 0x8273F320); }
+NIER_VERIFY_SPEC(sub_82615390, 0x82615390, "");
+
+// sub_82615410 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615410) { vector_table_init_ret(ctx, base, 0x8273F3B0); }
+NIER_VERIFY_SPEC(sub_82615410, 0x82615410, "");
+
+// sub_82615490 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615490) { vector_table_init_ret(ctx, base, 0x8273F440); }
+NIER_VERIFY_SPEC(sub_82615490, 0x82615490, "");
+
+// sub_82615510 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615510) { vector_table_init_ret(ctx, base, 0x8273F4D0); }
+NIER_VERIFY_SPEC(sub_82615510, 0x82615510, "");
+
+// sub_82615590 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615590) { vector_table_init_ret(ctx, base, 0x8273F560); }
+NIER_VERIFY_SPEC(sub_82615590, 0x82615590, "");
+
+// sub_82615610 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615610) { vector_table_init_ret(ctx, base, 0x8273F5F0); }
+NIER_VERIFY_SPEC(sub_82615610, 0x82615610, "");
+
+// sub_82615690 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615690) { vector_table_init_ret(ctx, base, 0x8273F680); }
+NIER_VERIFY_SPEC(sub_82615690, 0x82615690, "");
+
+// sub_82615710 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615710) { vector_table_init_ret(ctx, base, 0x8273F710); }
+NIER_VERIFY_SPEC(sub_82615710, 0x82615710, "");
+
+// sub_82615790 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615790) { vector_table_init_ret(ctx, base, 0x8273F7A0); }
+NIER_VERIFY_SPEC(sub_82615790, 0x82615790, "");
+
+// sub_82615810 (128 bytes) — vector_table_init
+NIER_DECOMP(sub_82615810) { vector_table_init_ret(ctx, base, 0x8273F830); }
+NIER_VERIFY_SPEC(sub_82615810, 0x82615810, "");
