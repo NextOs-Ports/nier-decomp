@@ -261,9 +261,10 @@ inline void angle_wrap(PPCContext& ctx, uint8_t* base, const AngleWrap& p) {
   double x = ctx.f1.f64;
   int32_t n = p.turns;
   const double lo = ldf(base, p.lo), step = ldf(base, p.step);
-  if (!(x >= lo)) { do { x = static_cast<float>(x + step); --n; } while (x < lo); }
+  // bge/ble pulam na comparação desordenada: NaN não entra em nenhum dos laços
+  if (x < lo) { do { x = static_cast<float>(x + step); --n; } while (x < lo); }
   const double hi = ldf(base, p.hi);
-  if (!(x <= hi)) {
+  if (x > hi) {
     do {
       --n;
       x = static_cast<float>(x - step);
@@ -520,4 +521,154 @@ inline void list_push_back(PPCContext& ctx, uint8_t* base, uint32_t frame, const
   st32(base, self + p.tail_off, n);
   st32(base, self + p.count_off, count + 1);
 }
+}  // namespace nier::pattern
+
+namespace nier::pattern {
+// rand() do MSVC na semente global do jogo: devolve os 15 bits altos da semente nova.
+constexpr uint32_t kGameSeed = 0x826303A0;
+inline uint32_t game_rand(uint8_t* base) {
+  const uint32_t seed = ld32(base, kGameSeed) * 214013u + 2531011u;
+  st32(base, kGameSeed, seed);
+  return (seed >> 16) & 0x7FFFu;
+}
+inline double rfp(double v) { return static_cast<double>(static_cast<float>(v)); }
+inline double i2fp(uint32_t v) { return rfp(static_cast<double>(static_cast<int32_t>(v))); }
+
+// Início de um efeito/partícula a partir dos parâmetros do dono (r4): três grupos de
+// (escala*fator, zero, constante), limite inferior do campo +28, propagação opcional de
+// +2028, fase aleatória comparada a um limiar aleatório e chamada do método virtual 7 do
+// próprio objeto com (this, dono, 0, máscara, 4). Varia por instância: o endereço da
+// constante `pair_addr` (+0 e -4) e o campo `floor_off` do dono.
+struct EffectStart {
+  uint32_t pair_addr; int32_t floor_off;
+  uint32_t k_scale_a, k_zero, k_one, k_scale_b, k_prop, k_phase_scale, k_phase_add, k_inv_rand_max;
+};
+inline void effect_start(PPCContext& ctx, uint8_t* base, uint32_t frame, const EffectStart& p) {
+  const uint32_t self = ctx.r3.u32, owner = ctx.r4.u32;
+  GuestFrame f(ctx, base, frame);
+  const double scale_a = ldf(base, p.k_scale_a), zero = ldf(base, p.k_zero), one = ldf(base, p.k_one);
+  stf(base, self + 48, static_cast<float>(rfp(static_cast<double>(ldf(base, owner + 2016)) * scale_a)));
+  stf(base, self + 52, static_cast<float>(zero));
+  stf(base, self + 56, static_cast<float>(one));
+  const double scale_b = ldf(base, p.k_scale_b);
+  stf(base, self + 80, static_cast<float>(rfp(static_cast<double>(ldf(base, owner + 2016)) * scale_b)));
+  stf(base, self + 84, static_cast<float>(zero));
+  stf(base, self + 88, ldf(base, p.pair_addr - 4));
+  stf(base, self + 112, static_cast<float>(rfp(static_cast<double>(ldf(base, owner + 2016)) * scale_b)));
+  stf(base, self + 116, static_cast<float>(zero));
+  stf(base, self + 120, ldf(base, p.pair_addr));
+  // bge pula também na comparação desordenada: o piso só entra quando +28 < 0 (ordenado)
+  if (static_cast<double>(ldf(base, self + 28)) < one) stf(base, self + 28, ldf(base, owner + p.floor_off));
+  if (ld8(base, self + 16) == 0) {
+    const double v = ldf(base, owner + 2028);
+    stf(base, self + 160, static_cast<float>(v));
+    stf(base, owner + 2028, static_cast<float>(rfp(v * static_cast<double>(ldf(base, p.k_prop)))));
+  }
+  const double add = ldf(base, p.k_phase_add), mul = ldf(base, p.k_phase_scale);
+  const double r1 = i2fp(game_rand(base));
+  const double field = ldf(base, self + 28);
+  const uint32_t r2_bits = game_rand(base);
+  const double r2 = i2fp(r2_bits);
+  const double inv = ldf(base, p.k_inv_rand_max);
+  const double threshold = rfp(rfp(std::fma(r1, mul, add)) * field);
+  const double roll = rfp(r2 * inv);
+  const uint32_t flag = (roll > threshold) ? 0u : 1u;   // ble: inclui a comparação desordenada (NaN)
+  st32(base, self + 32, flag ? 4u : 0u);
+  ctx.r7.u64 = 4; ctx.r6.u64 = flag ? ~0ull : 0ull; ctx.r5.u64 = 0;
+  ctx.r8.u64 = r2_bits;   // sobra do sorteio, visível ao método chamado
+  ctx.r4.u64 = owner; ctx.r3.u64 = self;
+  call_virtual(ctx, base, self, 7);
+}
+
+// Disparo de um evento do script do dono: prepare(this, ctx) e, conforme o estado +96 == 2
+// (sorteio por limiar) ou a flag +156 (sorteio por chance()), chama o manipulador em
+// (*ctx)->+1008 com (ctx, código, ..., 0, 1, 0, f1..f4).
+struct ScriptFire {
+  PPCFunc* prepare; PPCFunc* chance;
+  uint32_t k_phase_scale, k_phase_add, k_threshold, k_inv_rand_max, k_one, k_f1;
+  int32_t code_base_a, code_flag_a, code_base_b;
+};
+inline void script_fire(PPCContext& ctx, uint8_t* base, uint32_t frame, const ScriptFire& p) {
+  const uint32_t self = ctx.r3.u32, sc = ctx.r4.u32;
+  GuestFrame f(ctx, base, frame);
+  p.prepare(ctx, base);
+  double f4;
+  if (static_cast<int32_t>(ld32(base, self + 96)) == 2) {
+    const double inv = ldf(base, p.k_inv_rand_max);
+    const uint32_t r1 = game_rand(base);
+    const double scale = ldf(base, p.k_phase_scale);
+    const uint32_t r2 = game_rand(base);
+    const double add = ldf(base, p.k_phase_add), thr = ldf(base, p.k_threshold);
+    f4 = rfp(std::fma(i2fp(r1), scale, add));
+    const double roll = rfp(i2fp(r2) * inv);
+    const uint32_t flag = (roll > thr) ? 0u : 1u;   // ble: inclui NaN
+    const uint32_t obj = ld32(base, sc);
+    const uint32_t handler = ld32(base, obj + 1008);
+    ctx.r5.u64 = flag ? ~0ull : 0ull;
+    ctx.r4.s64 = p.code_base_a + (flag ? p.code_flag_a : 0);
+    ctx.ctr.u64 = handler;
+  } else {
+    if (ld8(base, self + 156) == 0) return;
+    const uint32_t r1 = game_rand(base);
+    const double scale = ldf(base, p.k_phase_scale), add = ldf(base, p.k_phase_add);
+    ctx.f1.f64 = ldf(base, p.k_threshold);
+    const uint32_t obj = ld32(base, sc);
+    f4 = rfp(std::fma(i2fp(r1), scale, add));
+    p.chance(ctx, base);
+    const uint32_t hit = ctx.r3.u32 & 0xFF;
+    const uint32_t handler = ld32(base, obj + 1008);
+    ctx.r4.s64 = p.code_base_b + (hit == 0 ? 1 : 0);
+    ctx.ctr.u64 = handler;
+  }
+  const double one = ldf(base, p.k_one);
+  ctx.f4.f64 = f4; ctx.f3.f64 = one; ctx.f2.f64 = one;
+  ctx.f1.f64 = ldf(base, p.k_f1);
+  ctx.r8.u64 = 0; ctx.r6.u64 = 0; ctx.r7.u64 = 1;
+  ctx.r3.u64 = sc;
+  call_indirect(ctx, base, ctx.ctr.u32);
+}
+}  // namespace nier::pattern
+
+namespace nier::pattern {
+// Inicializa a lista livre de um pool: n nós de `size` bytes a partir de +4 encadeados
+// (prev em +prev_off, next em +next_off), cabeça/cauda em +16/+20, contagens zeradas.
+inline void pool_ring_init(PPCContext& ctx, uint8_t* base, uint32_t size, int32_t prev_off, int32_t next_off) {
+  const uint32_t self = ctx.r3.u32;
+  auto count = [&]() { return static_cast<int32_t>(ld32(base, self)); };
+  auto arr = [&]() { return ld32(base, self + 4); };
+  st32(base, self + 8, 0); st32(base, self + 12, 0); st32(base, self + 24, 0);
+  // (releituras de +0/+4 a cada passo, como o original: os nós podem sobrepor o descritor)
+  if (count() > 2) {
+    uint32_t node = arr() + size;
+    int32_t k = 1;
+    do {
+      st32(base, node + prev_off, node - size);
+      ++k;
+      st32(base, node + next_off, node + size);
+      node += size;
+    } while (k < count() - 1);
+  }
+  st32(base, arr() + prev_off, 0);
+  st32(base, arr() + static_cast<uint32_t>(count()) * size - size + next_off, 0);
+  if (count() > 1) {
+    st32(base, arr() + next_off, arr() + size);
+    st32(base, arr() + static_cast<uint32_t>(count()) * size - size + prev_off, arr() + static_cast<uint32_t>(count() - 2) * size);
+  } else {
+    st32(base, arr() + next_off, 0);
+    st32(base, arr() + static_cast<uint32_t>(count()) * size - size + prev_off, 0);
+  }
+  const uint32_t end = arr() + static_cast<uint32_t>(count()) * size;
+  st32(base, self + 16, arr());
+  st32(base, self + 20, end - size);
+}
+
+// Tabela de 2 vetores constantes (montados por VMX a partir de floats fixos da imagem):
+// +48 = (1, 1, 1, -1), +80 = (0.5, 0.6, 0.7, 0.7); 16 bytes cada, alinhados a 16.
+inline void vector_table_init(PPCContext&, uint8_t* base, uint32_t dst) {
+  static constexpr uint32_t k[16] = {0x3F800000, 0x3F800000, 0x3F800000, 0xBF800000, 0, 0, 0, 0,
+                                     0x3F000000, 0x3F19999A, 0x3F333333, 0x3F333333, 0, 0, 0, 0};
+  for (int i = 0; i < 4; ++i) st32(base, ((dst + 48) & ~0xFu) + i * 4, k[i]);
+  for (int i = 0; i < 4; ++i) st32(base, ((dst + 80) & ~0xFu) + i * 4, k[8 + i]);
+}
+inline void vector_table_init_ret(PPCContext& ctx, uint8_t* base, uint32_t dst) { vector_table_init(ctx, base, dst); ctx.r3.u64 = 48; }
 }  // namespace nier::pattern
