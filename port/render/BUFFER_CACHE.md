@@ -2,16 +2,24 @@
 
 O recorder captura snapshots imutáveis. A chave inclui endereço efetivo do
 stream guest, stride, quantidade, formato, endian, escala e capacidades de
-fetch. Um hash de 16 amostras rejeita mudanças óbvias; **todo hit compara todos
-os bytes referenciados**. Alteração fora das amostras também invalida o cache.
-Padding não usado pelo atributo não afeta sua identidade.
+fetch. Por ordem X1-H3, o hash cobre 16 elementos inteiros distribuídos pelo
+buffer; não há memcmp nem hash completo por draw. Alterações fora das amostras
+podem não ser detectadas. UI/DrawUP ignora esse cache e é capturada integralmente.
 
-Cada snapshot tem um serial único. A thread GL mantém VBO/IBO por serial e só
-chama `glBufferData` quando esse serial ainda não está residente. Frames mantêm
-referências aos snapshots até terminar o desenho; sobrescrever um endereço do
-guest não altera um quadro pendente. CPU: LRU de 64 MiB/4096 entradas. GPU:
-64 MiB, com descarte somente entre frames. Evicção pode exigir reenvio posterior.
-O teto de 192 MiB do quadro inclui os snapshots referenciados conservadoramente.
+Só dados iguais observados em pelo menos dois quadros distintos são promovidos
+a VBO/IBO STATIC. Repetir o desenho no mesmo quadro não promove. Mudança detectada
+reinicia a observação. Dados em aquecimento ou dinâmicos usam três pares fixos
+de buffers STREAM (16 MiB VBO + 2 MiB IBO por slot), com offsets alinhados e
+glBufferSubData. UI sempre usa STREAM: zero criação/exclusão de VBO por draw.
+A capacidade só cresce se a marca máxima de bytes do quadro a exigir, reservando
+o desenho inteiro antes dos atributos; `ring_growth` mede essas ocorrências.
+
+Cada snapshot tem serial único; bytes pendentes não mudam. CPU: LRU de
+64 MiB/4096 entradas. STATIC GL: 64 MiB, descarte entre frames após ao menos
+três quadros sem uso. Evicção pode exigir reenvio posterior. Anel STREAM: 54 MiB
+iniciais. O teto de 192 MiB do quadro inclui os snapshots referenciados.
+`[nier-perfil] buffers/quadros` informa misses, criações, uploads static/stream
+e crescimento do anel por quadro na janela de 120 apresentações.
 
 Formatos compactos: byte/short inteiros, unsigned normalizados, float1/2/3/4 e
 half2/4 se `GL_OES_vertex_half_float` estiver anunciado. Packed 10/11 bits,
@@ -33,7 +41,7 @@ textura, resolve, resolução, geometria, HUD ou cadência lógica.
 
 ## Validação
 
-`port/tests/vertex_cache_test.cpp` testa invalidação fora da amostra, layout,
+`port/tests/vertex_cache_test.cpp` testa invalidação em amostra, promoção entre quadros, layout,
 limite LRU, vida útil e IBO. Compara 480 imagens (491520 vertex fetches) contra o
 decoder anterior, em contexto GLES2 real; recusa ES3. Exercita formatos,
 quatro endians, sinal, normalização e escala, inclusive fallback. Compilar com
@@ -49,3 +57,10 @@ python3 tools/render/check_leve.py --diff origin/main
 
 A execução real usa `tools/render/roteiro-3d.txt`, save vazio, GLES2 e corte ≤300s.
 Os recibos X1 em `messages/` distinguem CPU/GL no PC de medições físicas Mali.
+
+## Medição que motivou X1-H3
+
+O coordenador mediu H2 na Mali: buffers 3D 134,6→21,2 ms, mas UI animada
+regrediu de 1–4 para 50–77 ms. H2 criava/excluía buffers STATIC para cada versão
+dinâmica. O anel e a promoção são a correção dessa regressão; a aceitação física
+é UI≤4 ms e 3D≤21 ms, avançando à meta final≤3 ms.

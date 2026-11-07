@@ -99,6 +99,7 @@ inline Layout NativeLayout(const VertexInput& in, bool half) {
 }
 struct Payload {
   uint64_t serial = 0, sample = 0;
+  mutable std::atomic<bool> cacheable{false}; // promotion metadata; bytes stay immutable
   VertexInput input{}; // tightly packed source descriptor for reference checks
   uint32_t endian = 0, count = 0;
   Layout layout;
@@ -116,35 +117,24 @@ struct KeyHash {
     return size_t(h ^ (uint64_t(k.stride) << 32) ^ uint64_t(k.count) * 0x100000001b3ull ^ k.element);
   }
 };
-// At most 16 four-byte samples, followed by EXACT comparison on a hit.
-// An unsampled mutation or a hash collision never makes stale data reusable.
+// Sample complete elements at up to 16 evenly spaced vertices/indices.
+// Requested fast path: no full-buffer hash or memcmp on a cache hit.
+// Mutations outside these samples are not detected (UI bypasses this cache).
 inline uint64_t Sample(const uint8_t* p, uint32_t stride, uint32_t count, uint32_t element) {
   uint64_t h = 0xcbf29ce484222325ull;
-  const size_t size = size_t(count) * element;
-  for (size_t i = 0, n = std::min<size_t>(16, size); i < n; ++i) {
-    size_t at = n > 1 ? i * (size - 1) / (n - 1) : 0;
-    h = (h ^ p[(at / element) * stride + at % element]) * 0x100000001b3ull;
+  const uint32_t n = std::min(16u, count);
+  for (uint32_t i = 0; i < n; ++i) {
+    size_t row = n > 1 ? uint64_t(i) * (count - 1) / (n - 1) : 0;
+    const uint8_t* at = p + row * stride;
+    for (uint32_t j = 0; j < element; j += 4) {
+      uint32_t word = 0; std::memcpy(&word, at + j, std::min(4u, element - j));
+      h = (h ^ word) * 0x100000001b3ull;
+    }
   }
   return h;
 }
-template<size_t Width> inline bool EqualStrided(const uint8_t* packed, const uint8_t* source, uint32_t count, uint32_t stride) {
-  for (uint32_t i = 0; i < count; ++i)
-    if (std::memcmp(packed + size_t(i) * Width, source + size_t(i) * stride, Width)) return false;
-  return true;
-}
-inline bool EqualSource(const std::vector<uint8_t>& packed, const uint8_t* source, const Key& key) {
-  if (key.stride == key.element) return !std::memcmp(packed.data(), source, packed.size());
-  // Constant-size comparisons inline on A53 instead of one libc call per vertex.
-  switch (key.element) {
-    case 4: return EqualStrided<4>(packed.data(), source, key.count, key.stride);
-    case 8: return EqualStrided<8>(packed.data(), source, key.count, key.stride);
-    case 12: return EqualStrided<12>(packed.data(), source, key.count, key.stride);
-    case 16: return EqualStrided<16>(packed.data(), source, key.count, key.stride);
-    default: return false;
-  }
-}
 class Cache {
-  struct Entry { Ref data; std::list<Key>::iterator age; };
+  struct Entry { Ref data; std::list<Key>::iterator age; uint64_t lastFrame; unsigned stableFrames; };
   std::unordered_map<Key, Entry, KeyHash> entries_;
   std::list<Key> age_;
   size_t bytes_ = 0, limit_;
@@ -154,14 +144,18 @@ class Cache {
   explicit Cache(size_t limit = 64u << 20) : limit_(limit) {}
   size_t resident_bytes() const { return bytes_; } // recording thread only
   void Clear() { entries_.clear(); age_.clear(); bytes_ = 0; }
-  template<class Build> Ref Get(const Key& key, const uint8_t* source, Build build) {
+  template<class Build> Ref Get(const Key& key, const uint8_t* source, uint64_t frame, Build build) {
     uint64_t sample = Sample(source, key.stride, key.count, key.element);
     auto it = entries_.find(key);
     if (it != entries_.end()) {
       const auto& old = it->second.data;
-      bool same = old->sample == sample;
-      if (same) same = EqualSource(old->raw, source, key);
-      if (same) { age_.splice(age_.end(), age_, it->second.age); ++hits; return old; }
+      if (old->sample == sample) {
+        if (it->second.lastFrame != frame) {
+          it->second.lastFrame = frame;
+          if (++it->second.stableFrames >= 2) old->cacheable.store(true, std::memory_order_relaxed);
+        }
+        age_.splice(age_.end(), age_, it->second.age); ++hits; return old;
+      }
       bytes_ -= old->raw.size() + old->bytes.size();
       age_.erase(it->second.age); entries_.erase(it);
     }
@@ -180,17 +174,17 @@ class Cache {
       entries_.erase(victim); age_.pop_front();
     }
     if (cost <= limit_) {
-      age_.push_back(key); entries_.emplace(key, Entry{data, std::prev(age_.end())}); bytes_ += cost;
+      age_.push_back(key); entries_.emplace(key, Entry{data, std::prev(age_.end()), frame, 1}); bytes_ += cost;
     }
     return data; // outstanding frames keep evicted snapshots alive
   }
-  Ref Vertex(const VertexInput& in, const uint8_t* base, uint32_t endian, uint32_t count, bool half) {
+  Ref Vertex(const VertexInput& in, const uint8_t* base, uint32_t endian, uint32_t count, bool half, uint64_t frame = 0) {
     uint32_t element = ElementBytes(in.format);
     const uint8_t* source = base + size_t(in.offset) * 4;
     uint64_t descriptor = in.format | (uint64_t(endian) << 8) | (uint64_t(in.isSigned) << 10) |
       (uint64_t(in.isInteger) << 11) | (uint64_t(half) << 12) | (uint64_t(uint32_t(in.expAdjust)) << 32);
     Key key{uintptr_t(source), descriptor, in.stride * 4, count, element};
-    return Get(key, source, [&](Payload& p) {
+    return Get(key, source, frame, [&](Payload& p) {
       p.input = in; p.input.stride = element / 4; p.input.offset = 0;
       p.endian = endian; p.count = count; p.layout = NativeLayout(in, half);
       p.bytes.resize(size_t(count) * p.layout.bytes);
@@ -206,8 +200,8 @@ class Cache {
       return ConvertInput(p.input, p.raw.data(), endian, 0, count, reinterpret_cast<float*>(p.bytes.data()));
     });
   }
-  Ref Indices(uint64_t address, const uint16_t* src, uint32_t count) {
-    return Get({address, ~0ull, 2, count, 2}, reinterpret_cast<const uint8_t*>(src), [&](Payload& p) {
+  Ref Indices(uint64_t address, const uint16_t* src, uint32_t count, uint64_t frame = 0) {
+    return Get({address, ~0ull, 2, count, 2}, reinterpret_cast<const uint8_t*>(src), frame, [&](Payload& p) {
       p.bytes = p.raw; p.count = count; p.layout = {GL_UNSIGNED_SHORT, 1, 2, false}; return true;
     });
   }

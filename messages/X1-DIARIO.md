@@ -12,6 +12,12 @@
 
 ## X1-H2 — cache VBO/IBO + formatos compactos
 - Cache imutável por endereço/descritor, hash16amostras + comparação EXATA completa; serial preserva frames pendentes. CPU64MiB/4096entradas; GL64MiB, evicção só entreframes. Upload só emmiss. Float1/2/3/4, byte/short e half(OES), fallback para signed-normalized/packed/escala.
-- HostllvmpipeES2, medianas ms/quadro nas janelas3D: buffers5,045→1,065 (-78,9%); resolve38,275→45,535; textura2,445→2,585; estado+programa semtextura0,665→0,805; desenho+GPU20,460→20,855. Janelas/carga concorrente variam: não alegar ganho isolado deFPS.
+- HostllvmpipeES2, medianas ms/quadro nas janelas3D: buffers5,045→1,065 (-78,9%); resolve38,275→45,535; textura2,445→2,585; estado+programa semtextura0,665→0,765; desenho+GPU20,460→19,885. Janelas/carga concorrente variam: não alegar ganho isolado deFPS.
 - Imagemreal: quadro3672,156draws3D,22alvos/14.955.532bytes,0diferenças, referênciaestável eimagemoriginaligual;356557pixelsiluminados. Diretório h2-buffers/audit-visible. Sintético480imagensGLES2/491520fetches pixel-exact; ASan/UBSanpass.
 - Gateincremental --diff origin/main0afac7c OK. Globaltem violaçõeslegadasC1, semmascará-las. ARM64emh2-buffers/arm64; SHA ELF33c4bd8ccd0e52ded48f11605b7b7395e526c3e3d77b797fe2a1b1ef566ab87f. ReciboX1-H2-buffers.json. MetaMali≤3ms aguarda medição coordenador; baselineF8=134ms. Texturas/resolve/shaders nãoalterados.
+
+## X1-H3 — regressão UI no Mali corrigida para reteste
+- F9coordenador:3Dbuffers134,6→21,2ms, masmenu50–77ms. UIagora sempreSTREAM,3paresfixos16MiB+2MiB; glBufferSubData/offsets,semgen/delete por draw. STATIC sóapós2quadrosdistintos; hash16elementos,semmemcmpcompleto porordem. Heurística podenãodetectarmudançasforadasamostras; UIignoraocache.
+- PCmenu,medianasms: resolve 0.790→0.840, buffers 0.100→0.060, texture 0.395→0.490, state_without_texture 0.060→0.130, draw_gpu 4.810→7.770. Janelasvariáveis,nãoFPSisolado.
+- PC3D,medianasms: resolve 45.535→35.060, buffers 1.065→0.420, texture 2.585→6.800, state_without_texture 0.765→0.950, draw_gpu 19.885→20.350. Janelasvariáveis,nãoFPSisolado.
+- Menus1080–3000:zero criações/missesSTATIC/crescimentoanel; contadoresporquadro adicionados. Auditoriaquadro3543:153draws3D,22alvos,0diferenças;480imagensGLES2+ASan/UBSanpass. GateincrementalOK. ARM64emh3-stream/arm64; aceitefísico(UI≤4ms,3D≤21ms)pendente coord. CPUdraftstash90f674d preservado,fora desteELF.

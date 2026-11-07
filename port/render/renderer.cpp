@@ -130,6 +130,7 @@ std::atomic<double> g_lastFrameMs{0};
 std::vector<uint32_t> g_srcIndices;
 std::vector<uint16_t> g_triIndices;
 buffers::Cache g_bufferSnapshots;
+uint64_t g_bufferRecordingFrame = 0; // recording thread, distinct Present boundaries
 std::atomic<bool> g_vertexHalf{false};
 bool ReferenceBuffers() { static bool value = std::getenv("NIER_BUFFER_REFERENCE") != nullptr; return value; }
 
@@ -616,6 +617,45 @@ struct CachedBuffer { GLuint id; size_t bytes; std::weak_ptr<const buffers::Payl
 std::unordered_map<uint64_t, CachedBuffer> g_bufferObjects;
 size_t g_bufferObjectBytes = 0;
 uint64_t g_bufferHits = 0, g_bufferUploads = 0, g_bufferUploadBytes = 0;
+struct StreamSlot {
+  GLuint vertex = 0, index = 0;
+  size_t vertexUsed = 0, indexUsed = 0, vertexCapacity = 16u << 20, indexCapacity = 2u << 20;
+  uint64_t frame = ~0ull;
+};
+std::array<StreamSlot, 3> g_streamSlots;
+uint64_t g_streamUploads = 0, g_streamBytes = 0, g_streamGrowth = 0;
+void InitStreamBuffers() {
+  for (auto& slot : g_streamSlots) {
+    glGenBuffers(1, &slot.vertex); glBindBuffer(GL_ARRAY_BUFFER, slot.vertex);
+    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(slot.vertexCapacity), nullptr, GL_STREAM_DRAW);
+    glGenBuffers(1, &slot.index); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, slot.index);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(slot.indexCapacity), nullptr, GL_STREAM_DRAW);
+  }
+}
+StreamSlot& ReserveStream(size_t vertexBytes, size_t indexBytes) {
+  uint64_t frame = g_frames.load();
+  auto& slot = g_streamSlots[frame % g_streamSlots.size()];
+  if (slot.frame != frame) { slot.frame = frame; slot.vertexUsed = slot.indexUsed = 0; }
+  auto reserve = [&](GLenum target, GLuint id, size_t& used, size_t& capacity, size_t need) {
+    if (used + need <= capacity) return;
+    // High-water growth only; existing draws retain the previous GL backing store.
+    // Reserve the ENTIRE draw before setting any attribute pointers.
+    do { capacity *= 2; } while (capacity < need);
+    glBindBuffer(target, id); glBufferData(target, GLsizeiptr(capacity), nullptr, GL_STREAM_DRAW);
+    used = 0; ++g_streamGrowth;
+  };
+  reserve(GL_ARRAY_BUFFER, slot.vertex, slot.vertexUsed, slot.vertexCapacity, vertexBytes);
+  reserve(GL_ELEMENT_ARRAY_BUFFER, slot.index, slot.indexUsed, slot.indexCapacity, indexBytes);
+  return slot;
+}
+size_t StreamUpload(GLenum target, StreamSlot& slot, const void* source, size_t size) {
+  size_t& used = target == GL_ARRAY_BUFFER ? slot.vertexUsed : slot.indexUsed;
+  GLuint id = target == GL_ARRAY_BUFFER ? slot.vertex : slot.index;
+  size_t offset = used; used += (size + 15) & ~size_t(15);
+  glBindBuffer(target, id); glBufferSubData(target, GLintptr(offset), GLsizeiptr(size), source);
+  ++g_streamUploads; g_streamBytes += size;
+  return offset;
+}
 void BindSnapshot(GLenum target, const buffers::Ref& data) {
   auto it = g_bufferObjects.find(data->serial);
   if (it == g_bufferObjects.end()) {
@@ -628,7 +668,7 @@ void BindSnapshot(GLenum target, const buffers::Ref& data) {
 }
 void TrimBufferObjects(bool all = false) {
   for (auto it = g_bufferObjects.begin(); it != g_bufferObjects.end();) {
-    if (all || it->second.data.expired()) {
+    if (all || (it->second.data.expired() && g_frames.load() - it->second.used >= 3)) {
       glDeleteBuffers(1, &it->second.id); g_bufferObjectBytes -= it->second.bytes;
       it = g_bufferObjects.erase(it);
     } else ++it;
@@ -682,16 +722,31 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   glActiveTexture(GL_TEXTURE0);
   auto t2 = Clock::now();
   g_pState += Ms(t1, t2);
+  size_t indexOffset = 0;
   if (!ReferenceBuffers() && !g_bufferAuditReference) {
+    bool resident[kMaxInputs]{};
+    size_t streamBytes = 0;
+    for (uint32_t i = 0; i < c.inputCount; ++i) {
+      resident[i] = c.vertexData[i] && c.vertexData[i]->cacheable.load(std::memory_order_relaxed);
+      if (!resident[i]) streamBytes += ((c.vertexData[i] ? c.vertexData[i]->bytes.size() : size_t(c.vertexCount) * 16) + 15) & ~size_t(15);
+    }
+    bool residentIndex = c.indexData && c.indexData->cacheable.load(std::memory_order_relaxed);
+    auto& stream = ReserveStream(streamBytes, residentIndex ? 0 : (size_t(c.indexCount) * 2 + 15) & ~size_t(15));
     for (uint32_t i = 0; i < c.inputCount; ++i) {
       const auto& data = c.vertexData[i];
-      BindSnapshot(GL_ARRAY_BUFFER, data);
+      auto layout = data ? data->layout : buffers::Layout{};
+      size_t offset = 0;
+      if (resident[i]) BindSnapshot(GL_ARRAY_BUFFER, data);
+      else offset = StreamUpload(GL_ARRAY_BUFFER, stream,
+        data ? data->bytes.data() : f.blob.data() + c.inputs[i], data ? data->bytes.size() : size_t(c.vertexCount) * 16);
       glEnableVertexAttribArray(i);
-      glVertexAttribPointer(i, data->layout.components, data->layout.type,
-                            data->layout.normalized ? GL_TRUE : GL_FALSE, data->layout.bytes, nullptr);
+      glVertexAttribPointer(i, layout.components, layout.type, layout.normalized ? GL_TRUE : GL_FALSE,
+                            layout.bytes, reinterpret_cast<void*>(offset));
     }
     for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
-    BindSnapshot(GL_ELEMENT_ARRAY_BUFFER, c.indexData);
+    if (residentIndex) BindSnapshot(GL_ELEMENT_ARRAY_BUFFER, c.indexData);
+    else indexOffset = StreamUpload(GL_ELEMENT_ARRAY_BUFFER, stream,
+      c.indexData ? c.indexData->bytes.data() : f.blob.data() + c.indices, size_t(c.indexCount) * 2);
   } else {
     glBindBuffer(GL_ARRAY_BUFFER, g_vertexBuffer);
     size_t bytes = size_t(c.vertexCount) * 16;
@@ -714,7 +769,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
-  glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, nullptr);
+  glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -993,6 +1048,7 @@ void RenderThread() {
     SDL_GL_SetSwapInterval(1);
   }
   CreateBlit();
+  InitStreamBuffers();
   const char* extensions = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
   std::string extensionList = std::string(" ") + (extensions ? extensions : "") + " ";
   g_vertexHalf.store(extensionList.find(" GL_OES_vertex_half_float ") != std::string::npos);
@@ -1065,6 +1121,12 @@ void RenderThread() {
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
                    (unsigned long long)g_bufferUploads, (unsigned long long)g_bufferUploadBytes, g_bufferObjectBytes);
+      static uint64_t lastMiss = 0, lastCreate = 0, lastStream = 0, lastGrowth = 0;
+      uint64_t misses = g_bufferSnapshots.misses.load();
+      std::fprintf(stderr, "[nier-perfil] buffers/quadros: misses %.2f criacoes %.2f static_uploads %.2f stream_uploads %.2f ring_growth %.2f\n",
+        double(misses-lastMiss)/120, double(g_bufferUploads-lastCreate)/120, double(g_bufferUploads-lastCreate)/120,
+        double(g_streamUploads-lastStream)/120, double(g_streamGrowth-lastGrowth)/120);
+      lastMiss=misses;lastCreate=g_bufferUploads;lastStream=g_streamUploads;lastGrowth=g_streamGrowth;
       g_pTarget = g_pState = g_pBuffers = g_pDraw = g_pFinish = g_pResolve = 0; g_resolves = g_resolveCopies = 0;
       g_textureMs = g_sigMs = g_decodeMs = g_uploadMs = g_replayMs = g_swapMs = 0;
     }
@@ -1079,6 +1141,7 @@ void RenderThread() {
     g_queueCv.notify_all();
   }
   TrimBufferObjects(true);
+  for (auto& slot : g_streamSlots) { glDeleteBuffers(1, &slot.vertex); glDeleteBuffers(1, &slot.index); }
   SDL_GL_MakeCurrent(g_window, nullptr);
 }
 
@@ -1110,8 +1173,8 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count,
       if (!base) { RecordSkip("stream de vértice sem memória"); return false; }
       base += size_t(first) * in.stride * 4;
     }
-    if (!ReferenceBuffers()) {
-      c.vertexData[i] = g_bufferSnapshots.Vertex(in, base, endian, count, g_vertexHalf.load());
+    if (!ReferenceBuffers() && !c.up) {
+      c.vertexData[i] = g_bufferSnapshots.Vertex(in, base, endian, count, g_vertexHalf.load(), g_bufferRecordingFrame);
       if (!c.vertexData[i]) { RecordSkip("formato de vfetch não suportado"); return false; }
       g_building.bufferBytes += c.vertexData[i]->raw.size() + c.vertexData[i]->bytes.size();
       continue;
@@ -1283,9 +1346,9 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
-  if (ReferenceBuffers()) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
-    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount);
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
     g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
   }
   g_recordedBytes = g_building.blob.size();
@@ -1326,9 +1389,9 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
   if (!SnapshotInputs(c, g_building.blob.data() + c.state, 0, vertexCount, data, stride)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, vertexCount, false);
   c.indexCount = uint32_t(g_triIndices.size());
-  if (ReferenceBuffers()) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
-    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount);
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
     g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
   }
   g_building.cmds.push_back(c);
@@ -1373,6 +1436,7 @@ void Present() {
     g_traceFrame = (long long)g_presented.load() + 1 + sceneDelay;
     std::fprintf(stderr, "[nier-trace] cena 3D no quadro %llu; rastro no quadro %lld\n", (unsigned long long)g_presented.load(), g_traceFrame.load());
   }
+  ++g_bufferRecordingFrame;
   DriveTestInput(++g_presented);
   auto waitStart = Clock::now();
   std::unique_lock lock(g_queueMutex);
