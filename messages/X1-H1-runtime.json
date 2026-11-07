@@ -1,0 +1,10 @@
+{
+  "host": {
+    "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h1/host/librexruntime.so",
+    "sha256": "f14e213479de48808531148443427b329b064e2b77c2667552c9ebe0f17b7310"
+  },
+  "arm64": {
+    "path": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h1/arm64/librexruntime.so",
+    "sha256": "b79e167a30178221b0f700c7abe82660c18599dcc1754a6536b681e6de5b5041"
+  }
+}
