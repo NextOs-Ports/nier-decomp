@@ -9,8 +9,8 @@
   {
     "date": "2026-11-07",
     "baseline_id": "1b7723fce3c179a6ddf0491fce22f617ac2d49c441e1acaadbf1f63a0a2e31fc",
-    "verified_percent": 0.0,
-    "verified_bytes": 0,
+    "verified_percent": 0.0038,
+    "verified_bytes": 204,
     "inventory_bytes": 5372176
   }
 ]
