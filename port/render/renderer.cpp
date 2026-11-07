@@ -629,12 +629,31 @@ struct Program {
   struct Vtf { int slot; GLint loc, params; int k; };
   std::vector<Vtf> vtf;
   int vsOps = 0;      // operações (vr/sr) no VS final, para o perfil
+  bool identityUploaded = false;  // skinning na CPU: paleta de identidade já enviada
   CullInfo cull;      // MVP e atributo de posição reconhecidos (descarte por AABB)
 };
 // Substitui o stub "nx_sample<t> devolve 0" do tradutor por busca num array de uniformes (a Mali-450 não tem
 // textura no vértice). k texels cabem no orçamento de uniformes do VS depois das constantes VC.
+// Skinning na CPU (C1-G6, padrão): a paleta vista pelo VS é a identidade (linha r = e_r), o índice é só a linha
+// (mod 4) e a CPU entrega posição/direções já transformadas pela matriz misturada dos ossos. NIER_GPU_SKIN=1 volta
+// à janela de uniformes por malha (índice dinâmico, caro na Mali).
+bool CpuSkin() { static bool on = std::getenv("NIER_GPU_SKIN") == nullptr; return on; }
 std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs, std::vector<std::pair<int, int>>& slots) {
   std::string out = src;
+  if (CpuSkin()) {
+    for (int t = 0; t < 32; ++t) {
+      if (!(vs->textureMask & (1u << t))) continue;
+      std::string n = std::to_string(t);
+      std::string stub = "vec4 nx_sample" + n + "(vec2 uv) { return vec4(0.0); }\n";
+      size_t at = out.find(stub);
+      if (at == std::string::npos) continue;
+      std::string repl = "uniform vec4 VT" + n + "[4];\nuniform vec2 VT" + n + "_p;\n"
+        "vec4 nx_sample" + n + "(vec2 uv) { return VT" + n + "[int(mod(uv.x * VT" + n + "_p.x + 0.001, 4.0))]; }\n";
+      out.replace(at, stub.size(), repl);
+      slots.push_back({t, 4});
+    }
+    return out;
+  }
   int budget = int(g_vsUniformVectors) - int(vs->constMap.size()) - 24;
   static int capK = std::getenv("NIER_VT_K") ? std::atoi(std::getenv("NIER_VT_K")) : 1024;  // emular a Mali no PC: NIER_VT_K=220
   int k = std::clamp(std::min(budget, capK), 32, 1024);  // Mali-450: ~220 (55 ossos); host: 1024
@@ -1007,8 +1026,87 @@ const BoneRemap* BoneRemapFor(const buffers::Ref& data, uint32_t vertexCount) {
   r.payload = pl;
   return &(g_boneRemap[data->serial] = std::move(r));
 }
+// Conversões estáticas por malha (float4 por vértice) em cache por serial: índices de osso, pesos, posição, direções.
+std::unordered_map<uint64_t, std::shared_ptr<std::vector<float>>> g_floatCache;
+const std::vector<float>* FloatsFor(const buffers::Ref& data, uint32_t count) {
+  if (!data) return nullptr;
+  auto it = g_floatCache.find(data->serial);
+  if (it != g_floatCache.end()) return it->second.get();
+  auto v = std::make_shared<std::vector<float>>(size_t(count) * 4);
+  if (!ConvertInput(data->input, data->raw.data(), data->endian, 0, count, v->data())) return nullptr;
+  return g_floatCache.emplace(data->serial, v).first->second.get();
+}
+// VBOs transitórios para os streams deformados (anel por quadro × atributo)
+GLuint g_transient[3][kMaxInputs] = {};
+std::vector<float> g_skinOut[kMaxInputs];
+bool g_transientUsed[kMaxInputs] = {};
+uint64_t g_skinnedVertices = 0, g_skinnedDraws = 0;
+double g_skinMs = 0;
+bool CpuSkinDraw(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
+  if (p.vtf.size() != 1) return false;
+  const auto& vt = p.vtf[0];
+  int idxIn = -1, wIn = -1; std::vector<int> posIn, dirIn;
+  for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+    const auto& in = c.vs->inputs[i];
+    if (in.format == 6 && in.isInteger) { if (idxIn < 0) idxIn = int(i); }
+    else if (in.format == 6 && !in.isInteger) {
+      if (wIn < 0) { const auto* v = FloatsFor(c.vertexData[i], c.vertexCount); if (v && c.vertexCount) { float sum = (*v)[0] + (*v)[1] + (*v)[2] + (*v)[3]; if (std::fabs(sum - 1.0f) < 0.03f) wIn = int(i); } }
+    } else if (in.format == 57 || in.format == 38) posIn.push_back(int(i));
+    else if (in.format == 16 || in.format == 7 || in.format == 17) dirIn.push_back(int(i));
+  }
+  if (idxIn < 0 || wIn < 0 || posIn.empty()) return false;
+  const uint8_t* fetch = Field(state, kFetchConstants + 24 * vt.slot);
+  auto t = xenos::DecodeFetch(fetch);
+  if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) return false;
+  const uint8_t* pal = Physical(t.base, t.width * 16);
+  if (!pal) return false;
+  const auto* idx = FloatsFor(c.vertexData[idxIn], c.vertexCount);
+  const auto* wgt = FloatsFor(c.vertexData[wIn], c.vertexCount);
+  if (!idx || !wgt) return false;
+  auto t0 = Clock::now();
+  // matrizes 3x4 dos ossos usados (linha c = texel 4b+c, bytes 8in32)
+  static std::vector<float> rows; rows.assign(size_t(t.width) * 4, 0.0f);
+  static std::vector<uint8_t> have; have.assign(256, 0);
+  const uint32_t n = c.vertexCount;
+  for (uint32_t v = 0; v < n * 4; ++v) { int b = int((*idx)[v]); if (b >= 0 && b < 256 && !have[b]) { have[b] = 1; for (int k = 0; k < 12 && (4 * b + 2) < int(t.width); ++k) { uint8_t e[4]; std::memcpy(e, pal + (4 * b) * 16 + 4 * k, 4); xenos::Swap(e, 4, t.endian); std::memcpy(&rows[size_t(4 * b) * 4 + k], e, 4); } } }
+  auto skin = [&](const std::vector<float>& src, std::vector<float>& dst, bool point) {
+    dst.resize(size_t(n) * 4);
+    for (uint32_t v = 0; v < n; ++v) {
+      const float* q = &src[size_t(v) * 4];
+      float px = q[0], py = q[1], pz = q[2], pw = point ? 1.0f : 0.0f;
+      float ox = 0, oy = 0, oz = 0;
+      for (int k = 0; k < 4; ++k) {
+        float w = (*wgt)[size_t(v) * 4 + k]; if (w == 0.0f) continue;
+        int b = int((*idx)[size_t(v) * 4 + k]); if (b < 0 || b > 255) continue;
+        const float* m = &rows[size_t(4 * b) * 4];
+        ox += w * (m[0] * px + m[1] * py + m[2] * pz + m[3] * pw);
+        oy += w * (m[4] * px + m[5] * py + m[6] * pz + m[7] * pw);
+        oz += w * (m[8] * px + m[9] * py + m[10] * pz + m[11] * pw);
+      }
+      float* o = &dst[size_t(v) * 4]; o[0] = ox; o[1] = oy; o[2] = oz; o[3] = q[3];
+    }
+  };
+  for (int i : posIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) return false; skin(*src, g_skinOut[i], true); g_transientUsed[i] = true; }
+  for (int i : dirIn) { const auto* src = FloatsFor(c.vertexData[i], n); if (!src) continue; skin(*src, g_skinOut[i], false); g_transientUsed[i] = true; }
+  g_skinMs += Ms(t0, Clock::now()); g_skinnedVertices += n; ++g_skinnedDraws;
+  if (!p.identityUploaded) {
+    static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    if (vt.loc >= 0) glUniform4fv(vt.loc, 4, ident);
+    p.identityUploaded = true;
+  }
+  if (vt.params >= 0) glUniform2f(vt.params, float(t.width), 0.0f);
+  return true;
+}
 void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
   for (auto& r : g_drawRemap) r.reset();
+  for (auto& u : g_transientUsed) u = false;
+  if (CpuSkin()) {
+    if (!CpuSkinDraw(f, c, p, state)) {  // sem ossos/pesos reconhecidos: paleta de identidade mesmo assim (vértice sem deformar)
+      if (!p.identityUploaded) { static const float ident[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}; if (p.vtf[0].loc >= 0) glUniform4fv(p.vtf[0].loc, 4, ident); p.identityUploaded = true; }
+      if (p.vtf[0].params >= 0) glUniform2f(p.vtf[0].params, 1024.0f, 0.0f);
+    }
+    return;
+  }
   // 1) remapeamento compacto (ossos únicos da malha cabem em k/4 slots)
   if (p.vtf.size() == 1) {
     const auto& vt = p.vtf[0];
@@ -1197,6 +1295,14 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
     const auto& stream = g_streamSlots[g_frames.load() % g_streamSlots.size()];
     bool streamBound = false;
     for (uint32_t i = 0; i < c.inputCount; ++i) {
+      if (g_transientUsed[i]) {  // stream deformado na CPU neste desenho (float4)
+        GLuint& vbo = g_transient[g_frames.load() % 3][i];
+        if (!vbo) glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo); streamBound = false;
+        glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(g_skinOut[i].size() * 4), g_skinOut[i].data(), GL_STREAM_DRAW);
+        glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, nullptr);
+        continue;
+      }
       const auto& data = g_drawRemap[i] ? g_drawRemap[i] : c.vertexData[i];
       auto layout = data ? data->layout : buffers::Layout{};
       size_t offset = 0;
@@ -1748,9 +1854,9 @@ void RenderThread() {
         g_topDraws.clear();
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
-                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = g_cullEval = g_cullNoPattern = g_cullNoData = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, skinning CPU %.0f vtx em %.1f desenhos %.2f ms, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
+                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_skinnedVertices / double(W), g_skinnedDraws / double(W), g_skinMs / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_culledDraws = g_culledIndices = g_cullEval = g_cullNoPattern = g_cullNoData = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0; g_skinnedVertices = g_skinnedDraws = 0; g_skinMs = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
