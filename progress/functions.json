@@ -75882,11 +75882,15 @@
    "address": 2184416208,
    "size": 60,
    "name": "sub_82338BD0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184416272,

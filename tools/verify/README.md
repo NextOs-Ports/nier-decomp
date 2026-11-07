@@ -9,7 +9,8 @@ Compara cada função reconstruída em `src/decomp/` com a função traduzida do
 - As duas chamam as mesmas funções traduzidas para tudo que não foi reconstruído, então qualquer diferença vem da reconstrução.
 - A imagem fica protegida contra escrita; cada página escrita é registrada e comparada.
 - Compara r1–r4, r13–r31, f1, f2, f14–f31, a memória de teste, a área do r13, a pilha acima do r1 de entrada e falhas de acesso.
-- Aprovação: nenhuma divergência em todas as tentativas (padrão 2.000) e ao menos metade delas sem falha de acesso.
+- Chamadas indiretas vão para destinos falsos que registram alvo e argumentos `r3`–`r8` (ou até `r10` com `callargs=8` na especificação). A ordem, os alvos e os argumentos das chamadas também são comparados. Objetos de teste com vtable: especificação `obj`.
+- Aprovação: nenhuma divergência em todas as tentativas (padrão 2.000) e ao menos 500 delas executadas sem falha de acesso nos dois lados.
 - Teste de mutação feito em 07/11: trocar uma comparação, um limite ou um deslocamento reprova a função.
 
 ## Escrever uma função

@@ -26,13 +26,24 @@
    "error": ""
   },
   {
+   "name": "sub_82338BD0",
+   "address": "0x82338BD0",
+   "size": 60,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 619,
+   "both_faulted": 1381,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_823C6A50",
    "address": "0x823C6A50",
    "size": 76,
    "source": "src/decomp/game/predicates_a.cpp",
    "trials": 2000,
-   "equal": 1524,
-   "both_faulted": 476,
+   "equal": 1518,
+   "both_faulted": 482,
    "pass": true,
    "error": ""
   }

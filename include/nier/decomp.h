@@ -27,6 +27,21 @@ inline void st64(uint8_t* base, uint32_t a, uint64_t v) { v = __builtin_bswap64(
 inline void stf (uint8_t* base, uint32_t a, float f) { uint32_t v; std::memcpy(&v, &f, 4); st32(base, a, v); }
 }  // namespace nier::guest
 
+#ifdef REX_CALL_INDIRECT_FUNC
+namespace nier::guest {
+// Chamada indireta (ponteiro de função ou método virtual), como `mtctr; bctrl`.
+// Os argumentos já devem estar em ctx.r3.. / ctx.f1.. conforme a ABI do Xbox 360.
+inline void call_indirect(PPCContext& __restrict ctx, uint8_t* base, uint32_t target) {
+  ctx.ctr.u64 = target;
+  REX_CALL_INDIRECT_FUNC(target);
+}
+// Método virtual `slot` do objeto em `obj` (vtable na palavra 0).
+inline void call_virtual(PPCContext& __restrict ctx, uint8_t* base, uint32_t obj, uint32_t slot) {
+  call_indirect(ctx, base, ld32(base, ld32(base, obj) + slot * 4));
+}
+}  // namespace nier::guest
+#endif
+
 #ifdef NIER_VERIFY
 #define NIER_DECOMP(name) extern "C" void decomp_##name([[maybe_unused]] PPCContext& __restrict ctx, [[maybe_unused]] uint8_t* base)
 #else

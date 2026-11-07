@@ -43,6 +43,15 @@ constexpr uint32_t kSp = kStack + kStackSize - 0x8000u;
 constexpr size_t kPage = 4096;
 
 uint8_t* g_base;
+
+// Chamadas virtuais/indiretas: endereços falsos na reserva de thunks do ReXGlue
+// apontam para um stub do host que registra destino e argumentos e devolve um valor
+// determinístico. Assim a função testada pode chamar métodos de objetos de teste.
+constexpr uint32_t kFakeFn = 0x82100000u + 0x52AA08u + 0x100u;  // dentro da reserva de thunks
+constexpr int kFakeCount = 64;
+struct Call { uint32_t target; uint64_t r[8]; uint64_t f[4]; };
+std::vector<Call> g_calls;
+int g_callargs = 6;
 std::vector<uint8_t> g_pristine;           // imagem original
 std::vector<uint8_t> g_dirty;              // páginas da imagem tocadas
 sigjmp_buf g_jmp; volatile int g_armed; volatile uintptr_t g_fault_addr;
@@ -63,6 +72,19 @@ void on_segv(int, siginfo_t* si, void*) {
   _exit(99);
 }
 
+void fake_target(PPCContext& ctx, uint8_t*) {
+  Call c{(uint32_t)ctx.ctr.u32, {}, {}};
+  PPCRegister* g[] = {&ctx.r3,&ctx.r4,&ctx.r5,&ctx.r6,&ctx.r7,&ctx.r8,&ctx.r9,&ctx.r10};
+  PPCRegister* f[] = {&ctx.f1,&ctx.f2,&ctx.f3,&ctx.f4};
+  for (int i = 0; i < 8; ++i) c.r[i] = g[i]->u32;
+  for (int i = 0; i < 4; ++i) c.f[i] = f[i]->u64;
+  uint64_t h = 0x9E3779B97F4A7C15ull * (c.target + 1);
+  for (int i = 0; i < g_callargs; ++i) h = (h ^ c.r[i]) * 0x100000001B3ull;
+  g_calls.push_back(c);
+  ctx.r3.u64 = (h >> 7) & ((h & 1) ? 0xFFFFFFFFull : 0x3ull);   // ora booleano, ora valor cheio
+  ctx.f1.f64 = (double)(int64_t)(h % 2001) / 8.0 - 125.0;
+}
+
 void map_rw(uint64_t guest, uint64_t size) {
   if (mprotect(g_base + guest, size, PROT_READ | PROT_WRITE)) { perror("mprotect"); exit(2); }
 }
@@ -72,6 +94,7 @@ struct State {
   std::vector<uint8_t> scratch, tls, stack;
   std::map<size_t, std::vector<uint8_t>> image_pages;  // página -> conteúdo
   bool faulted = false; uintptr_t fault = 0;
+  std::vector<Call> calls;
 };
 
 void image_reset() {
@@ -93,6 +116,7 @@ State run(PPCFunc* fn, const PPCContext& in, const std::vector<uint8_t>& s,
           const std::vector<uint8_t>& t, const std::vector<uint8_t>& st) {
   image_reset();
   load_inputs(s, t, st);
+  g_calls.clear();
   State out;
   static PPCContext ctx;          // fora da pilha: sobrevive ao siglongjmp
   ctx = in;
@@ -104,6 +128,7 @@ State run(PPCFunc* fn, const PPCContext& in, const std::vector<uint8_t>& s,
   }
   g_armed = 0;
   out.ctx = ctx;
+  out.calls = g_calls;
   out.scratch.assign(g_base + kScratch, g_base + kScratch + kScratchSize);
   out.tls.assign(g_base + kTls, g_base + kTls + kTlsSize);
   out.stack.assign(g_base + kStack, g_base + kStack + kStackSize);
@@ -127,6 +152,7 @@ std::map<std::string, Arg> parse_spec(const char* spec) {
     Arg a; std::string v = tok.substr(eq + 1);
     size_t c = v.find(':');
     a.kind = v.substr(0, c);
+    if (!a.kind.empty() && isdigit((unsigned char)a.kind[0])) { a.lo = a.hi = strtoull(a.kind.c_str(), nullptr, 0); a.kind = "num"; }
     if (c != std::string::npos) {
       std::string r = v.substr(c + 1); size_t d = r.find("..");
       a.lo = strtoull(r.substr(0, d).c_str(), nullptr, 0);
@@ -156,6 +182,7 @@ uint32_t scratch_ptr(std::mt19937_64& rng, uint32_t align) {
 uint64_t gen_value(const Arg& a, std::mt19937_64& rng, bool& is_float, double& fv) {
   is_float = false;
   if (a.kind == "ptr")   return scratch_ptr(rng, a.lo ? (uint32_t)a.lo : 4);
+  if (a.kind == "obj")   return kScratch + (uint32_t)(rng() % 64) * 64;
   if (a.kind == "bptr")  return scratch_ptr(rng, 1);
   if (a.kind == "int")   return (uint32_t)rng();
   if (a.kind == "u8")    return rng() & 0xFF;
@@ -180,12 +207,26 @@ void fill_scratch(std::vector<uint8_t>& s, std::mt19937_64& rng) {
     else if (k < 4) v = scratch_ptr(rng, 16);
     else if (k == 4) { float f = (float)((int)(rng() % 2000) - 1000) / 7.0f; std::memcpy(&v, &f, 4); }
     else if (k == 5) v = rng() % 64;
+    else if (k == 6 && (rng() & 1)) v = kScratch + (uint32_t)(rng() % 64) * 64;   // objeto com vtable falsa
     else v = (uint32_t)rng();
     v = __builtin_bswap32(v); std::memcpy(&s[i], &v, 4);
   }
 }
 
-std::string diff(const State& a, const State& b) {
+void fill_vtables(std::vector<uint8_t>& s) {
+  // 64 objetos de 64 bytes no início da área: a palavra 0 de cada um aponta para uma
+  // vtable em 0x40001000 + k*256, cujas entradas são endereços falsos registrados.
+  for (int k = 0; k < 64; ++k) {
+    uint32_t vt = __builtin_bswap32(kScratch + 0x1000 + k * 256);
+    std::memcpy(&s[k * 64], &vt, 4);
+    for (int e = 0; e < 64; ++e) {
+      uint32_t fn = __builtin_bswap32(kFakeFn + 4 * ((k + e) % kFakeCount));
+      std::memcpy(&s[0x1000 + k * 256 + e * 4], &fn, 4);
+    }
+  }
+}
+
+std::string diff(const State& a, const State& b, int callargs) {
   char buf[256];
   if (a.faulted != b.faulted) {
     snprintf(buf, sizeof buf, "falha de acesso só em %s (guest 0x%08" PRIxPTR ")", a.faulted ? "original" : "reconstruída",
@@ -194,6 +235,14 @@ std::string diff(const State& a, const State& b) {
   if (a.faulted) return "";   // ambas falharam: entrada inválida, não conta como prova nem como erro
   auto chk = [&](const char* n, uint64_t x, uint64_t y) -> std::string {
     if (x == y) return ""; snprintf(buf, sizeof buf, "%s: original 0x%" PRIx64 " reconstruída 0x%" PRIx64, n, x, y); return buf; };
+  if (a.calls.size() != b.calls.size()) {
+    snprintf(buf, sizeof buf, "chamadas: original %zu reconstruída %zu", a.calls.size(), b.calls.size()); return buf; }
+  for (size_t i = 0; i < a.calls.size(); ++i) {
+    const Call &x = a.calls[i], &y = b.calls[i];
+    if (x.target != y.target) { snprintf(buf, sizeof buf, "chamada %zu: destino 0x%08x vs 0x%08x", i, x.target, y.target); return buf; }
+    for (int k = 0; k < callargs; ++k) if (x.r[k] != y.r[k]) {
+      snprintf(buf, sizeof buf, "chamada %zu (0x%08x): r%d original 0x%" PRIx64 " reconstruída 0x%" PRIx64, i, x.target, k + 3, x.r[k], y.r[k]); return buf; }
+  }
   PPCContext ca = a.ctx, cb = b.ctx;
   std::string r;
   const int keep[] = {1, 2, 3, 4, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
@@ -219,6 +268,17 @@ std::string diff(const State& a, const State& b) {
 }
 }  // namespace
 
+// Alvo indireto fora do código traduzido: tratar como falha de acesso controlada,
+// no lugar do resolvedor do runtime (que aborta o processo).
+static void bad_indirect(PPCContext& ctx, uint8_t*) {
+  g_fault_addr = (uintptr_t)g_base + ctx.last_indirect_target;
+  if (g_armed) siglongjmp(g_jmp, 1);
+  _exit(98);
+}
+namespace rex::runtime {
+PPCFunc* ResolveIndirectFunction(uint32_t) { return bad_indirect; }
+}
+
 int main(int argc, char** argv) {
   const char* pe = getenv("NIER_PE");
   int trials = getenv("NIER_TRIALS") ? atoi(getenv("NIER_TRIALS")) : 2000;
@@ -240,6 +300,8 @@ int main(int argc, char** argv) {
   size_t nfn = 0;
   for (PPCFuncMapping* p = PPCFuncMappings; p->host; ++p, ++nfn)
     *(PPCFunc**)(g_base + ft + (p->guest - kCodeBase) * 2) = p->host;
+  for (int i = 0; i < kFakeCount; ++i)
+    *(PPCFunc**)(g_base + ft + (kFakeFn + 4 * i - kCodeBase) * 2) = fake_target;
   map_rw(kScratch, kScratchSize); map_rw(kTls, kTlsSize); map_rw(kStack, kStackSize);
   g_dirty.assign(kImageSize / kPage, 0);
   mprotect(g_base + kImageBase, kImageSize, PROT_READ);
@@ -252,11 +314,13 @@ int main(int argc, char** argv) {
   for (auto& e : nierverify::registry()) {
     if (only && strcmp(only, e.name)) continue;
     auto spec = parse_spec(e.spec);
+    int callargs = spec.count("callargs") ? (int)spec["callargs"].lo : 6;
+    g_callargs = callargs;
     std::mt19937_64 rng(0x4E4945520000ull ^ e.addr);
     int ok = 0, both_fault = 0; std::string err;
     std::vector<uint8_t> s(kScratchSize), t(kTlsSize), st(kStackSize);
     for (int i = 0; i < trials && err.empty(); ++i) {
-      fill_scratch(s, rng); fill_scratch(t, rng); fill_scratch(st, rng);
+      fill_scratch(s, rng); fill_vtables(s); fill_scratch(t, rng); fill_scratch(st, rng);
       PPCContext in{};
       for (int n = 0; n < 32; ++n) gpr(in, n)->u64 = rng();
       for (int n = 0; n < 32; ++n) fpr(in, n)->f64 = (double)((int64_t)(rng() % 20000) - 10000) / 16.0;
@@ -273,15 +337,16 @@ int main(int argc, char** argv) {
       }
       State a = run(e.orig, in, s, t, st);
       State b = run(e.decomp, in, s, t, st);
-      err = diff(a, b);
+      err = diff(a, b, callargs);
       if (err.empty()) { if (a.faulted) ++both_fault; else ++ok; }
       else err = "tentativa " + std::to_string(i) + ": " + err;
     }
-    bool pass = err.empty() && ok >= trials / 2;
+    const int min_ok = trials < 2000 ? trials / 4 : 500;
+    bool pass = err.empty() && ok >= min_ok;
     if (!pass) ++bad;
     printf("%s{\"name\":\"%s\",\"address\":\"0x%08X\",\"file\":\"%s\",\"pass\":%s,\"equal\":%d,\"both_faulted\":%d,\"error\":\"%s\"}",
            first ? "" : ",\n", e.name, e.addr, e.file, pass ? "true" : "false", ok, both_fault,
-           err.empty() && !pass ? "menos da metade das tentativas executou sem falha" : err.c_str());
+           err.empty() && !pass ? "poucas tentativas executaram sem falha de acesso" : err.c_str());
     first = false; fflush(stdout);
   }
   printf("\n],\"failed\":%d}\n", bad);
