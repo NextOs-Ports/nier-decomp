@@ -126,3 +126,20 @@ A especificação varia os ramos de flags, parâmetros e proprietário, incluind
 os argumentos lidos na pilha pelo empacotador `824B1198`. Ponteiros de objetos,
 proprietários e saídas pertencem a RAM válida; não se certifica aliasing entre
 essas estruturas nem tabelas de defaults alteradas.
+
+## Lote X1-15 — LZ reverso e campo de cabeçalho
+
+`825EBA18` reconstrói o descompressor que lê bytes do fim para o começo,
+consome tokens literal/backreference e copia em direção a endereços menores.
+Preserva a antecipação de leitura, a extensão variável de comprimento e a
+proteção contra sobrescrever entrada ainda não consumida, inclusive a saída
+parcial anterior ao retorno zero. `825EBC68` lê um campo LE no cabeçalho.
+Ambos passaram em 2.000 comparações, totalizando 656 bytes originais.
+
+A prova complementar gera somente streams sintéticos: 1.924 casos passaram,
+incluindo distâncias 0 e 8191, todos os limiares da codificação de comprimento,
+refills desalinhados, buffers em ambas as ordens e sobreposição. Em 607 casos
+a proteção retornou zero igualmente nos dois lados. A especificação aleatória
+do comparador cobre literais; os caminhos de backreference são provados pelo
+encoder sintético separado. Não se certifica entrada corrompida/truncada;
+o contrato original exige buffers e stream válidos.
