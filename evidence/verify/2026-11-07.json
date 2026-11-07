@@ -1,0 +1,161 @@
+{
+ "tool": "tools/verify/verify_main.cpp",
+ "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
+ "method": "Mesmo estado inicial aleatório para a função traduzida (oráculo) e a reconstruída; compara r1-r3, r13-r31, f1, f14-f31, memória tocada da imagem, dados de teste, área do r13 e pilha acima do r1. Aprovação exige zero divergência e ao menos metade das tentativas sem falha de acesso.",
+ "results": [
+  {
+   "name": "sub_82100000",
+   "address": "0x82100000",
+   "size": 88,
+   "source": "src/decomp/crt/rand.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82100058",
+   "address": "0x82100058",
+   "size": 80,
+   "source": "src/decomp/crt/rand.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82102878",
+   "address": "0x82102878",
+   "size": 64,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821028B8",
+   "address": "0x821028B8",
+   "size": 64,
+   "source": "src/decomp/game/switches_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82102F28",
+   "address": "0x82102F28",
+   "size": 92,
+   "source": "src/decomp/game/switches_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82102FD8",
+   "address": "0x82102FD8",
+   "size": 96,
+   "source": "src/decomp/game/switches_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82103638",
+   "address": "0x82103638",
+   "size": 24,
+   "source": "src/decomp/game/misc_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82103BF8",
+   "address": "0x82103BF8",
+   "size": 68,
+   "source": "src/decomp/game/misc_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82104480",
+   "address": "0x82104480",
+   "size": 80,
+   "source": "src/decomp/game/misc_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821B6180",
+   "address": "0x821B6180",
+   "size": 64,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82338BD0",
+   "address": "0x82338BD0",
+   "size": 60,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 619,
+   "both_faulted": 1381,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_823C6A50",
+   "address": "0x823C6A50",
+   "size": 76,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 1518,
+   "both_faulted": 482,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8255D138",
+   "address": "0x8255D138",
+   "size": 12,
+   "source": "src/decomp/kernel/thread.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82579D50",
+   "address": "0x82579D50",
+   "size": 216,
+   "source": "src/decomp/d3d/gpu_wait.cpp",
+   "trials": 2000,
+   "equal": 1283,
+   "both_faulted": 717,
+   "pass": true,
+   "error": ""
+  }
+ ]
+}
