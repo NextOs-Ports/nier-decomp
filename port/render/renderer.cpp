@@ -139,6 +139,7 @@ struct Cmd {
   bool hasRect = false;
   bool up = false;  // BeginVertices (2D/UI); falso = DrawVertices/DrawIndexedVertices
   int skinJob = -1;  // índice em Frame::skinJobs (skinning na CPU iniciado na captura)
+  uint8_t level = 0;  // Resolve: nível de mip do destino
   uint8_t prim = 0;         // primitiva Xenos original (perfil)
   GLenum mode = GL_TRIANGLES;  // tiras da Xenos viram GL_TRIANGLE_STRIP (reinício = triângulos degenerados): 1/3 dos índices
 };
@@ -1547,6 +1548,10 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
   Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase);
+  { static bool diagRes = std::getenv("NIER_DIAG_RESOLVE") != nullptr;  // PC0 (exposição) dos PS que o leem, a cada 300 quadros
+    if (diagRes && g_frames.load() % 300 == 0) { static uint64_t lastF = ~0ull; static int n = 0; if (lastF != g_frames.load()) { lastF = g_frames.load(); n = 0; }
+      const uint8_t* pc = Field(state, kPixelConstants);
+      if (n < 6 && !c.ps->constMap.empty() && c.ps->constMap[0] == 0) { ++n; std::fprintf(stderr, "[nier-pc0] quadro %llu ps %016llX up %d PC0 %.4g %.4g %.4g %.4g\n", (unsigned long long)g_frames.load(), (unsigned long long)c.ps->key, int(c.up), BEF(pc), BEF(pc + 4), BEF(pc + 8), BEF(pc + 12)); } } }
   if (diag) { if (!diagDepth) glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND); glColorMask(1, 1, 1, 1); g_gl.fixedValid = false; }
   if (!p) { Skip("programa não compilou/linkou"); return; }
   UseProgram(p->id);
@@ -1803,6 +1808,61 @@ void PlanDirectPasses(const Frame& f) {
     }
   }
 }
+// C1-I1: Resolve pequeno (cadeia de luminância 16→8→4→2, 8_8_8_8) volta para a memória do guest. Na Xbox o
+// Resolve grava na memória e a CPU do jogo lê a média para a adaptação de exposição; sem isso o jogo lê lixo/zero e a
+// exposição (PC0 da gameplay) sobe a ~1000 (tela branca). Só destinos ≤ NIER_READBACK_MAX texels (padrão 16).
+// NIER_NO_READBACK=1 desliga (A/B).
+void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFetch& t, uint32_t level) {
+  static bool off = std::getenv("NIER_NO_READBACK") != nullptr;
+  static uint32_t maxTexels = std::getenv("NIER_READBACK_MAX") ? uint32_t(std::atoi(std::getenv("NIER_READBACK_MAX"))) : 16;
+  if (off || t.width * t.height > maxTexels || t.format != xenos::k8888 || t.dimension != 1 || !t.tiled) return;
+  // endereço do nível: L0 = base; L>=1 = mipBase + soma dos níveis 1..L-1 (32 bpp, tiled: linhas/colunas alinhadas a 32
+  // texels, cada nível alinhado a 4 KB). Mips empacotados (cauda) ainda não: não grava.
+  uint32_t addr = t.base;
+  if (level > 0) {
+    if (t.packedMips || !t.mipBase) return;
+    auto pow2 = [](uint32_t n) { uint32_t p = 1; while (p < n) p <<= 1; return p; };
+    uint32_t w0 = pow2(t.width << level), h0 = pow2(t.height << level);  // dimensões do nível 0 (t já está no nível)
+    addr = t.mipBase;
+    for (uint32_t k = 1; k < level; ++k) {
+      uint32_t w = std::max(1u, w0 >> k), h = std::max(1u, h0 >> k);
+      uint32_t bytes = ((w + 31) & ~31u) * ((h + 31) & ~31u) * 4;
+      addr += (bytes + 4095) & ~4095u;
+    }
+  }
+  // lê da ORIGEM do Resolve (quem tem o conteúdo agora: o alvo, ou o destino do alias/passe direto), no retângulo
+  // do Resolve na escala interna. O destino GL pode não existir: ninguém amostra o 2x2 na GPU (só a CPU lê).
+  auto st = g_targets.find(srcKey);
+  if (st == g_targets.end()) return;
+  const Target* holder = &st->second;
+  int rx = 0, ry = 0;
+  if (st->second.holder) { auto h = g_resolved.find(st->second.holder); if (h == g_resolved.end()) return; holder = &h->second; }
+  else { int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h); float sc = Scale(); rx = int(x0 * sc); ry = int(y0 * sc); }
+  struct { int w, h; } dimsT{std::max(1, int(t.width * Scale())), std::max(1, int(t.height * Scale()))};
+  auto* tg = &dimsT;
+  if (!holder->fbo || rx + tg->w > holder->w || ry + tg->h > holder->h) return;
+  thread_local std::vector<uint8_t> px; px.resize(size_t(tg->w) * tg->h * 4);
+  BindFbo(holder->fbo);
+  glReadPixels(rx, ry, tg->w, tg->h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());  // LEVE_OK: readback da luminância (exposição), ≤16 texels por Resolve
+  const uint32_t alignedW = (t.width + 31) & ~31u, alignedH = (t.height + 31) & ~31u;
+  const uint32_t span = std::max(4096u, alignedW * alignedH * 4);
+  uint8_t* dst = const_cast<uint8_t*>(Physical(addr, span));
+  if (!dst) return;
+  for (uint32_t y = 0; y < t.height; ++y) {
+    int32_t rowBase = xenos::TiledOuter(int32_t(y), int32_t(alignedW), 2);
+    for (uint32_t x = 0; x < t.width; ++x) {
+      uint32_t off = uint32_t(xenos::TiledInner(int32_t(x), int32_t(y), 2, rowBase));
+      if (off + 4 > span) continue;
+      uint32_t sx = x * uint32_t(tg->w) / t.width, sy = y * uint32_t(tg->h) / t.height;
+      const uint8_t* p = &px[(size_t(sy) * tg->w + sx) * 4];
+      // A8R8G8B8 como a CPU do jogo lê (D1, 825A3668): bytes A, R, G, B
+      uint8_t e[4] = {p[3], p[0], p[1], p[2]};
+      std::memcpy(dst + off, e, 4);
+    }
+  }
+  static bool diag = std::getenv("NIER_DIAG_RESOLVE") != nullptr;
+  if (diag) { static uint64_t n = 0; if (n++ < 40 || n % 200 == 0) std::fprintf(stderr, "[nier-readback] nível %u %ux%u endereço %08X gl %dx%d texel0 RGBA %u %u %u %u\n", level, t.width, t.height, addr, tg->w, tg->h, px[0], px[1], px[2], px[3]); }
+}
 void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false) {
   const uint8_t* state = f.blob.data() + c.state;
   uint64_t srcKey = TargetKeyOf(state);
@@ -1822,6 +1882,13 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false)
     }
   } else if (c.fetch != SIZE_MAX) {
     auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
+    static bool diagResolve = std::getenv("NIER_DIAG_RESOLVE") != nullptr;  // Resolve pequenos (luminância/exposição?)
+    if (diagResolve && t.width * t.height <= 256) {
+      static std::set<uint64_t> seen;
+      if (seen.insert(TexKey(t)).second && seen.size() < 64)
+        std::fprintf(stderr, "[nier-resolve] pequeno: destino fmt %u %ux%u base %08X mipBase %08X pitch %u packed %d endian %u tiled %d; origem surf %08X color %08X flags %08X\n",
+                     unsigned(t.format), t.width, t.height, t.base, t.mipBase, t.pitch, int(t.packedMips), t.endian, int(t.tiled), BE32(Field(state, kSurfaceInfo)), BE32(Field(state, kSurfaceInfo + 4)), c.flags);
+    }
     static bool noCopy = std::getenv("NIER_NO_RESOLVE_COPY") != nullptr;  // diagnóstico
     uint64_t key = TexKey(t);
     if (direct) {
@@ -1893,6 +1960,7 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false)
       }
     }
   }
+  if (!(c.flags & 4) && c.fetch != SIZE_MAX) { auto t = xenos::DecodeFetch(f.blob.data() + c.fetch); ReadbackSmallResolve(c, srcKey, t, c.level); }
   // Resolve com limpeza (D3DRESOLVE_CLEARRENDERTARGET 0x100 / CLEARDEPTHSTENCIL 0x200, a confirmar).
   if (clears) {
     Target& src = CurrentTarget(state, false);
@@ -2616,7 +2684,7 @@ void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_
   if (!state) return;
   if ((flags & 4) && !destTexture && !(flags & 0x300)) return;  // D3DRESOLVE_DEPTHSTENCIL = 4 sem destino nem limpeza
   Cmd c{Kind::Resolve};
-  c.flags = flags; c.argb = clearColorArgb;
+  c.flags = flags; c.argb = clearColorArgb; c.level = uint8_t(level < 16 ? level : 0);
   if (rect) { std::memcpy(c.rect, rect, sizeof c.rect); c.hasRect = true; }
   c.state = Append(g_building, state, kStateSize);
   if (destTexture) {
