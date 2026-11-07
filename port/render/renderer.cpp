@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cctype>
 #include <cmath>
 #include <condition_variable>
 #include <cstdio>
@@ -161,7 +162,10 @@ struct Target {
   // texturas entre FBOs, ping-pong) e `holder` guarda a chave em g_resolved onde está o conteúdo mais recente;
   // um desenho novo no alvo zera `holder`. Passes menores (bloom) desenham direto no FBO do destino.
   uint64_t holder = 0;
-  bool shared = false;  // textura/FBO emprestados de outro destino (mesmo conteúdo): nunca apagar nem desenhar nela
+  // Resolve repetido da mesma tela para um 2º destino: este destino aponta para o outro só neste quadro
+  // (sharedFrom/sharedFrame); mantém os próprios recursos (nada recriado por quadro na Mali).
+  uint64_t sharedFrom = 0, sharedFrame = ~0ull;
+  uint64_t lastCopy = 0;  // destino que já recebeu cópia deste conteúdo (Resolve repetido referencia, não copia)
 };
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
@@ -171,6 +175,44 @@ uint64_t g_mainTarget = 0;
 GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
 GLint g_blitRect = -1, g_blitFlip = -1;
 bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
+// Cache de estado GL na CPU (como o glCache do Rayman): nenhum glGet e nenhuma chamada redundante no quadro.
+// Quem muda estado fora deste cache (CreateTarget, blit, apresentação) chama InvalidateGl().
+struct GlCache {
+  GLuint fbo = ~0u, program = ~0u;
+  GLuint tex[16]; int unit = -1;
+  bool fixedValid = false;
+  GLint vp[4] = {}; float dr[2] = {}; uint32_t blend = 0, depth = 0, mode = 0, mask = 0;
+  uint32_t attribs = ~0u;  // bits dos atributos ligados (~0 = desconhecido)
+  GlCache() { for (auto& t : tex) t = ~0u; }
+};
+GlCache g_gl;
+GLint g_vsUniformVectors = 256;  // medido no init (Mali-450: 256)
+void InvalidateGl() { g_gl = GlCache{}; }
+uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
+void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; ++g_fboBinds; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
+// GL_EXT_discard_framebuffer: ao fechar um passe, a profundidade/estêncil não precisa voltar para a memória.
+PFNGLDISCARDFRAMEBUFFEREXTPROC g_discard = nullptr;
+std::set<GLuint> g_depthKeep;  // texturas de profundidade com alias neste quadro (não descartar)
+uint32_t g_discards = 0;
+void DiscardDepth(GLuint fbo, GLuint depth) {
+  if (!g_discard || !fbo || !depth || g_depthKeep.count(depth)) return;
+  BindFbo(fbo);
+  static const GLenum att[] = {GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT};
+  g_discard(GL_FRAMEBUFFER, 2, att);
+  ++g_discards;
+}
+void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; glUseProgram(id); } }
+void ActiveUnit(int unit) { if (g_gl.unit != unit) { g_gl.unit = unit; glActiveTexture(GL_TEXTURE0 + unit); } }
+void BindTexture(int unit, GLuint id) { if (g_gl.tex[unit] != id) { ActiveUnit(unit); g_gl.tex[unit] = id; glBindTexture(GL_TEXTURE_2D, id); } }
+void SetAttribs(uint32_t count) {
+  uint32_t want = count >= 32 ? ~0u : (1u << count) - 1;
+  if (g_gl.attribs == want) return;
+  for (uint32_t i = 0; i < kMaxInputs; ++i) {
+    bool on = (want >> i) & 1, was = g_gl.attribs != ~0u && ((g_gl.attribs >> i) & 1);
+    if (g_gl.attribs == ~0u || on != was) { if (on) glEnableVertexAttribArray(i); else glDisableVertexAttribArray(i); }
+  }
+  g_gl.attribs = want;
+}
 struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; bool srcResolved; };
 std::vector<PendingCopy> g_pendingCopies;
 std::set<uint64_t> g_frameSampled, g_everSampled;
@@ -183,20 +225,19 @@ void DoCopy(const PendingCopy& p) {
   auto s = srcMap.find(p.src); auto d = g_resolved.find(p.dst);
   if (s == srcMap.end() || d == g_resolved.end() || !s->second.texture || !d->second.fbo) return;
   Target& src = s->second; Target& dst = d->second;
-  glBindFramebuffer(GL_FRAMEBUFFER, dst.fbo);
+  BindFbo(dst.fbo);
   glViewport(0, 0, dst.w, dst.h);
   glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
   glDepthMask(GL_FALSE);
   glColorMask(1, 1, 1, 1);
-  glUseProgram(g_blitProgram);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, src.texture);
+  g_gl.fixedValid = false;
+  UseProgram(g_blitProgram);
+  BindTexture(0, src.texture);
   glUniform4f(g_blitRect, float(p.w) / src.w, float(p.h) / src.h, float(p.x0) / src.w, float(p.y0) / src.h);
   glUniform1f(g_blitFlip, 0.0f);
   glBindBuffer(GL_ARRAY_BUFFER, g_blitBuffer);
-  glEnableVertexAttribArray(0);
+  SetAttribs(1);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-  for (uint32_t i = 1; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   dst.from3D = src.drew3DFrame == g_frames.load();
   ++g_copiesDone;
@@ -215,6 +256,11 @@ void FlushCopyTo(uint64_t dst) {  // antes de amostrar a textura destino
 }
 std::map<std::string, uint32_t> g_skipReasons;
 bool g_depth24 = false;
+// Profundidade como textura (GL_OES_depth_texture): o Resolve de profundidade do jogo (flags & 4) vira alias da
+// textura de profundidade do alvo, amostrada pelos PS de formato 22 (nuvens/partículas suaves, sombra). Sem a
+// extensão, branco (sem sombra) como antes.
+bool g_depthTexture = false;
+std::map<uint64_t, GLuint> g_depthAlias;  // chave da textura fmt 22 -> textura de profundidade GL
 
 void Skip(const char* reason) {
   ++g_skipped;
@@ -255,18 +301,23 @@ void CreateBlit() {
   glGenBuffers(1, &g_indexBuffer);
   const char* ext = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
   g_depth24 = ext && std::strstr(ext, "GL_OES_depth24");
+  g_depthTexture = ext && std::strstr(ext, "GL_OES_depth_texture") && !std::getenv("NIER_NO_DEPTH_TEXTURE");
+  if (ext && std::strstr(ext, "GL_EXT_discard_framebuffer") && !std::getenv("NIER_NO_DISCARD"))
+    g_discard = reinterpret_cast<PFNGLDISCARDFRAMEBUFFEREXTPROC>(eglGetProcAddress("glDiscardFramebufferEXT"));  // LEVE_OK: inicialização
+  std::fprintf(stderr, "[nier-gl] profundidade: depth24 %d, textura de profundidade %d, discard %d\n", int(g_depth24), int(g_depthTexture), int(g_discard != nullptr));
 }
 
 void ReleaseTarget(Target& t) {
-  if (!t.shared) {
-    if (t.texture) glDeleteTextures(1, &t.texture);
-    if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
-    if (t.depth) glDeleteRenderbuffers(1, &t.depth);
-  }
+  if (t.texture) glDeleteTextures(1, &t.texture);
+  if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
+  if (t.depth) { if (g_depthTexture) glDeleteTextures(1, &t.depth); else glDeleteRenderbuffers(1, &t.depth); }
   t = Target{};
 }
+uint32_t g_targetCreates = 0;  // alvos (re)criados na janela: na Mali cada criação custa ms
 void CreateTarget(Target& t, int w, int h, bool withDepth) {
+  ++g_targetCreates;
   ReleaseTarget(t);
+  InvalidateGl();  // liga textura/FBO/renderbuffer fora do cache
   t.w = w; t.h = h;
   glGenTextures(1, &t.texture);
   glBindTexture(GL_TEXTURE_2D, t.texture);
@@ -278,7 +329,16 @@ void CreateTarget(Target& t, int w, int h, bool withDepth) {
   glGenFramebuffers(1, &t.fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
-  if (withDepth) {
+  if (withDepth && g_depthTexture) {
+    glGenTextures(1, &t.depth);
+    glBindTexture(GL_TEXTURE_2D, t.depth);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, g_depth24 ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, nullptr);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, t.depth, 0);
+  } else if (withDepth) {
     glGenRenderbuffers(1, &t.depth);
     glBindRenderbuffer(GL_RENDERBUFFER, t.depth);
     glRenderbufferStorage(GL_RENDERBUFFER, g_depth24 ? GL_DEPTH_COMPONENT24_OES : GL_DEPTH_COMPONENT16, w, h);
@@ -308,12 +368,14 @@ void ClearOncePerFrame(Target& t) {
   glClearDepthf(1.0f);
   glClearColor(0, 0, 0, 1);
   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+  g_gl.fixedValid = false;
 }
 // FBO próprio do destino de Resolve (passe desenhado direto, sem cópia): tamanho do destino na escala interna.
 Target& DirectTarget(uint64_t key, int w, int h) {
   Target& t = g_resolved[key];
-  if (t.w != w || t.h != h || !t.depth || t.shared) CreateTarget(t, w, h, true);
-  glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
+  if (t.w != w || t.h != h || !t.depth) CreateTarget(t, w, h, true);
+  t.sharedFrom = 0;
+  BindFbo(t.fbo);
   ClearOncePerFrame(t);
   return t;
 }
@@ -321,13 +383,16 @@ Target& CurrentTarget(const uint8_t* state, bool forDraw = true) {
   uint32_t surface = BE32(Field(state, kSurfaceInfo)), color = BE32(Field(state, kColorInfo));
   uint64_t key = uint64_t(color & 0xF0FFF) << 16 | (surface & 0x3FFF);
   uint32_t guestPitch = std::max<uint32_t>(surface & 0x3FFF, 1);
-  int w = std::max(1, int(guestPitch * Scale() + 0.5f)), h = std::max(1, int(720 * Scale() + 0.5f));
+  // altura: 720 do guest, ou o que o viewport pedir (mapa de sombra 1024x1024 desenha até y = 1024)
+  float vpBottom = BEF(Field(state, kViewport + 12)) + std::fabs(BEF(Field(state, kViewport + 8)));
+  int guestH = std::clamp(int(std::lround(vpBottom)), 720, 2048);
+  int w = std::max(1, int(guestPitch * Scale() + 0.5f)), h = std::max(1, int(guestH * Scale() + 0.5f));
   if (!g_pendingCopies.empty()) FlushCopiesFrom(key);
   Target& t = g_targets[key];
-  if (t.w != w || t.h != h) CreateTarget(t, w, h, true);
-  if (forDraw) t.holder = 0;  // o conteúdo mais novo volta a ser a textura do próprio alvo
+  if (t.w != w || (forDraw ? t.h < h : t.h != h && t.h < h)) CreateTarget(t, w, std::max(h, t.h), true);
+  if (forDraw) { t.holder = 0; t.lastCopy = 0; }  // o conteúdo mais novo volta a ser a textura do próprio alvo
   if ((key & 0x3FFF) > (g_mainTarget & 0x3FFF)) g_mainTarget = key;
-  glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
+  BindFbo(t.fbo);
   // O ClearF do 9328 ainda não foi localizado e os Resolve do jogo não pedem limpeza (flags 0/4):
   // cor e profundidade são limpas na 1ª vez do alvo em cada quadro (sem isso, passes aditivos que
   // realimentam a tela resolvida saturam para branco).
@@ -369,6 +434,7 @@ GLuint White() {
     uint32_t px = 0xFFFFFFFF;
     glGenTextures(1, &g_white);
     glBindTexture(GL_TEXTURE_2D, g_white);
+    g_gl.tex[std::max(g_gl.unit, 0)] = g_white;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &px);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -393,11 +459,13 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   if (auto r = g_resolved.find(key); r != g_resolved.end() && (allowResolved || r->second.from3D)) {
     g_everSampled.insert(key);
     if (!g_pendingCopies.empty()) FlushCopyTo(key);
-    return r->second.texture;
+    if (r->second.sharedFrom && r->second.sharedFrame == g_frames.load())
+      if (auto h = g_resolved.find(r->second.sharedFrom); h != g_resolved.end() && h->second.texture) return h->second.texture;
+    return r->second.texture ? r->second.texture : White();
   }
   if (t.format == xenos::k248) {
-    // Profundidade resolvida (mapa de sombra 1024x1024 / cena 1280x720): o Resolve de profundidade não é
-    // emulado; branco = "sem sombra" nos PS que comparam. Não é desenho pulado.
+    if (auto d = g_depthAlias.find(key); d != g_depthAlias.end()) return d->second;
+    // Sem textura de profundidade: branco = "sem sombra" nos PS que comparam. Não é desenho pulado.
     static bool once = false;
     if (!once) { once = true; std::fprintf(stderr, "[nier-gl] textura de profundidade (fmt 22) %ux%u amostrada: branco (sem sombra)\n", t.width, t.height); }
     return White();
@@ -461,8 +529,27 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   auto tu = Clock::now();
   g_decodeMs += std::chrono::duration<double, std::milli>(tu - td).count();
   bool fresh = !tex.id;
+  if (GlProfile()) {  // o que foi decodificado na janela: 1ª vez x redecodificação, por formato/tamanho
+    static std::map<std::string, std::pair<uint32_t, double>> hist; static uint64_t lastFrame = 0; static uint32_t nFirst = 0, nRe = 0;
+    static Clock::time_point lastTime = Clock::now();
+    char k[48]; std::snprintf(k, sizeof k, "f%u %ux%u%s", t.format, t.width, t.height, fresh ? "" : " re");
+    auto& e = hist[k]; ++e.first; e.second += std::chrono::duration<double, std::milli>(tu - td).count();
+    if (fresh) ++nFirst; else ++nRe;
+    if (frame >= lastFrame + 120 || Clock::now() - lastTime >= std::chrono::seconds(5)) {
+      lastFrame = frame; lastTime = Clock::now();
+      std::string line;
+      std::vector<std::pair<double, std::string>> top;
+      for (auto& [n, v] : hist) top.push_back({v.second, n + " x" + std::to_string(v.first)});
+      std::sort(top.rbegin(), top.rend());
+      for (size_t i = 0; i < top.size() && i < 6; ++i) { char b[96]; std::snprintf(b, sizeof b, " | %s %.1fms", top[i].second.c_str(), top[i].first); line += b; }
+      std::fprintf(stderr, "[nier-perfil] decod. na janela: %u primeiras, %u redecod.%s\n", nFirst, nRe, line.c_str());
+      hist.clear(); nFirst = nRe = 0;
+    }
+  }
   if (!tex.id) glGenTextures(1, &tex.id);
+  ActiveUnit(std::max(g_gl.unit, 0));
   glBindTexture(GL_TEXTURE_2D, tex.id);
+  g_gl.tex[g_gl.unit] = tex.id;
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   const uint8_t* upload = (la || lum) ? lumAlpha.data() : g_pixels.data();
   GLenum glFormat = lum ? GL_LUMINANCE : la ? GL_LUMINANCE_ALPHA : GL_RGBA;
@@ -494,20 +581,83 @@ struct Program {
   std::vector<std::pair<int, GLint>> bools;    // (índice, local)
   std::vector<std::pair<int, GLint>> samplers; // (fetch slot, local nx_size) — unidade = ordem
   int vcCount = 256, pcCount = 256;
-  std::vector<float> lastVc, lastPc;  // último banco enviado: glUniform4fv só quando muda (estado ≤ 3 ms na Mali)
+  std::vector<float> lastVc, lastPc;  // último banco enviado: glUniform4fv só nas faixas que mudaram
+  bool vcSeq = false, pcSeq = false;  // VC[i] está em vc + i (confirmado no link): permite enviar faixas
+  std::vector<int8_t> lastBools;      // -1 = nunca enviado
+  int lastAlphaFunc = -2; float lastAlphaRef = -1e30f;
+  std::vector<std::pair<float, float>> lastSizes;
+  // Textura no VS (paleta de ossos 1024x1 float4): janela de texels em uniformes VT<t>[k], VT<t>_p = (largura, base)
+  struct Vtf { int slot; GLint loc, params; int k; };
+  std::vector<Vtf> vtf;
 };
+// Substitui o stub "nx_sample<t> devolve 0" do tradutor por busca num array de uniformes (a Mali-450 não tem
+// textura no vértice). k texels cabem no orçamento de uniformes do VS depois das constantes VC.
+std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs, std::vector<std::pair<int, int>>& slots) {
+  std::string out = src;
+  int budget = int(g_vsUniformVectors) - int(vs->constMap.size()) - 24;
+  int k = std::clamp(budget, 32, 1024);  // Mali-450: ~220 (55 ossos); host: 1024
+  for (int t = 0; t < 32; ++t) {
+    if (!(vs->textureMask & (1u << t))) continue;
+    std::string n = std::to_string(t);
+    std::string stub = "vec4 nx_sample" + n + "(vec2 uv) { return vec4(0.0); }\n";
+    size_t at = out.find(stub);
+    if (at == std::string::npos) continue;
+    std::string repl = "uniform vec4 VT" + n + "[" + std::to_string(k) + "];\nuniform vec2 VT" + n + "_p;\n"
+      "vec4 nx_sample" + n + "(vec2 uv) { int i = int(floor(uv.x * VT" + n + "_p.x + 0.001)) - int(VT" + n + "_p.y); i = nx_clamp_int(i, 0, " + std::to_string(k - 1) + "); return VT" + n + "[i]; }\n";
+    out.replace(at, stub.size(), repl);
+    slots.push_back({t, k});
+  }
+  return out;
+}
 std::unordered_map<uint64_t, Program> g_programs;
 
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false) {
-  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0);
+// Variante sem alpha test (alphaTest = false): o bloco "bool pass … if (!pass) discard;" sai do PS. Na Mali-450 um
+// `discard` presente no shader desliga o early-Z/descarte de fragmentos escondidos mesmo que nunca execute.
+std::string StripAlphaTest(const std::string& src) {
+  size_t a = src.find("    bool pass = alphaFunc == 7");
+  size_t b = src.find("    if (!pass) discard;\n");
+  if (a == std::string::npos || b == std::string::npos || b < a) return src;
+  return src.substr(0, a) + src.substr(b + std::strlen("    if (!pass) discard;\n"));
+}
+// r[N] (índices sempre estáticos no tradutor) vira variáveis r0..rN: compiladores antigos (MaliGP2/Mali-450)
+// tratam arrays como memória e não cabem no limite de 512 palavras; variáveis soltas são alocadas em registros.
+std::string ScalarizeRegisters(const std::string& src) {
+  static bool keep = std::getenv("NIER_KEEP_REG_ARRAY") != nullptr;
+  if (keep) return src;
+  const std::string decl = "    vec4 r[";
+  size_t a = src.find(decl);
+  if (a == std::string::npos) return src;
+  size_t b = src.find("];\n", a);
+  int n = std::atoi(src.c_str() + a + decl.size());
+  if (b == std::string::npos || n <= 0 || n > 64) return src;
+  size_t loopEnd = src.find("\n", b + 3);  // linha "for (int i = 0; i < n; i++) r[i] = vec4(0.0);"
+  if (loopEnd == std::string::npos) return src;
+  std::string out = src.substr(0, a) + "    vec4 ";
+  for (int i = 0; i < n; ++i) out += "r" + std::to_string(i) + " = vec4(0.0)" + (i + 1 < n ? ", " : ";\n");
+  std::string rest = src.substr(loopEnd + 1);
+  std::string res; res.reserve(rest.size());
+  for (size_t i = 0; i < rest.size();) {
+    if (rest[i] == 'r' && i + 1 < rest.size() && rest[i + 1] == '[' && (i == 0 || !std::isalnum(uint8_t(rest[i - 1])) && rest[i - 1] != '_')) {
+      size_t j = i + 2; while (j < rest.size() && std::isdigit(uint8_t(rest[j]))) ++j;
+      if (j < rest.size() && rest[j] == ']' && j > i + 2) { res += "r" + rest.substr(i + 2, j - i - 2); i = j + 1; continue; }
+    }
+    res += rest[i++];
+  }
+  return out + res;
+}
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true) {
+  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2);
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
   char vn[40], pn[40];
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
-  std::snprintf(pn, sizeof pn, "%016llX_ps", (unsigned long long)ps->key);
+  std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
-  GLuint v = CompileShader(GL_VERTEX_SHADER, vs->source.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : ps->source.c_str(), pn);
+  std::string psSource = ScalarizeRegisters(alphaTest ? ps->source : StripAlphaTest(ps->source));
+  std::vector<std::pair<int, int>> vtfSlots;
+  std::string vsSource = ScalarizeRegisters(vs->textureMask ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source);
+  GLuint v = CompileShader(GL_VERTEX_SHADER, vsSource.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : psSource.c_str(), pn);
   if (!v || !f) { if (v) glDeleteShader(v); if (f) glDeleteShader(f); return nullptr; }
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
@@ -522,6 +672,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
     glDeleteProgram(p.id); p.id = 0; return nullptr;
   }
   glUseProgram(p.id);
+  g_gl.program = p.id;
   p.vc = glGetUniformLocation(p.id, "VC");
   p.pc = glGetUniformLocation(p.id, "PC");
   p.alphaFunc = glGetUniformLocation(p.id, "alphaFunc");
@@ -552,12 +703,19 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
       ++unit;
     }
   if (p.wideScale >= 0) glUniform1f(p.wideScale, 1.0f);
+  for (auto [t, k] : vtfSlots) {
+    std::string n = std::to_string(t);
+    p.vtf.push_back({t, glGetUniformLocation(p.id, ("VT" + n).c_str()), glGetUniformLocation(p.id, ("VT" + n + "_p").c_str()), k});
+  }
+  // VC[i] em vc + i? (envio por faixa); conferido uma vez no link
+  if (p.vc >= 0 && p.vcCount > 1) p.vcSeq = glGetUniformLocation(p.id, ("VC[" + std::to_string(p.vcCount - 1) + "]").c_str()) == p.vc + p.vcCount - 1 && glGetUniformLocation(p.id, "VC[1]") == p.vc + 1;
+  if (p.pc >= 0 && p.pcCount > 1) p.pcSeq = glGetUniformLocation(p.id, ("PC[" + std::to_string(p.pcCount - 1) + "]").c_str()) == p.pc + p.pcCount - 1 && glGetUniformLocation(p.id, "PC[1]") == p.pc + 1;
   return &p;
 }
 
 std::vector<float> g_constants;
 // Envia as constantes na ordem compactada (GuestShader::constMap); literais por índice original.
-void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s, std::vector<float>& last) {
+void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s, std::vector<float>& last, bool sequential) {
   if (location < 0) return;
   size_t n = std::min<size_t>(size_t(count), s->constMap.size());
   g_constants.resize(n * 4);
@@ -567,7 +725,17 @@ void UploadConstants(GLint location, int count, const uint8_t* bank, const Guest
     if (reg >= 256 - literals) std::memcpy(&g_constants[j * 4], &s->literals[(reg - (256 - literals)) * 4], 16);
     else for (int c = 0; c < 4; ++c) g_constants[j * 4 + c] = BEF(bank + reg * 16 + 4 * c);
   }
-  if (last.size() == g_constants.size() && std::memcmp(last.data(), g_constants.data(), g_constants.size() * 4) == 0) return;
+  if (last.size() == g_constants.size()) {
+    // só a faixa [primeiro, último] vec4 que mudou (matrizes por objeto mudam; luzes/material ficam)
+    size_t first = 0, lastIdx = n;
+    while (first < n && std::memcmp(&last[first * 4], &g_constants[first * 4], 16) == 0) ++first;
+    if (first == n) return;
+    while (lastIdx > first && std::memcmp(&last[(lastIdx - 1) * 4], &g_constants[(lastIdx - 1) * 4], 16) == 0) --lastIdx;
+    std::memcpy(&last[first * 4], &g_constants[first * 4], (lastIdx - first) * 16);
+    if (sequential) { glUniform4fv(location + GLint(first), GLsizei(lastIdx - first), &g_constants[first * 4]); return; }
+    glUniform4fv(location, GLsizei(n), g_constants.data());
+    return;
+  }
   last = g_constants;
   glUniform4fv(location, GLsizei(n), g_constants.data());
 }
@@ -589,29 +757,42 @@ void ApplyFixedState(const uint8_t* state) {
   float ys = std::fabs(BEF(Field(state, kViewport + 8))), yo = BEF(Field(state, kViewport + 12));
   float zs = BEF(Field(state, kViewport + 16)), zo = BEF(Field(state, kViewport + 20));
   float s = Scale();
-  glViewport(GLint(std::lround((xo - xs) * s)), GLint(std::lround((yo - ys) * s)), GLsizei(std::lround(2 * xs * s)), GLsizei(std::lround(2 * ys * s)));
+  GLint vp[4] = {GLint(std::lround((xo - xs) * s)), GLint(std::lround((yo - ys) * s)), GLint(std::lround(2 * xs * s)), GLint(std::lround(2 * ys * s))};
   float n = zo, f = zo + zs;
   if (zs == 0 && zo == 0) { n = 0; f = 1; }
-  glDepthRangef(std::clamp(n, 0.0f, 1.0f), std::clamp(f, 0.0f, 1.0f));
+  float dr[2] = {std::clamp(n, 0.0f, 1.0f), std::clamp(f, 0.0f, 1.0f)};
   uint32_t blend = BE32(Field(state, kBlendControl));
-  if (blend == 0x00010001) glDisable(GL_BLEND);
-  else {
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(BlendFactor(blend & 31), BlendFactor((blend >> 8) & 31), BlendFactor((blend >> 16) & 31), BlendFactor((blend >> 24) & 31));
-    glBlendEquationSeparate(BlendOp((blend >> 5) & 7), BlendOp((blend >> 21) & 7));
+  uint32_t depth = BE32(Field(state, kDepthControl)) & 0x76;  // habilita (2), escreve (4), função (bits 4-6)
+  uint32_t mode = BE32(Field(state, kModeControl)) & 7;       // cull (2 bits) + frente CCW (bit 2)
+  uint32_t mask = BE32(Field(state, 0x28DC)) & 15;            // RB_COLOR_MASK do alvo 0
+  const bool v = g_gl.fixedValid;
+  if (!v || std::memcmp(vp, g_gl.vp, sizeof vp)) { std::memcpy(g_gl.vp, vp, sizeof vp); glViewport(vp[0], vp[1], vp[2], vp[3]); }
+  if (!v || dr[0] != g_gl.dr[0] || dr[1] != g_gl.dr[1]) { g_gl.dr[0] = dr[0]; g_gl.dr[1] = dr[1]; glDepthRangef(dr[0], dr[1]); }
+  if (!v || blend != g_gl.blend) {
+    g_gl.blend = blend;
+    if (blend == 0x00010001) glDisable(GL_BLEND);
+    else {
+      glEnable(GL_BLEND);
+      glBlendFuncSeparate(BlendFactor(blend & 31), BlendFactor((blend >> 8) & 31), BlendFactor((blend >> 16) & 31), BlendFactor((blend >> 24) & 31));
+      glBlendEquationSeparate(BlendOp((blend >> 5) & 7), BlendOp((blend >> 21) & 7));
+    }
   }
-  uint32_t depth = BE32(Field(state, kDepthControl));
-  if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + ((depth >> 4) & 7)); } else glDisable(GL_DEPTH_TEST);
-  glDepthMask((depth & 4) ? GL_TRUE : GL_FALSE);
-  uint32_t mode = BE32(Field(state, kModeControl));
-  uint32_t cull = mode & 3;
-  if (g_config.cull && (cull == 1 || cull == 2)) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(cull == 1 ? GL_FRONT : GL_BACK);
-    glFrontFace((mode & 4) ? GL_CCW : GL_CW);  // o VS inverte y: a ordem dos vértices na tela também inverte
-  } else glDisable(GL_CULL_FACE);
-  uint32_t mask = BE32(Field(state, 0x28DC)) & 15;  // RB_COLOR_MASK do alvo 0
-  glColorMask(mask & 1, (mask >> 1) & 1, (mask >> 2) & 1, (mask >> 3) & 1);
+  if (!v || depth != g_gl.depth) {
+    g_gl.depth = depth;
+    if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + ((depth >> 4) & 7)); } else glDisable(GL_DEPTH_TEST);
+    glDepthMask((depth & 4) ? GL_TRUE : GL_FALSE);
+  }
+  if (!v || mode != g_gl.mode) {
+    g_gl.mode = mode;
+    uint32_t cull = mode & 3;
+    if (g_config.cull && (cull == 1 || cull == 2)) {
+      glEnable(GL_CULL_FACE);
+      glCullFace(cull == 1 ? GL_FRONT : GL_BACK);
+      glFrontFace((mode & 4) ? GL_CCW : GL_CW);  // o VS inverte y: a ordem dos vértices na tela também inverte
+    } else glDisable(GL_CULL_FACE);
+  }
+  if (!v || mask != g_gl.mask) { g_gl.mask = mask; glColorMask(mask & 1, (mask >> 1) & 1, (mask >> 2) & 1, (mask >> 3) & 1); }
+  g_gl.fixedValid = true;
 }
 
 // GL objects belong exclusively to the render thread. A serial identifies an
@@ -706,10 +887,62 @@ void TrimBufferObjects(bool all = false) {
 }
 
 bool g_bufferAuditReference = false; // render-thread-only diagnostic
-struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; };
+// Paleta de ossos para o VS: lê a textura float4 1024x1 (fmt 38) da memória do guest e envia só a janela de
+// texels [4*osso_min, 4*osso_max+4) que o desenho usa (ossos = atributo inteiro 8_8_8_8 do VS).
+std::unordered_map<uint64_t, std::pair<int, int>> g_boneRange;  // serial do atributo -> (min, max)
+void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
+  int bmin = 0, bmax = -1;
+  for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+    const auto& in = c.vs->inputs[i];
+    if (in.format != 6 || !in.isInteger) continue;
+    int lo = 1 << 30, hi = -1;
+    uint64_t serial = c.vertexData[i] ? c.vertexData[i]->serial : 0;
+    auto cached = serial ? g_boneRange.find(serial) : g_boneRange.end();
+    if (cached != g_boneRange.end()) { lo = cached->second.first; hi = cached->second.second; }
+    else {
+      const float* v = nullptr; static std::vector<float> tmp;
+      if (c.vertexData[i]) {
+        tmp.resize(size_t(c.vertexCount) * 4);
+        ConvertInput(c.vertexData[i]->input, c.vertexData[i]->raw.data(), c.vertexData[i]->endian, 0, c.vertexCount, tmp.data());
+        v = tmp.data();
+      } else if (c.inputs[i] != 0) v = reinterpret_cast<const float*>(f.blob.data() + c.inputs[i]);
+      if (!v) continue;
+      for (size_t k = 0, n = size_t(c.vertexCount) * 4; k < n; ++k) { int b = int(v[k]); lo = std::min(lo, b); hi = std::max(hi, b); }
+      if (serial) g_boneRange[serial] = {lo, hi};
+    }
+    if (hi < 0) continue;
+    if (bmax < 0) { bmin = lo; bmax = hi; } else { bmin = std::min(bmin, lo); bmax = std::max(bmax, hi); }
+  }
+  for (const auto& vt : p.vtf) {
+    const uint8_t* fetch = Field(state, kFetchConstants + 24 * vt.slot);
+    auto t = xenos::DecodeFetch(fetch);
+    static std::map<uint32_t, bool> warned;
+    if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) {
+      if (!warned[t.format]) { warned[t.format] = true; std::fprintf(stderr, "[nier-gl] textura no VS fmt %u %ux%u tiled %d: só float4 1024x1 linear é emulada\n", t.format, t.width, t.height, int(t.tiled)); }
+      if (vt.params >= 0) glUniform2f(vt.params, float(t.width), 0.0f);
+      continue;
+    }
+    int base = bmax >= 0 ? std::clamp(4 * bmin, 0, int(t.width)) : 0;
+    int n = bmax >= 0 ? std::min(vt.k, std::max(0, 4 * (bmax - bmin + 1))) : std::min(vt.k, int(t.width));
+    n = std::min(n, int(t.width) - base);
+    if (bmax >= 0 && 4 * (bmax - bmin + 1) > vt.k) { static bool once = false; if (!once) { once = true; std::fprintf(stderr, "[nier-gl] textura no VS: %d ossos não cabem em %d texels\n", bmax - bmin + 1, vt.k); } }
+    const uint8_t* src = Physical(t.base + uint32_t(base) * 16, uint32_t(n) * 16);
+    if (!src || n <= 0) continue;
+    static std::vector<float> vals; vals.resize(size_t(n) * 4);
+    for (int k = 0; k < n * 4; ++k) {
+      uint8_t e[4]; std::memcpy(e, src + 4 * k, 4); xenos::Swap(e, 4, t.endian);
+      std::memcpy(&vals[k], e, 4);
+    }
+    if (vt.loc >= 0) glUniform4fv(vt.loc, n, vals.data());
+    if (vt.params >= 0) glUniform2f(vt.params, float(t.width), float(base));
+  }
+}
+struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; bool skip = false; };
+uint32_t g_bloomSkips = 0;
 void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
+  if (rd.skip) return;  // nível de bloom mantido do quadro anterior
   Target& drawTarget = rd.key ? DirectTarget(rd.key, rd.w, rd.h) : CurrentTarget(state);
   if (rd.key) { ++g_directDraws; if (rd.passStart) drawTarget.from3D = false; if (!c.up) drawTarget.from3D = true; }
   if (!c.up) drawTarget.drew3DFrame = g_frames.load();
@@ -717,28 +950,39 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   g_pTarget += Ms(t0, t1);
   ApplyFixedState(state);
   static bool flat3d = std::getenv("NIER_FLAT_3D") != nullptr;  // diagnóstico: 3D em vermelho sólido
-  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up);
-  if (!p) { Skip("programa não compilou/linkou"); return; }
-  glUseProgram(p->id);
-  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc);
-  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps, p->lastPc);
-  for (auto [b, loc] : p->bools) glUniform1i(loc, (BE32(Field(state, kBoolConstants + 4 * (b >> 5))) >> (b & 31)) & 1);
+  static bool keepAlphaTest = std::getenv("NIER_ALPHA_TEST_SEMPRE") != nullptr;  // diagnóstico: variante única
   uint32_t colorControl = BE32(Field(state, kColorControl));
-  if (p->alphaFunc >= 0) glUniform1i(p->alphaFunc, (colorControl & 8) ? int(colorControl & 7) : 7);
-  if (p->alphaRef >= 0) glUniform1f(p->alphaRef, BEF(Field(state, 0x2904)));
+  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up, keepAlphaTest || (colorControl & 8));
+  if (!p) { Skip("programa não compilou/linkou"); return; }
+  UseProgram(p->id);
+  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc, p->vcSeq);
+  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps, p->lastPc, p->pcSeq);
+  if (p->lastBools.size() != p->bools.size()) p->lastBools.assign(p->bools.size(), -1);
+  for (size_t i = 0; i < p->bools.size(); ++i) {
+    auto [b, loc] = p->bools[i];
+    int8_t v = int8_t((BE32(Field(state, kBoolConstants + 4 * (b >> 5))) >> (b & 31)) & 1);
+    if (p->lastBools[i] != v) { p->lastBools[i] = v; glUniform1i(loc, v); }
+  }
+  if (p->alphaFunc >= 0) { int af = (colorControl & 8) ? int(colorControl & 7) : 7; if (af != p->lastAlphaFunc) { p->lastAlphaFunc = af; glUniform1i(p->alphaFunc, af); } }
+  if (p->alphaRef >= 0) { float ar = BEF(Field(state, 0x2904)); if (ar != p->lastAlphaRef) { p->lastAlphaRef = ar; glUniform1f(p->alphaRef, ar); } }
+  if (p->lastSizes.size() != p->samplers.size()) p->lastSizes.assign(p->samplers.size(), {-1.f, -1.f});
+  if (!p->vtf.empty()) UploadVertexTextures(f, c, *p, state);
   int unit = 0;
   for (auto [slot, sizeLoc] : p->samplers) {
     const uint8_t* fetch = Field(state, kFetchConstants + 24 * slot);
     auto t = xenos::DecodeFetch(fetch);
-    glActiveTexture(GL_TEXTURE0 + unit);
     // Heurística (07/11): a tela resolvida alimenta desenhos não-UP e também UP quando a origem recebeu
     // desenho 3D no quadro (composição da cena). Tela de UI pura vem da memória do guest (menus sem faixas).
     static bool resolvedInUi = std::getenv("NIER_RESOLVED_IN_UI") != nullptr;
-    glBindTexture(GL_TEXTURE_2D, (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White());
-    if (sizeLoc >= 0) glUniform2f(sizeLoc, float(t.width), float(t.height));
+    ActiveUnit(unit);  // TextureFor pode enviar a textura: liga na unidade certa
+    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White();
+    BindTexture(unit, id);
+    if (sizeLoc >= 0) {
+      std::pair<float, float> sz{float(t.width), float(t.height)};
+      if (p->lastSizes[unit] != sz) { p->lastSizes[unit] = sz; glUniform2f(sizeLoc, sz.first, sz.second); }
+    }
     ++unit;
   }
-  glActiveTexture(GL_TEXTURE0);
   auto t2 = Clock::now();
   g_pState += Ms(t1, t2);
   size_t indexOffset = 0;
@@ -754,11 +998,10 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
         if (!streamBound) glBindBuffer(GL_ARRAY_BUFFER, stream.vertex);
         streamBound = true; offset = c.streamInputs[i];
       }
-      glEnableVertexAttribArray(i);
       glVertexAttribPointer(i, layout.components, layout.type, layout.normalized ? GL_TRUE : GL_FALSE,
                             layout.bytes, reinterpret_cast<void*>(offset));
     }
-    for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
+    SetAttribs(c.inputCount);  // cache de estado do C1 (só liga/desliga o que mudou)
     if (c.residentIndices) BindSnapshot(GL_ELEMENT_ARRAY_BUFFER, c.indexData);
     else { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, stream.index); indexOffset = c.streamIndices; }
   } else {
@@ -774,10 +1017,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
         source = reference.data();
       }
       glBufferSubData(GL_ARRAY_BUFFER, GLintptr(bytes * i), GLsizeiptr(bytes), source);
-      glEnableVertexAttribArray(i);
       glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, reinterpret_cast<void*>(bytes * i));
     }
-    for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
+    SetAttribs(c.inputCount);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_indexBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(c.indexCount * 2), c.indexData ? c.indexData->raw.data() : f.blob.data() + c.indices, GL_STREAM_DRAW);
   }
@@ -802,9 +1044,26 @@ void ResolveRect(const Cmd& c, const xenos::TextureFetch& t, int& x0, int& y0, i
 // cancelam o redirecionamento (o segundo precisaria do conteúdo no alvo).
 std::vector<Redirect> g_redirects;
 std::vector<uint8_t> g_resolveDirect;
+// Resolve de tela cheia seguido de mais desenho no MESMO alvo (nuvens/partículas sobre a cena resolvida): o alvo
+// precisa manter o conteúdo, então esse Resolve copia por blit (1 passe) em vez de trocar o FBO e limpar.
+std::vector<uint8_t> g_resolveKeep;
 void PlanDirectPasses(const Frame& f) {
   g_redirects.assign(f.cmds.size(), Redirect{});
   g_resolveDirect.assign(f.cmds.size(), 0);
+  g_resolveKeep.assign(f.cmds.size(), 0);
+  for (size_t i = 0; i < f.cmds.size(); ++i) {
+    const Cmd& c = f.cmds[i];
+    if (c.kind != Kind::Resolve || (c.flags & 4) || (c.flags & 0x300)) continue;
+    uint64_t srcKey = TargetKeyOf(f.blob.data() + c.state);
+    for (size_t j = i + 1; j < f.cmds.size(); ++j) {
+      const Cmd& n = f.cmds[j];
+      if (n.kind == Kind::Skip) continue;
+      if (TargetKeyOf(f.blob.data() + n.state) != srcKey) continue;
+      if (n.kind == Kind::Resolve && ((n.flags & 4) || !(n.flags & 0x300))) continue;  // profundidade ou 2º destino da mesma cena
+      if (n.kind == Kind::Draw) g_resolveKeep[i] = 1;  // continua desenhando por cima: manter conteúdo
+      break;
+    }
+  }
   static bool off = std::getenv("NIER_NO_DIRECT_RESOLVE") != nullptr;
   if (off) return;
   std::map<uint64_t, std::vector<size_t>> open;  // alvo -> desenhos desde o último Resolve desse alvo
@@ -816,6 +1075,7 @@ void PlanDirectPasses(const Frame& f) {
     const uint8_t* state = f.blob.data() + c.state;
     uint64_t srcKey = TargetKeyOf(state);
     auto& draws = open[srcKey];
+    if (c.flags & 4) continue;  // Resolve de profundidade: não fecha o passe nem redireciona
     if (c.fetch != SIZE_MAX && !draws.empty()) {
       auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
       int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
@@ -841,20 +1101,37 @@ void PlanDirectPasses(const Frame& f) {
       if (ok) {
         uint64_t key = TexKey(t);
         int tw = std::max(1, int(t.width * s)), th = std::max(1, int(t.height * s));
-        for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0};
+        // Níveis minúsculos da cadeia de bloom (< NIER_BLOOM_MIN, padrão 32) em quadros alternados: o destino
+        // guarda o conteúdo do quadro anterior (brilho largo muda devagar); poupa trocas de alvo na Mali.
+        static int bloomMin = std::getenv("NIER_BLOOM_MIN") ? std::atoi(std::getenv("NIER_BLOOM_MIN")) : 32;
+        bool skipThisFrame = int(t.width) < bloomMin && (g_frames.load() & 1) && g_resolved.count(key) && g_resolved[key].texture;
+        for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0, skipThisFrame};
         g_resolveDirect[i] = 1;
         ++g_directPasses;
+        if (skipThisFrame) ++g_bloomSkips;
       }
     }
     draws.clear();
   }
 }
-void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
+void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false) {
   const uint8_t* state = f.blob.data() + c.state;
   uint64_t srcKey = TargetKeyOf(state);
   bool clears = c.flags & 0x300;
   float s = Scale();
-  if (c.fetch != SIZE_MAX) {
+  if ((c.flags & 4) && c.fetch != SIZE_MAX) {
+    // Resolve de profundidade: a textura fmt 22 passa a ser a textura de profundidade do FBO que tem a cena
+    // (o próprio alvo, ou o destino do alias se a cor já foi resolvida antes).
+    auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
+    if (g_depthTexture) {
+      auto srcIt = g_targets.find(srcKey);
+      if (srcIt != g_targets.end()) {
+        Target& src = srcIt->second;
+        GLuint depth = src.holder ? g_resolved[src.holder].depth : src.depth;
+        if (depth) { g_depthAlias[TexKey(t)] = depth; g_depthKeep.insert(depth); }
+      }
+    }
+  } else if (c.fetch != SIZE_MAX) {
     auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
     static bool noCopy = std::getenv("NIER_NO_RESOLVE_COPY") != nullptr;  // diagnóstico
     uint64_t key = TexKey(t);
@@ -862,6 +1139,7 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
       // o passe já foi desenhado no FBO do destino (PlanDirectPasses); o alvo não recebe o conteúdo
       Target& src = g_targets[srcKey];
       src.holder = key;
+      if (auto d = g_resolved.find(key); d != g_resolved.end()) DiscardDepth(d->second.fbo, d->second.depth);
     } else if (t.width >= 8 && t.height >= 8 && !noCopy) {
       ++g_resolveCopies;
       int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
@@ -873,44 +1151,54 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
       for (size_t i = 0; i < g_pendingCopies.size(); ++i)
         if (g_pendingCopies[i].dst == key) { g_pendingCopies.erase(g_pendingCopies.begin() + i); ++g_copiesSkipped; break; }
       bool full = x0 == 0 && y0 == 0 && w == int(t.width) && h == int(t.height) && dw == src.w && dh == src.h;
-      if (full && !src.holder) {
+      if (full && !src.holder && !keep) {
         // Tela cheia: o destino fica com a própria textura do alvo (sem cópia); o alvo segue com a textura antiga
         // do destino (ping-pong) e o próximo desenho nele limpa/sobrescreve como antes.
         FlushCopiesFrom(srcKey);
         Target& dst = g_resolved[key];
         // destino com FBO completo (cor+profundidade) para a troca ser de FBO inteiro: zero chamadas GL
-        if (dst.w != dw || dst.h != dh || !dst.texture || !dst.depth || dst.shared) CreateTarget(dst, dw, dh, true);
+        if (dst.w != dw || dst.h != dh || !dst.texture || !dst.depth) CreateTarget(dst, dw, dh, true);
+        dst.sharedFrom = 0;
         std::swap(src.texture, dst.texture);
         std::swap(src.fbo, dst.fbo);
         std::swap(src.depth, dst.depth);
-        // a textura que volta ao alvo vai ser desenhada: destinos que a emprestavam deixam de valer
-        for (auto& [k, r] : g_resolved) if (r.shared && r.texture == src.texture) r = Target{};
         dst.from3D = src.drew3DFrame == g_frames.load();
         src.holder = key;
+        src.clearedFrame = ~0ull;  // o próximo desenho no alvo limpa: entrar sem limpar recarrega os tiles
+        DiscardDepth(dst.fbo, dst.depth);
         ++g_aliases;
       } else if (src.holder && src.holder != key) {
         // conteúdo está numa textura resolvida (alias/passe direto anterior)
         Target& holder = g_resolved[src.holder];
         Target& dst = g_resolved[key];
         if (full && holder.w == dw && holder.h == dh && holder.texture) {
-          // mesma tela inteira para um segundo destino: empresta a textura (sem cópia)
-          ReleaseTarget(dst);
-          dst = holder; dst.shared = true; dst.holder = 0;
+          // mesma tela inteira para um segundo destino: aponta para o outro destino neste quadro (sem cópia)
+          dst.sharedFrom = src.holder; dst.sharedFrame = g_frames.load(); dst.from3D = holder.from3D;
           ++g_aliases;
         } else {
-          if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
+          dst.sharedFrom = 0;
+          if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
           if (g_frameSampled.count(key) || g_everSampled.count(key)) DoCopy(PendingCopy{src.holder, key, int(x0 * s), int(y0 * s), dw, dh, true});
           else ++g_copiesSkipped;
         }
       } else if (!src.holder) {
         Target& dst = g_resolved[key];
-        if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
-        // Retângulo parcial: copia só se o destino for amostrado (neste quadro ou alguma vez).
-        if (g_frameSampled.count(key) || g_everSampled.count(key)) {
-          g_pendingCopies.push_back({srcKey, key, int(x0 * s), int(y0 * s), dw, dh, false});
-          FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
+        dst.sharedFrom = 0;
+        if (full && src.lastCopy && src.lastCopy != key && g_resolved.count(src.lastCopy) && g_resolved[src.lastCopy].texture) {
+          // mesma cena já copiada para outro destino neste passe: referencia, sem 2ª cópia
+          dst.sharedFrom = src.lastCopy; dst.sharedFrame = g_frames.load(); dst.from3D = g_resolved[src.lastCopy].from3D;
+          if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
+          ++g_aliases;
         } else {
-          ++g_copiesSkipped;      // ninguém amostra este destino: a cópia é pulada
+          if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
+          // Retângulo parcial ou passe que continua: copia só se o destino for amostrado (neste quadro ou alguma vez).
+          if (g_frameSampled.count(key) || g_everSampled.count(key)) {
+            g_pendingCopies.push_back({srcKey, key, int(x0 * s), int(y0 * s), dw, dh, false});
+            FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
+            if (full) src.lastCopy = key;
+          } else {
+            ++g_copiesSkipped;      // ninguém amostra este destino: a cópia é pulada
+          }
         }
       }
     }
@@ -918,7 +1206,8 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
   // Resolve com limpeza (D3DRESOLVE_CLEARRENDERTARGET 0x100 / CLEARDEPTHSTENCIL 0x200, a confirmar).
   if (clears) {
     Target& src = CurrentTarget(state, false);
-    glBindFramebuffer(GL_FRAMEBUFFER, src.fbo);
+    BindFbo(src.fbo);
+    g_gl.fixedValid = false;
     glDisable(GL_SCISSOR_TEST);
     glColorMask(1, 1, 1, 1);
     glDepthMask(GL_TRUE);
@@ -964,7 +1253,7 @@ void AuditBufferImage(const Frame& work) {
       const Cmd& c = work.cmds[i];
       bool planned = i < g_redirects.size();
       if (c.kind == Kind::Draw) ReplayDraw(work, c, planned ? g_redirects[i] : Redirect{});
-      else if (c.kind == Kind::Resolve) ReplayResolve(work, c, planned && g_resolveDirect[i] != 0);
+      else if (c.kind == Kind::Resolve) ReplayResolve(work, c, planned && g_resolveDirect[i] != 0, planned && g_resolveKeep[i] != 0);
     }
     g_bufferAuditReference = false;
     std::vector<uint8_t> pixels;
@@ -1078,6 +1367,7 @@ void RenderThread() {
                ReferenceBuffers() ? "reference/off" : "on", int(g_vertexHalf.load()));
   GLint vsUniforms = 0, fsUniforms = 0;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
+  g_vsUniformVectors = vsUniforms > 0 ? vsUniforms : 256;
   glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
@@ -1110,7 +1400,7 @@ void RenderThread() {
     PlanDirectPasses(work);
     for (size_t i = 0; i < work.cmds.size(); ++i) {
       const Cmd& c = work.cmds[i];
-      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
+      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
       else { ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]); }
     }
@@ -1120,26 +1410,33 @@ void RenderThread() {
     if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }  // LEVE_OK: perfil opt-in (NIER_GL_PROFILE) para medir a GPU
     auto tp = Clock::now();
     g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
+    for (auto& [k, t] : g_targets) if (t.clearedFrame == g_frames.load()) DiscardDepth(t.fbo, t.depth);
     PresentToWindow();
+    InvalidateGl();
+    g_depthKeep.clear();  // apresentação (e auditoria opt-in) mexem no estado fora do cache
     auto now = Clock::now();
     g_swapMs += std::chrono::duration<double, std::milli>(now - tp).count();
     g_lastFrameMs = std::chrono::duration<double, std::milli>(now - last).count();
     last = now;
     uint64_t n = ++g_frames;
-    if (n % 120 == 0)
+    // Janela de log: 120 quadros ou 5 s, o que vier primeiro (a 1 fps no 3D, 120 quadros misturavam tudo);
+    // médias divididas pelo número real de quadros da janela.
+    static Clock::time_point windowStart = Clock::now(); static uint64_t windowFirst = 0;
+    const uint64_t W = n - windowFirst;
+    if (W >= 120 || (now - windowStart >= std::chrono::seconds(5) && W > 0))
     {
-      std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
-                   (unsigned long long)n, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
-                   g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, GlProfile() ? glGetError() : 0u);  // LEVE_OK: glGetError só no perfil opt-in
+      std::fprintf(stderr, "[nier-gl] %llu quadros (janela %llu), %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
+                   (unsigned long long)n, (unsigned long long)W, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
+                   g_programs.size(), g_textures.size(), g_textureMs / double(W), g_sigMs / double(W), g_decodeMs / double(W), g_uploadMs / double(W), g_replayMs / double(W), g_swapMs / double(W), g_gameWaitNs.exchange(0) / (W * 1e6), GlProfile() ? glGetError() : 0u);  // LEVE_OK: glGetError só no perfil opt-in
       if (!g_skipReasons.empty()) {
         std::string line;
         for (auto& [r, n] : g_skipReasons) line += " | " + r + ": " + std::to_string(n);
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos) glFinish(GPU) %.2f\n",
-                     g_pTarget / 120, g_pState / 120, g_pBuffers / 120, g_pDraw / 120, g_pResolve / 120, g_resolves / 120.0, g_resolveCopies / 120.0, g_copiesDone / 120.0, g_copiesSkipped / 120.0, g_aliases / 120.0, g_directPasses / 120.0, g_directDraws / 120.0, g_pFinish / 120);
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0;
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u) glFinish(GPU) %.2f\n",
+                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_pFinish / double(W));
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
@@ -1152,6 +1449,7 @@ void RenderThread() {
       lastMiss=misses;lastCreate=g_bufferUploads;lastStream=g_streamUploads;lastBytes=g_streamBytes;
       g_pTarget = g_pState = g_pBuffers = g_pDraw = g_pFinish = g_pResolve = 0; g_resolves = g_resolveCopies = 0;
       g_textureMs = g_sigMs = g_decodeMs = g_uploadMs = g_replayMs = g_swapMs = 0;
+      windowStart = now; windowFirst = n;
     }
     {
       std::lock_guard lock(g_queueMutex);
@@ -1244,7 +1542,7 @@ void TraceDraw(const Cmd& c, const uint8_t* state, uint32_t primitive, uint32_t 
     const uint8_t* k = Field(state, kVertexConstants + 16 * r);
     std::fprintf(stderr, "[nier-trace]   VC%d %g %g %g %g\n", r, BEF(k), BEF(k + 4), BEF(k + 8), BEF(k + 12));
   }
-  for (int t = 0; t < 32; ++t) if (c.ps->textureMask & (1u << t)) {
+  for (int t = 0; t < 32; ++t) if ((c.ps->textureMask | c.vs->textureMask) & (1u << t)) {
     const uint8_t* f = Field(state, kFetchConstants + 24 * t);
     auto tf = xenos::DecodeFetch(f);
     std::fprintf(stderr, "[nier-trace]   T%d words %08X %08X %08X %08X %08X %08X fmt %u %ux%u base %08X tiled %d endian %u dim %u pitch %u\n", t,
@@ -1425,7 +1723,8 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
 void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb) {
   FlushPendingUP();
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
-  if (!state || (flags & 4)) return;  // D3DRESOLVE_DEPTHSTENCIL = 4 (rastro 07/11): profundidade não é copiada
+  if (!state) return;
+  if ((flags & 4) && !destTexture && !(flags & 0x300)) return;  // D3DRESOLVE_DEPTHSTENCIL = 4 sem destino nem limpeza
   Cmd c{Kind::Resolve};
   c.flags = flags; c.argb = clearColorArgb;
   if (rect) { std::memcpy(c.rect, rect, sizeof c.rect); c.hasRect = true; }
