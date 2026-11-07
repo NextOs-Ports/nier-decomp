@@ -76,8 +76,10 @@ const uint8_t* Physical(uint32_t address, uint32_t size) {
 using buffers::ConvertInput;
 
 // Primitivas do guest -> lista de triângulos (índices relativos ao 1º vértice convertido).
+GLenum g_triMode = GL_TRIANGLES;  // modo GL escolhido pelo último Triangulate (tira ou lista, o mais barato)
 bool Triangulate(uint32_t primitive, const std::vector<uint32_t>& src, std::vector<uint16_t>& dst) {
   dst.clear();
+  g_triMode = GL_TRIANGLES;
   auto add = [&](uint32_t a, uint32_t b, uint32_t c) { if (a != b && b != c && a != c) { dst.push_back(uint16_t(a)); dst.push_back(uint16_t(b)); dst.push_back(uint16_t(c)); } };
   switch (primitive) {
     case 4: for (size_t i = 0; i + 2 < src.size(); i += 3) add(src[i], src[i + 1], src[i + 2]); return true;
@@ -86,7 +88,10 @@ bool Triangulate(uint32_t primitive, const std::vector<uint32_t>& src, std::vect
       // Tira com reinício (0xFFFFFFFF): sai como UMA tira GL; a emenda usa vértices repetidos (degenerados) e
       // mantém a paridade do enrolamento (número par de índices entre sub-tiras).
       static bool asList = std::getenv("NIER_STRIP_AS_LIST") != nullptr;  // A/B
-      if (asList) { size_t start = 0; for (size_t i = 0; i < src.size(); ++i) { if (src[i] == 0xFFFFFFFFu) { start = i + 1; continue; } if (i < start + 2) continue; if ((i - start) & 1) add(src[i - 1], src[i - 2], src[i]); else add(src[i - 2], src[i - 1], src[i]); } return true; }
+      // custo: tira = soma(len) + 3 por emenda; lista = 3*(len-2) por sub-tira. Tiras curtas (quads) saem em lista.
+      size_t stripCost = 0, listCost = 0, subs = 0;
+      for (size_t i = 0; i < src.size();) { size_t j = i; while (j < src.size() && src[j] != 0xFFFFFFFFu) ++j; if (j - i >= 3) { stripCost += j - i + (subs ? 3 : 0); listCost += 3 * (j - i - 2); ++subs; } i = j + 1; }
+      if (asList || listCost <= stripCost) { size_t start = 0; for (size_t i = 0; i < src.size(); ++i) { if (src[i] == 0xFFFFFFFFu) { start = i + 1; continue; } if (i < start + 2) continue; if ((i - start) & 1) add(src[i - 1], src[i - 2], src[i]); else add(src[i - 2], src[i - 1], src[i]); } return true; }
       bool first = true;
       for (size_t i = 0; i < src.size();) {
         size_t j = i; while (j < src.size() && src[j] != 0xFFFFFFFFu) ++j;
@@ -97,6 +102,7 @@ bool Triangulate(uint32_t primitive, const std::vector<uint32_t>& src, std::vect
         }
         i = j + 1;
       }
+      g_triMode = GL_TRIANGLE_STRIP;
       return true;
     }
     case 13: for (size_t i = 0; i + 3 < src.size(); i += 4) { add(src[i], src[i + 1], src[i + 2]); add(src[i], src[i + 2], src[i + 3]); } return true;
@@ -1855,7 +1861,7 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
   c.prim = uint8_t(primitive);
-  c.mode = (primitive == 6 && !std::getenv("NIER_STRIP_AS_LIST")) ? GL_TRIANGLE_STRIP : GL_TRIANGLES;
+  c.mode = g_triMode;
   if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
     c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
@@ -1900,7 +1906,7 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
   TraceDraw(c, g_building.blob.data() + c.state, primitive, vertexCount, false);
   c.indexCount = uint32_t(g_triIndices.size());
   c.prim = uint8_t(primitive);
-  c.mode = (primitive == 6 && !std::getenv("NIER_STRIP_AS_LIST")) ? GL_TRIANGLE_STRIP : GL_TRIANGLES;
+  c.mode = g_triMode;
   if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   else {
     c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
