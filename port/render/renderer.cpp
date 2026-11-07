@@ -78,8 +78,15 @@ constexpr uint32_t kMaxInputs = 16;
 
 // ---------------------------------------------------------------- memória guest
 const uint8_t* Virtual(uint32_t address, uint32_t size) { return g_mem.virtualRead ? g_mem.virtualRead(address, size) : nullptr; }
+// GPU fetches may contain an X360 physical-heap alias. The E/F alias starts
+// one page into physical memory; already-physical addresses must not be masked
+// again (in particular the invalid endpoint 0x20000000 must stay invalid).
+uint32_t PhysicalOf(uint32_t address) {
+  if(address<0x80000000u)return address;
+  return (address&0x1FFFFFFFu)+(address>=0xE0000000u?0x1000u:0u);
+}
 const uint8_t* Physical(uint32_t address, uint32_t size) {
-  address &= 0x1FFFFFFF;
+  address = PhysicalOf(address);
   return g_mem.physicalBase && uint64_t(address) + size <= 0x20000000ull ? g_mem.physicalBase + address : nullptr;
 }
 
@@ -417,7 +424,6 @@ void CreateTarget(Target& t, int w, int h, bool withDepth) {
 float Scale() { return float(g_config.renderWidth) / 1280.0f; }
 // Chave de textura por endereço físico (o objeto pode trazer bits altos de mapeamento, ex. 0xF105…).
 // Endereço ≥ 0xE0000000 (heap física de 4 KB) corresponde a físico + 0x1000 (o mesmo do index buffer).
-uint32_t PhysicalOf(uint32_t base) { return (base & 0x1FFFFFFF) + (base >= 0xE0000000 ? 0x1000 : 0); }
 uint64_t TexKey(const xenos::TextureFetch& t) { return uint64_t(PhysicalOf(t.base)) << 32 | uint64_t(t.width) << 16 | t.height; }
 
 // Alvo de cor atual do guest (chave RB_SURFACE_INFO/RB_COLOR_INFO), na resolução interna.
@@ -2352,7 +2358,7 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, int64_t first, uint32_t count,
       base = upData; endian = 2;
     } else {
       const uint8_t* vf = vfetch + std::min<uint32_t>(in.slot, 95) * 8;
-      uint32_t address = BE32(vf) & 0x1FFFFFFC, size = ((BE32(vf + 4) >> 2) & 0xFFFFFF) * 4;
+      uint32_t address = PhysicalOf(BE32(vf) & ~3u), size = ((BE32(vf + 4) >> 2) & 0xFFFFFF) * 4;
       endian = BE32(vf + 4) & 3;
       // Faixa em 64 bits e com sinal: baseVertex negativo ou grande não pode dar a volta (SIGSEGV em 07/11).
       int64_t start = first * int64_t(in.stride) * 4 + int64_t(in.offset) * 4;
@@ -2568,9 +2574,9 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     if (!object) { RecordSkip("sem index buffer"); return; }
     bool is32 = BE32(object) & 0x80000000u;
     uint32_t address = BE32(object + 0x18), bytes = is32 ? 4 : 2;
-    uint32_t physical = (address & 0x1FFFFFFF) + (address >= 0xE0000000 ? 0x1000 : 0);  // heap 0xE0000000
-    c.indexAddress = uint64_t(physical) + uint64_t(startIndex) * bytes;
-    const uint8_t* src = Physical(physical + startIndex * bytes, count * bytes);
+    c.indexAddress = uint64_t(PhysicalOf(address)) + uint64_t(startIndex) * bytes;
+    if(c.indexAddress+uint64_t(count)*bytes>0x20000000ull){RecordSkip("index buffer fora da memória física");return;}
+    const uint8_t* src = Physical(uint32_t(c.indexAddress), count * bytes);
     if (!src) { RecordSkip("index buffer ilegível"); return; }
     static bool noTriCache = std::getenv("NIER_NO_TRI_CACHE") != nullptr;
     uint64_t triKey = (c.indexAddress * 0x9E3779B97F4A7C15ull) ^ (uint64_t(count) << 8) ^ (uint64_t(primitive) << 1) ^ uint64_t(is32);
@@ -2590,8 +2596,8 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     const uint8_t* object = Virtual(ib, 0x20);
     bool is32 = BE32(object) & 0x80000000u;
     uint32_t address = BE32(object + 0x18), bytes = is32 ? 4 : 2;
-    uint32_t physical = (address & 0x1FFFFFFF) + (address >= 0xE0000000 ? 0x1000 : 0);
-    const uint8_t* src = Physical(physical + startIndex * bytes, count * bytes);
+    const uint8_t* src = Physical(uint32_t(c.indexAddress), count * bytes);  // normalized and range-checked above
+    if(!src){RecordSkip("index buffer ilegível");return;}
     uint32_t lo = 0xFFFFFFFF, hi = 0;
     for (uint32_t i = 0; i < count; ++i) {
       uint32_t v = is32 ? BE32(src + 4 * i) : uint32_t(src[2 * i]) << 8 | src[2 * i + 1];
