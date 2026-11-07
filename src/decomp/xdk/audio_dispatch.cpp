@@ -33,3 +33,16 @@ NIER_DECOMP(sub_824BEBF0) {
     return_target(ctx,table[kind==7][channels==1?0:channels==2?1:channels==6?2:3]);
 }
 NIER_VERIFY_SPEC(sub_824BEBF0,0x824BEBF0,"r3=range:0..8 r4=range:0..8");
+
+// Output-conversion selector; its CTR zero tests use the low word.
+NIER_DECOMP(sub_824BF930) {
+    const uint32_t targets[]{0x824bef58,0x824bedd8,0x824bf0e8,0x824bf4a0,0x824bf2d0,0x824bf630,0x824bf7c0};
+    const uint32_t kind=ctx.r3.u32;
+    return_target(ctx,kind<=6?targets[kind]:0x824becb0);
+}
+NIER_VERIFY_SPEC(sub_824BF930,0x824BF930,"r3=range:0..8");
+NIER_DECOMP(sub_824BFC50) {
+    const uint32_t channels=ctx.r3.u32;
+    return_target(ctx,channels==1?0x824bfab0:channels==2?0x824bfb60:0x824bf9c8);
+}
+NIER_VERIFY_SPEC(sub_824BFC50,0x824BFC50,"r3=range:0..4");
