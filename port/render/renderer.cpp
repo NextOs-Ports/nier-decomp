@@ -190,6 +190,9 @@ GLint g_vsUniformVectors = 256;  // medido no init (Mali-450: 256)
 void InvalidateGl() { g_gl = GlCache{}; }
 // Medição do "desenho" (CPU dentro de glDrawElements no driver Mali): o que cada janela enviou
 uint64_t g_vec4Sent = 0, g_vtVec4Sent = 0, g_indicesDrawn = 0, g_programsLinked = 0, g_programSwitches = 0;
+uint64_t g_idxByClass[4] = {}, g_drawsByClass[4] = {}, g_skippedPrepass = 0, g_skippedShadow = 0;
+bool g_mali = false;
+bool g_skipPrepass = false, g_skipShadow = false, g_sortByProgram = false;
 uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
 void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; ++g_fboBinds; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
 // GL_EXT_discard_framebuffer: ao fechar um passe, a profundidade/estêncil não precisa voltar para a memória.
@@ -785,7 +788,9 @@ void ApplyFixedState(const uint8_t* state) {
   }
   if (!v || depth != g_gl.depth) {
     g_gl.depth = depth;
-    if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + ((depth >> 4) & 7)); } else glDisable(GL_DEPTH_TEST);
+    uint32_t func = (depth >> 4) & 7;
+    if (g_skipPrepass && func == 2) func = 3;  // sem pré-passe de profundidade: EQUAL vira LEQUAL
+    if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + func); } else glDisable(GL_DEPTH_TEST);
     glDepthMask((depth & 4) ? GL_TRUE : GL_FALSE);
   }
   if (!v || mode != g_gl.mode) {
@@ -1105,6 +1110,12 @@ std::vector<uint8_t> g_resolveDirect;
 // Resolve de tela cheia seguido de mais desenho no MESMO alvo (nuvens/partículas sobre a cena resolvida): o alvo
 // precisa manter o conteúdo, então esse Resolve copia por blit (1 passe) em vez de trocar o FBO e limpar.
 std::vector<uint8_t> g_resolveKeep;
+// C1-G3 (desempenho do desenho na Mali): classe de cada desenho e ordem de execução do quadro.
+// 0 cor, 1 sombra (alvo só com Resolve de profundidade), 2 pré-passe de profundidade (máscara de cor 0 +
+// escrita de profundidade num alvo de cor), 3 pós (UP / passe direto).
+std::vector<uint8_t> g_drawClass;
+std::vector<size_t> g_order;
+
 void PlanDirectPasses(const Frame& f) {
   g_redirects.assign(f.cmds.size(), Redirect{});
   g_resolveDirect.assign(f.cmds.size(), 0);
@@ -1171,6 +1182,48 @@ void PlanDirectPasses(const Frame& f) {
       }
     }
     draws.clear();
+  }
+  // ---- classes de desenho e ordem de execução
+  g_drawClass.assign(f.cmds.size(), 0);
+  std::map<uint64_t, uint8_t> keyKind;  // bit 1 = Resolve de cor, bit 2 = Resolve de profundidade
+  for (const Cmd& c : f.cmds)
+    if (c.kind == Kind::Resolve && c.fetch != SIZE_MAX) keyKind[TargetKeyOf(f.blob.data() + c.state)] |= (c.flags & 4) ? 2 : 1;
+  for (size_t i = 0; i < f.cmds.size(); ++i) {
+    const Cmd& c = f.cmds[i];
+    if (c.kind != Kind::Draw) continue;
+    const uint8_t* st = f.blob.data() + c.state;
+    uint64_t key = TargetKeyOf(st);
+    uint32_t mask = BE32(Field(st, 0x28DC)) & 15, depth = BE32(Field(st, kDepthControl));
+    uint8_t cls = 0;
+    if (c.up || g_redirects[i].key) cls = 3;
+    else if (keyKind.count(key) && keyKind[key] == 2) cls = 1;
+    else if (mask == 0 && (depth & 4)) cls = 2;
+    g_drawClass[i] = cls;
+  }
+  g_order.clear(); g_order.reserve(f.cmds.size());
+  for (size_t i = 0; i < f.cmds.size(); ++i) g_order.push_back(i);
+  if (g_sortByProgram) {
+    // corridas de desenhos opacos consecutivos (sem mistura, teste e escrita de profundidade, sem alpha test, mesmo
+    // alvo, classe cor) ordenadas por programa: a ordem entre opacos só muda empates de profundidade
+    auto opaque = [&](size_t i) {
+      const Cmd& c = f.cmds[i];
+      if (c.kind != Kind::Draw || g_drawClass[i] != 0) return false;
+      const uint8_t* st = f.blob.data() + c.state;
+      uint32_t depth = BE32(Field(st, kDepthControl));
+      return BE32(Field(st, kBlendControl)) == 0x00010001 && (depth & 6) == 6 && !(BE32(Field(st, kColorControl)) & 8);
+    };
+    for (size_t i = 0; i < g_order.size();) {
+      if (!opaque(i)) { ++i; continue; }
+      uint64_t key = TargetKeyOf(f.blob.data() + f.cmds[i].state);
+      size_t j = i + 1;
+      while (j < g_order.size() && opaque(j) && TargetKeyOf(f.blob.data() + f.cmds[j].state) == key) ++j;
+      if (j - i > 2) std::stable_sort(g_order.begin() + i, g_order.begin() + j, [&](size_t a, size_t b) {
+        const Cmd& ca = f.cmds[a]; const Cmd& cb = f.cmds[b];
+        if (ca.vs != cb.vs) return ca.vs < cb.vs;
+        return ca.ps < cb.ps;
+      });
+      i = j;
+    }
   }
 }
 void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false) {
@@ -1431,6 +1484,14 @@ void RenderThread() {
   {
     const char* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));  // LEVE_OK: inicialização
     bool mali = renderer && std::strstr(renderer, "Mali");
+    g_mali = mali;
+    // C1-G3: na Mali (tiler) o pré-passe de profundidade só dobra o custo de vértice; mapa de sombra desligado
+    // (efeito pode reduzir, regra do dono); desenhos opacos ordenados por programa. NIER_PREPASS=1 / NIER_SHADOW=1 /
+    // NIER_NO_SORT=1 invertem; no PC NIER_MALI_LIKE=1 aplica os mesmos padrões para prova.
+    bool maliLike = mali || std::getenv("NIER_MALI_LIKE");
+    g_skipPrepass = maliLike && !std::getenv("NIER_PREPASS");
+    g_skipShadow = maliLike && !std::getenv("NIER_SHADOW");
+    g_sortByProgram = maliLike && !std::getenv("NIER_NO_SORT");
     // Ordem do dono (07/11): na Mali a resolução interna padrão é 640x360 (nunca abaixo de 640 de largura);
     // NIER_RENDER_WIDTH continua valendo quando dado. glDiscardFramebufferEXT na Mali só com NIER_DISCARD=1
     // (F13: quadrados pretos e retângulo de quadro antigo = conteúdo indefinido pelo driver).
@@ -1469,11 +1530,18 @@ void RenderThread() {
     auto tr = Clock::now();
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
-    for (size_t i = 0; i < work.cmds.size(); ++i) {
+    for (size_t oi = 0; oi < g_order.size(); ++oi) {
+      size_t i = g_order[oi];
       const Cmd& c = work.cmds[i];
       if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
-      else { ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]); }
+      else {
+        uint8_t cls = g_drawClass[i];
+        if (cls == 2 && g_skipPrepass) { ++g_skippedPrepass; continue; }
+        if (cls == 1 && g_skipShadow) { ++g_skippedShadow; continue; }
+        g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
+        ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
+      }
     }
     g_copiesSkipped += uint32_t(g_pendingCopies.size());
     g_pendingCopies.clear();
@@ -1505,9 +1573,12 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
+        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu\n",
+                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow);
+      if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
                      g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
