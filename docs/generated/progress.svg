@@ -7,7 +7,7 @@
 <text x="36" y="132" class="label" >Código traduzido ou reconstruído</text>
 <text x="920" y="132" class="label" text-anchor="end">Não medida</text>
 <rect x="36" y="147" width="888" height="13" rx="6" fill="#334155"/>
-<text x="36" y="183" class="small muted" >0 funções · 0 bytes</text>
+<text x="36" y="183" class="small muted" >22165 funções · 5,365,100 bytes</text>
 <text x="36" y="226" class="label" >Fonte reconstruída</text>
 <text x="920" y="226" class="label" text-anchor="end">Não medida</text>
 <rect x="36" y="241" width="888" height="13" rx="6" fill="#334155"/>
@@ -16,7 +16,7 @@
 <text x="920" y="320" class="label" text-anchor="end">Não medida</text>
 <rect x="36" y="335" width="888" height="13" rx="6" fill="#334155"/>
 <text x="36" y="371" class="small muted" >0 funções · 0 bytes</text>
-<text x="36" y="421" class="small muted" >Inventário: 0 funções · 0 bytes</text>
+<text x="36" y="421" class="small muted" >Inventário: 22165 funções · 5,365,100 bytes</text>
 <text x="36" y="446" class="small muted" >Aguardando executável e inventário completo; porcentagem indisponível.</text>
 <text x="36" y="493" class="heading" >Marcos do port</text>
 <circle cx="44" cy="524" r="6" fill="#34d399"/>

@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
-  "baseline_id": "67585b46de5e17dd2779c1deb04e8427107cb3093c39cbe0271ee66559b0bcf7",
-  "executable_sha256": null,
+  "baseline_id": "f09440e395b7f2147cc6e1e5f4d3b7b590d7e21e47ca5d2111f6ad793963995b",
+  "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
   "inventory_complete": false,
-  "inventory_functions": 0,
-  "inventory_bytes": 0,
+  "inventory_functions": 22165,
+  "inventory_bytes": 5365100,
   "coverage": {
     "discovered": {
-      "functions": 0,
-      "bytes": 0,
+      "functions": 22165,
+      "bytes": 5365100,
       "percent": null
     },
     "recompiled": {
-      "functions": 0,
-      "bytes": 0,
+      "functions": 22165,
+      "bytes": 5365100,
       "percent": null
     },
     "decompiled": {

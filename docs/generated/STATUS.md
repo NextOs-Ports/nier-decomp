@@ -3,11 +3,11 @@
 Gerado por `python3 tools/progress.py`. Não editar manualmente.
 
 Inventário completo: **não**.
-Funções inventariadas: **0**; bytes: **0**.
+Funções inventariadas: **22165**; bytes: **5365100**.
 
 | Cobertura cumulativa | Funções | Bytes | Porcentagem |
 | --- | ---: | ---: | ---: |
-| Código traduzido ou reconstruído | 0 | 0 | Não medida |
+| Código traduzido ou reconstruído | 22165 | 5365100 | Não medida |
 | Fonte reconstruída | 0 | 0 | Não medida |
 | Decompilação verificada | 0 | 0 | Não medida |
 
