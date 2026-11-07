@@ -12,6 +12,7 @@
 #include "nier_d3d.h"
 #include "xenos_texture.h"
 #include "texture_gamma.h"
+#include "constant_lod.h"
 #include "vertex_cache.h"
 
 #include <SDL3/SDL.h>
@@ -656,6 +657,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
 // ---- programas
 struct CullInfo { bool ok = false; int row[4] = {-1, -1, -1, -1}; int posInput = -1; };
 struct Program {
+  ConstantLod lod;
   GLuint id = 0;
   GLint vc = -1, pc = -1, alphaFunc = -1, alphaRef = -1, wideScale = -1;
   std::vector<std::pair<int, GLint>> bools;    // (índice, local)
@@ -839,6 +841,8 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
+  p.lod = ParseConstantLod(vs->source,ps->source);
+  if(p.lod.index>=0) { if(size_t(p.lod.index)<vs->constMap.size())p.lod.index=vs->constMap[p.lod.index];else p.lod.index=-1; }
   char vn[40], pn[40];
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
@@ -1579,7 +1583,12 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
     // desenho 3D no quadro (composição da cena). Tela de UI pura vem da memória do guest (menus sem faixas).
     static bool resolvedInUi = std::getenv("NIER_RESOLVED_IN_UI") != nullptr;
     ActiveUnit(unit);  // TextureFor pode enviar a textura: liga na unidade certa
-    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White();
+    auto sampled=t;
+    if(p->lod.index>=0 && (p->lod.samplers&(1u<<slot))) {
+      float lod=BEF(Field(state,kVertexConstants+16*p->lod.index+4*p->lod.component));
+      if(std::isfinite(lod)&&lod>=0&&lod<=15&&std::fabs(lod-std::round(lod))<0.001f){unsigned level=unsigned(std::round(lod));auto view=t;view.width=std::max(1u,t.width>>level);view.height=std::max(1u,t.height>>level);if(g_resolved.count(TexKey(view)))sampled=view;}
+    }
+    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(sampled, !c.up || resolvedInUi) : White();
     BindTexture(unit, id);
     if (sizeLoc >= 0) {
       std::pair<float, float> sz{float(t.width), float(t.height)};
