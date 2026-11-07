@@ -38,9 +38,28 @@ int main() {
   glUniform1f(g_blitFlip,1.0f);glDrawArrays(GL_TRIANGLE_STRIP,0,4);
   glReadPixels(0,0,256,8,GL_RGBA,GL_UNSIGNED_BYTE,out.data());
   for(unsigned i=0;i<256*8;++i){source[i*4+3]=255;if(std::memcmp(&out[4*i],&source[4*i],4))return 7;}
+  for(unsigned size:{1u,2u,4u}) {
+    CreateTarget(g_targets[256],size,size,false);
+    std::vector<uint8_t> tiny(size*size*4),actual(tiny.size());
+    for(unsigned i=0;i<size*size;++i){tiny[4*i]=17;tiny[4*i+1]=93;tiny[4*i+2]=147;tiny[4*i+3]=13+i*7;}
+    glBindTexture(GL_TEXTURE_2D,g_targets[256].texture);
+    glTexSubImage2D(GL_TEXTURE_2D,0,0,0,size,size,GL_RGBA,GL_UNSIGNED_BYTE,tiny.data());InvalidateGl();
+    put(fetch+4,(0x8000+size*0x1000)|nier::xenos::k8888);put(fetch+8,(size-1)|((size-1)<<13));
+    auto key=TexKey(nier::xenos::DecodeFetch(frame.blob.data()+fetch));g_frameSampled.insert(key);
+    ReplayResolve(frame,cmd,false,true);
+    if(!g_resolved[key].fbo)return 9;
+    glBindFramebuffer(GL_FRAMEBUFFER,g_resolved[key].fbo);glReadPixels(0,0,size,size,GL_RGBA,GL_UNSIGNED_BYTE,actual.data());
+    if(tiny!=actual)return 10;
+    auto putf=[&](unsigned off,float f){uint32_t bits;std::memcpy(&bits,&f,4);put(off-nier::d3d::kStateBegin,bits);};
+    putf(nier::d3d::kViewport,size*0.5f);putf(nier::d3d::kViewport+4,size*0.5f);
+    putf(nier::d3d::kViewport+8,size*0.5f);putf(nier::d3d::kViewport+12,size*0.5f);
+    GuestShader vs,ps;Cmd draw;draw.kind=Kind::Draw;draw.state=0;draw.vs=&vs;draw.ps=&ps;
+    frame.cmds={draw,cmd};g_frames.store(1);PlanDirectPasses(frame);
+    if(!g_resolveDirect[1]||g_redirects[0].skip||g_redirects[0].w!=int(size)||g_redirects[0].h!=int(size))return 11;
+  }
   GLenum error=glGetError();
   eglMakeCurrent(g_eglDisplay,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
   eglDestroyContext(g_eglDisplay,g_eglContext);eglDestroySurface(g_eglDisplay,g_eglSurface);eglTerminate(g_eglDisplay);
-  std::printf("%s 256 RGBA values: keep blit, FBO alias, opaque presentation; GL 0x%x\n",error?"FAIL":"PASS",error);
+  std::printf("%s 256 RGBA values: keep blit, FBO alias, opaque presentation, 1x1/2x2/4x4 resolve/planning; GL 0x%x\n",error?"FAIL":"PASS",error);
   return error?8:0;
 }

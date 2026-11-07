@@ -1448,7 +1448,7 @@ void PlanDirectPasses(const Frame& f) {
       int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
       uint32_t guestPitch = std::max<uint32_t>(BE32(Field(state, kSurfaceInfo)) & 0x3FFF, 1);
       bool smaller = t.width < guestPitch || t.height < 720;
-      bool ok = x0 == 0 && y0 == 0 && w == int(t.width) && h == int(t.height) && smaller && t.width >= 8 && t.height >= 8;
+      bool ok = x0 == 0 && y0 == 0 && w == int(t.width) && h == int(t.height) && smaller && t.width >= 1 && t.height >= 1;
       // próximo comando do mesmo alvo não pode ser outro Resolve sem desenho entre eles
       for (size_t j = i + 1; ok && j < f.cmds.size(); ++j) {
         const Cmd& n = f.cmds[j];
@@ -1468,10 +1468,8 @@ void PlanDirectPasses(const Frame& f) {
       if (ok) {
         uint64_t key = TexKey(t);
         int tw = std::max(1, int(t.width * s)), th = std::max(1, int(t.height * s));
-        // Níveis minúsculos da cadeia de bloom (< NIER_BLOOM_MIN, padrão 32) em quadros alternados: o destino
-        // guarda o conteúdo do quadro anterior (brilho largo muda devagar); poupa trocas de alvo na Mali.
-        static int bloomMin = std::getenv("NIER_BLOOM_MIN") ? std::atoi(std::getenv("NIER_BLOOM_MIN")) : 0;  // padrão desligado: deixava rastro (ghosting) de objetos brilhantes
-        bool skipThisFrame = int(t.width) < bloomMin && (g_frames.load() & 1) && g_resolved.count(key) && g_resolved[key].texture;
+        // This chain also drives luminance adaptation: every level must be current.
+        const bool skipThisFrame = false;
         for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0, skipThisFrame};
         g_resolveDirect[i] = 1;
         ++g_directPasses;
@@ -1553,7 +1551,7 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false)
       Target& src = g_targets[srcKey];
       src.holder = key;
       if (auto d = g_resolved.find(key); d != g_resolved.end()) DiscardDepth(d->second.fbo, d->second.depth);
-    } else if (t.width >= 8 && t.height >= 8 && !noCopy) {
+    } else if (t.width >= 1 && t.height >= 1 && !noCopy) {
       ++g_resolveCopies;
       int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
       auto srcIt = g_targets.find(srcKey);

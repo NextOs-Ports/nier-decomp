@@ -32,3 +32,17 @@ python3 tools/render/check_leve.py
 A prova sintética estabelece o contrato de alpha. A causa completa do branco
 na gameplay depende da comparação visual Mali-like e da leitura dos passes;
 não se declara a gameplay corrigida apenas por esse teste.
+
+## Níveis pequenos
+
+O planejamento e o Resolve também recusavam destinos menores que 8×8.
+Agora 1×1, 2×2 e 4×4 são preservados, e a cadeia é atualizada em todos os
+quadros: ela pode transportar luminância, não só bloom. O teste acima cobre
+esses tamanhos, planejamento direto e ausência de alternância no quadro ímpar.
+
+A rodada PC Mali-like com `NIER_BLOOM_MIN=0` confirmou os destinos pequenos,
+mas a constante PC0 ainda muda de aproximadamente 0,7 na cutscene para
+(1191,1262,1366) na gameplay; o branco persiste. Isso descarta a hipótese de
+que apenas habilitar os Resolve pequenos resolveria a falha. O rastreio da
+origem da constante e do uso de LOD segue separado; não se aplica clamp
+arbitrário à exposição como correção.
