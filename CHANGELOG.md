@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 5 e primeiro lote da frente de bibliotecas: pools de objetos, testes de campo de bits, acessores, e memcpy/memset/strings UTF-16 do CRT (as que passaram no comparador atual).
 - Lote 4 da reconstrução: basename de caminhos, estados e flags de objeto, canais de interpolação (valor, alvo, duração). 53 funções verificadas.
 - No PC, com o renderizador GLES2: logos, vídeo de abertura inteiro, tela de título, aviso de save, New Game, escolha de dificuldade e confirmação passam com imagem correta. O nome do herói, que travava no teclado do sistema, agora recebe "Nier" por padrão.
 - No Mali-450 (.164): logos e vídeo com imagem correta; todos os shaders compilam e linkam na Mali, nenhum desenho pulado, sem erro de GL, 368–389 MB de RAM.

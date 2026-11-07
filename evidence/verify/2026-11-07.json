@@ -532,6 +532,149 @@
    "error": ""
   },
   {
+   "name": "sub_82115370",
+   "address": "0x82115370",
+   "size": 60,
+   "source": "src/decomp/game/pools.cpp",
+   "trials": 2000,
+   "equal": 881,
+   "both_faulted": 1119,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82115740",
+   "address": "0x82115740",
+   "size": 24,
+   "source": "src/decomp/game/misc_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82115758",
+   "address": "0x82115758",
+   "size": 28,
+   "source": "src/decomp/game/misc_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82116390",
+   "address": "0x82116390",
+   "size": 36,
+   "source": "src/decomp/game/misc_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821171A0",
+   "address": "0x821171A0",
+   "size": 128,
+   "source": "src/decomp/game/pools.cpp",
+   "trials": 2000,
+   "equal": 1148,
+   "both_faulted": 852,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821174A0",
+   "address": "0x821174A0",
+   "size": 124,
+   "source": "src/decomp/game/bitfields.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82117520",
+   "address": "0x82117520",
+   "size": 128,
+   "source": "src/decomp/game/bitfields.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82117890",
+   "address": "0x82117890",
+   "size": 128,
+   "source": "src/decomp/game/bitfields.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8211C3F0",
+   "address": "0x8211C3F0",
+   "size": 40,
+   "source": "src/decomp/game/misc_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8211C420",
+   "address": "0x8211C420",
+   "size": 36,
+   "source": "src/decomp/game/misc_b.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8211DB70",
+   "address": "0x8211DB70",
+   "size": 128,
+   "source": "src/decomp/game/pools.cpp",
+   "trials": 2000,
+   "equal": 1117,
+   "both_faulted": 883,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8211EAC8",
+   "address": "0x8211EAC8",
+   "size": 24,
+   "source": "src/decomp/game/misc_b.cpp",
+   "trials": 2000,
+   "equal": 1990,
+   "both_faulted": 10,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8211F540",
+   "address": "0x8211F540",
+   "size": 128,
+   "source": "src/decomp/game/pools.cpp",
+   "trials": 2000,
+   "equal": 1125,
+   "both_faulted": 875,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_821B6180",
    "address": "0x821B6180",
    "size": 64,
@@ -583,6 +726,72 @@
    "trials": 2000,
    "equal": 1307,
    "both_faulted": 693,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D3010",
+   "address": "0x825D3010",
+   "size": 1160,
+   "source": "src/decomp/crt/memory.cpp",
+   "trials": 2000,
+   "equal": 1,
+   "both_faulted": 1999,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825D3498",
+   "address": "0x825D3498",
+   "size": 168,
+   "source": "src/decomp/crt/memory.cpp",
+   "trials": 2000,
+   "equal": 2,
+   "both_faulted": 1998,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825D3620",
+   "address": "0x825D3620",
+   "size": 36,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D3648",
+   "address": "0x825D3648",
+   "size": 52,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825D3680",
+   "address": "0x825D3680",
+   "size": 28,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825D3D90",
+   "address": "0x825D3D90",
+   "size": 160,
+   "source": "src/decomp/crt/memory.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   }

@@ -8,8 +8,8 @@ Funções inventariadas: **22423**; bytes: **5372176**.
 | Cobertura cumulativa | Funções | Bytes | Porcentagem |
 | --- | ---: | ---: | ---: |
 | Código traduzido ou reconstruído | 22423 | 5372176 | 100.00% |
-| Fonte reconstruída | 53 | 3908 | 0.07% |
-| Decompilação verificada | 53 | 3908 | 0.07% |
+| Fonte reconstruída | 68 | 5116 | 0.10% |
+| Decompilação verificada | 68 | 5116 | 0.10% |
 
 ## Marcos
 
