@@ -6,28 +6,45 @@ using namespace nier::guest;
 
 namespace {
 struct Link { uint32_t prev, next, used; };
+// Campos do pool: último em uso, primeiro em uso, primeiro livre, quantidade.
+struct PoolFields { uint32_t tail = 8, head = 12, free = 20, count = 24; };
+// O compilador emitiu duas ordens para a atualização final; a ordem importa quando
+// ponteiros se sobrepõem, então cada função usa a sua.
+enum class CountOrder { BeforeHead, AfterHead };
 
 // Tira o primeiro nó livre, marca em uso e o põe à frente da lista em uso.
-// Sem nó livre, devolve o primeiro em uso. A ordem de leituras e escritas é a do original.
-uint32_t pool_take(uint8_t* base, uint32_t pool, const Link& l) {
-  const uint32_t node = ld32(base, pool + 20);
-  if (node == 0) return ld32(base, pool + 12);
+// Sem nó livre, devolve o primeiro em uso.
+uint32_t pool_take(uint8_t* base, uint32_t pool, const Link& l, const PoolFields& f = {},
+                   CountOrder order = CountOrder::BeforeHead) {
+  const uint32_t node = ld32(base, pool + f.free);
+  if (node == 0) return ld32(base, pool + f.head);
   const uint32_t next_free = ld32(base, node + l.next);
-  st32(base, pool + 20, next_free);
+  st32(base, pool + f.free, next_free);
   if (next_free != 0) st32(base, next_free + l.prev, 0);
   st8(base, node + l.used, 1);
-  const uint32_t head = ld32(base, pool + 12);
+  const uint32_t head = ld32(base, pool + f.head);
   st32(base, node + l.prev, 0);
   st32(base, node + l.next, head);
-  const uint32_t head_now = ld32(base, pool + 12);
+  const uint32_t head_now = ld32(base, pool + f.head);
   if (head_now != 0) {
     st32(base, head_now + l.prev, node);
+  } else if (order == CountOrder::BeforeHead) {
+    const uint32_t count = ld32(base, pool + f.count) + 1;
+    st32(base, pool + f.tail, node);
+    st32(base, pool + f.head, node);
+    st32(base, pool + f.count, count);
+    return node;
   } else {
-    st32(base, pool + 8, node);
+    st32(base, pool + f.tail, node);
   }
-  const uint32_t count = ld32(base, pool + 24) + 1;
-  st32(base, pool + 12, node);
-  st32(base, pool + 24, count);
+  if (order == CountOrder::BeforeHead) {
+    const uint32_t count = ld32(base, pool + f.count) + 1;
+    st32(base, pool + f.head, node);
+    st32(base, pool + f.count, count);
+  } else {
+    st32(base, pool + f.head, node);
+    st32(base, pool + f.count, ld32(base, pool + f.count) + 1);
+  }
   return node;
 }
 }  // namespace
@@ -58,3 +75,27 @@ NIER_DECOMP(sub_82115370) {
   }
 }
 NIER_VERIFY_SPEC(sub_82115370, 0x82115370, "r3=ptr @r3.8=range:0..3 @r3.28=ptr");
+
+// sub_82147860 (128 bytes) — pool dentro do objeto (campos +768..+784), nós com ligação +12/+16/+20.
+NIER_DECOMP(sub_82147860) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {12, 16, 20}, {768, 772, 780, 784}); }
+NIER_VERIFY_SPEC(sub_82147860, 0x82147860, "r3=ptr @r3.780=ptr @r3.772=ptr");
+
+// sub_82147A08 (128 bytes) — pool com campos +896..+912, nós com ligação +96/+100/+104.
+NIER_DECOMP(sub_82147A08) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {96, 100, 104}, {896, 900, 908, 912}); }
+NIER_VERIFY_SPEC(sub_82147A08, 0x82147A08, "r3=ptr @r3.908=ptr @r3.900=ptr");
+
+// sub_8214B4E8 (128 bytes) — pool com campos +4304..+4320, nós com ligação +4288/+4292/+4296.
+NIER_DECOMP(sub_8214B4E8) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {4288, 4292, 4296}, {4304, 4308, 4316, 4320}); }
+NIER_VERIFY_SPEC(sub_8214B4E8, 0x8214B4E8, "r3=ptr @r3.4316=ptr @r3.4308=ptr");
+
+// sub_821476F8 (164 bytes) — pool de 510 nós (campos em +0x78000), contagem atualizada depois da cabeça.
+NIER_DECOMP(sub_821476F8) {
+  ctx.r3.u64 = pool_take(base, ctx.r3.u32, {944, 948, 952}, {0x78000, 0x78004, 0x7800C, 0x78010}, CountOrder::AfterHead);
+}
+NIER_VERIFY_SPEC(sub_821476F8, 0x821476F8, "r3=const:0x40000000 @r3.0x7800C=ptr @r3.0x78004=ptr");
+
+// sub_82147B38 (164 bytes) — pool de 248 nós (campos em +0x1C520), contagem depois da cabeça.
+NIER_DECOMP(sub_82147B38) {
+  ctx.r3.u64 = pool_take(base, ctx.r3.u32, {448, 452, 456}, {0x1C520, 0x1C524, 0x1C52C, 0x1C530}, CountOrder::AfterHead);
+}
+NIER_VERIFY_SPEC(sub_82147B38, 0x82147B38, "r3=const:0x40000000 @r3.0x1C52C=ptr @r3.0x1C524=ptr");
