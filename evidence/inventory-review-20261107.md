@@ -42,3 +42,7 @@ Nenhum byte é contado duas vezes. Os 560 bytes restantes são tabelas de endere
 ## Terceira rodada (thunks de ajuste de `this`)
 
 O renderizador revelou, ao passar da tela de título, uma chamada virtual para um thunk `addi r3,r3,-4; b alvo` sem `.pdata`. A varredura da PE inteira (`.text` e `PSFD00`) achou 328 thunks desse padrão, 135 referenciados por dados; 12 faltavam no codegen. Todos entraram; quatro limites antigos que englobavam thunks foram separados em entradas de 8 bytes. Inventário: 22.423 entradas, mesmos 5.372.176 bytes. A revisão byte a byte continua sem código fora do inventário.
+
+## Quarta rodada (ponteiros de função montados no código)
+
+A primeira geometria 3D revelou uma chamada para um stub de 4 instruções sem `.pdata`, cujo endereço era montado no próprio código (`lis`+`addi`). A varredura de todo o `.text` e do `PSFD00` por pares `lis`+`addi`/`ori` achou 1.422 alvos: 1.175 já registrados, 230 tabelas embutidas, 17 bases de despacho interno e 18 funções faltantes (16 stubs e 2 callbacks), agora incluídas. Inventário: 22.441 entradas, mesmos 5.372.176 bytes.

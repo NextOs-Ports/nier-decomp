@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 13 e lote 4 de bibliotecas: template de inicialização do pool a partir do armazenamento (29 instâncias provadas) e funções numéricas do CRT. Inventário na 4ª rodada: 22.441 entradas, com os stubs cujo endereço é montado no código.
 - Lote 12: o template de devolução ao pool (tira da lista em uso e empilha na lista livre) e suas 42 instâncias, cada uma provada pelo comparador. 239 funções verificadas.
 - Lote 11: o template de pool (lista livre + lista em uso) foi isolado num cabeçalho; um localizador por estrutura de instruções achou 33 instâncias adicionais, cada uma provada pelo comparador. 196 funções verificadas.
 - Lote 10 e lote 3 de bibliotecas: mais 5 pools de objetos (com as duas ordens de atualização do compilador), objeto estático local, e funções do XDK (último erro, timeout NT, troca atômica, filtro de exceção).

@@ -1,30 +1,30 @@
 {
   "schema_version": 1,
-  "baseline_id": "f7978f6999ff15e69ca91852ecc17b25ee58ec911052b7ea81932187a3d6dbd6",
+  "baseline_id": "23bfa67890a8287fcb8da3e674e93c6dcecc4697ada711ea12af28c38e782247",
   "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
   "inventory_complete": true,
-  "inventory_functions": 22423,
+  "inventory_functions": 22441,
   "inventory_bytes": 5372176,
   "coverage": {
     "discovered": {
-      "functions": 22423,
+      "functions": 22441,
       "bytes": 5372176,
       "percent": 100.0
     },
     "recompiled": {
-      "functions": 22423,
+      "functions": 22441,
       "bytes": 5372176,
       "percent": 100.0
     },
     "decompiled": {
-      "functions": 239,
-      "bytes": 25836,
-      "percent": 0.4809
+      "functions": 273,
+      "bytes": 33688,
+      "percent": 0.6271
     },
     "verified": {
-      "functions": 239,
-      "bytes": 25836,
-      "percent": 0.4809
+      "functions": 273,
+      "bytes": 33688,
+      "percent": 0.6271
     }
   }
 }

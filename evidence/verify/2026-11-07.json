@@ -400,6 +400,17 @@
    "error": ""
   },
   {
+   "name": "sub_821127B8",
+   "address": "0x821127B8",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82113B10",
    "address": "0x82113B10",
    "size": 48,
@@ -620,6 +631,17 @@
    "error": ""
   },
   {
+   "name": "sub_82116DC0",
+   "address": "0x82116DC0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_821171A0",
    "address": "0x821171A0",
    "size": 128,
@@ -697,6 +719,17 @@
    "error": ""
   },
   {
+   "name": "sub_8211D7E0",
+   "address": "0x8211D7E0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 1999,
+   "both_faulted": 1,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_8211DB70",
    "address": "0x8211DB70",
    "size": 128,
@@ -726,6 +759,17 @@
    "trials": 2000,
    "equal": 1990,
    "both_faulted": 10,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8211EE78",
+   "address": "0x8211EE78",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -1775,6 +1819,17 @@
    "error": ""
   },
   {
+   "name": "sub_821909F0",
+   "address": "0x821909F0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_821AF1C0",
    "address": "0x821AF1C0",
    "size": 128,
@@ -1841,6 +1896,17 @@
    "error": ""
   },
   {
+   "name": "sub_82320BE0",
+   "address": "0x82320BE0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82320E98",
    "address": "0x82320E98",
    "size": 128,
@@ -1863,6 +1929,28 @@
    "error": ""
   },
   {
+   "name": "sub_823255E0",
+   "address": "0x823255E0",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82325700",
+   "address": "0x82325700",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_823276C8",
    "address": "0x823276C8",
    "size": 128,
@@ -1870,6 +1958,39 @@
    "trials": 2000,
    "equal": 1137,
    "both_faulted": 863,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8232A4B0",
+   "address": "0x8232A4B0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8232A600",
+   "address": "0x8232A600",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8232A750",
+   "address": "0x8232A750",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -1918,6 +2039,17 @@
    "error": ""
   },
   {
+   "name": "sub_82358280",
+   "address": "0x82358280",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82358488",
    "address": "0x82358488",
    "size": 176,
@@ -1925,6 +2057,17 @@
    "trials": 2000,
    "equal": 652,
    "both_faulted": 1348,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_823593B0",
+   "address": "0x823593B0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -1947,6 +2090,28 @@
    "trials": 2000,
    "equal": 662,
    "both_faulted": 1338,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8237A8E8",
+   "address": "0x8237A8E8",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8237AA08",
+   "address": "0x8237AA08",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -1995,6 +2160,17 @@
    "error": ""
   },
   {
+   "name": "sub_8237F688",
+   "address": "0x8237F688",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_823800D8",
    "address": "0x823800D8",
    "size": 128,
@@ -2013,6 +2189,50 @@
    "trials": 2000,
    "equal": 638,
    "both_faulted": 1362,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8239B118",
+   "address": "0x8239B118",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8239B210",
+   "address": "0x8239B210",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8239B308",
+   "address": "0x8239B308",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8239B480",
+   "address": "0x8239B480",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -2083,6 +2303,17 @@
    "error": ""
   },
   {
+   "name": "sub_823A47D0",
+   "address": "0x823A47D0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_823A4B80",
    "address": "0x823A4B80",
    "size": 128,
@@ -2101,6 +2332,28 @@
    "trials": 2000,
    "equal": 1469,
    "both_faulted": 531,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_823ACD28",
+   "address": "0x823ACD28",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_823AF2D0",
+   "address": "0x823AF2D0",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -2149,6 +2402,39 @@
    "error": ""
   },
   {
+   "name": "sub_823E8E78",
+   "address": "0x823E8E78",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82400980",
+   "address": "0x82400980",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824372B0",
+   "address": "0x824372B0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824376D8",
    "address": "0x824376D8",
    "size": 128,
@@ -2167,6 +2453,28 @@
    "trials": 2000,
    "equal": 618,
    "both_faulted": 1382,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824431D8",
+   "address": "0x824431D8",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 1999,
+   "both_faulted": 1,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824432D0",
+   "address": "0x824432D0",
+   "size": 244,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 1999,
+   "both_faulted": 1,
    "pass": true,
    "error": ""
   },
@@ -2222,6 +2530,17 @@
    "trials": 2000,
    "equal": 680,
    "both_faulted": 1320,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82449BB8",
+   "address": "0x82449BB8",
+   "size": 284,
+   "source": "src/decomp/game/pool_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -2479,6 +2798,39 @@
    "error": ""
   },
   {
+   "name": "sub_825D91D8",
+   "address": "0x825D91D8",
+   "size": 60,
+   "source": "src/decomp/crt/numeric.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D9218",
+   "address": "0x825D9218",
+   "size": 60,
+   "source": "src/decomp/crt/numeric.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D93E0",
+   "address": "0x825D93E0",
+   "size": 108,
+   "source": "src/decomp/crt/numeric.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_825D9F10",
    "address": "0x825D9F10",
    "size": 80,
@@ -2527,6 +2879,17 @@
    "address": "0x825DA610",
    "size": 76,
    "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DAAF0",
+   "address": "0x825DAAF0",
+   "size": 40,
+   "source": "src/decomp/crt/numeric.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
@@ -2615,6 +2978,17 @@
    "address": "0x825E4AF0",
    "size": 80,
    "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E4B80",
+   "address": "0x825E4B80",
+   "size": 68,
+   "source": "src/decomp/crt/numeric.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
