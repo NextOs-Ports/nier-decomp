@@ -1,0 +1,4569 @@
+{
+  "schema_version": 1,
+  "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
+  "source": "perf cpu-clock:u 199 Hz DWARF 16384; delayed 140 s; host GLES2; empty save; 195 s timeout + 5 s kill",
+  "process_id": 2031694,
+  "process_samples": 88539,
+  "sampled_cpu_seconds": 444.919542375,
+  "percentage_denominator": "All sampled user CPU time of this process; per-thread lists use that thread. Inclusive percentages overlap.",
+  "limitations": [
+    "Host x86, not Mali performance or original gameplay speed.",
+    "Sampling gives CPU estimates; inclusive totals overlap.",
+    "Scene must be confirmed by accompanying captures."
+  ],
+  "threads": [
+    {
+      "tid": 2031720,
+      "name": "XThread42FFE6C0",
+      "samples": 9930,
+      "sampled_cpu_seconds": 49.89949125,
+      "observed_seconds": 55.027299999957904,
+      "top_host_own": [
+        {
+          "symbol": "compare<unsigned int>",
+          "percent": 13.343403826787513
+        },
+        {
+          "symbol": "nier::render::(anonymous namespace)::SnapshotInputs(nier::render::(anonymous namespace)::Cmd&, unsigned char const*, long, unsigned int, unsigned char const*, unsigned int)",
+          "percent": 10.785498489425981
+        },
+        {
+          "symbol": "nier::render::RecordDraw(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool)",
+          "percent": 4.743202416918429
+        },
+        {
+          "symbol": "compare<int>",
+          "percent": 4.038267875125881
+        },
+        {
+          "symbol": "[unknown]",
+          "percent": 4.008056394763344
+        },
+        {
+          "symbol": "nier::render::(anonymous namespace)::Triangulate(unsigned int, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned short, std::allocator<unsigned short> >&)::$_0::operator()(unsigned int, unsigned int, unsigned int) const",
+          "percent": 2.416918429003021
+        },
+        {
+          "symbol": "nier::render::(anonymous namespace)::Triangulate(unsigned int, std::vector<unsigned int, std::allocator<unsigned int> > const&, std::vector<unsigned short, std::allocator<unsigned short> >&)",
+          "percent": 2.215508559919436
+        },
+        {
+          "symbol": "nier::render::(anonymous namespace)::Load(unsigned int, unsigned char const*",
+          "percent": 0.23162134944612287
+        },
+        {
+          "symbol": "simde_mm_load_si128",
+          "percent": 0.08056394763343404
+        },
+        {
+          "symbol": "std::vector<unsigned char, std::allocator<unsigned char> >::resize(unsigned long)",
+          "percent": 0.050352467270896276
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186779984,
+          "name": "sub_82579D50",
+          "own_seconds": 12.517586375,
+          "inclusive_seconds": 21.07537425,
+          "own_percent": 25.085599194360523,
+          "inclusive_percent": 42.235649546827794
+        },
+        {
+          "address": 2186753880,
+          "name": "sub_82573758",
+          "own_seconds": 7.22612975,
+          "inclusive_seconds": 36.628136125,
+          "own_percent": 14.481369587109768,
+          "inclusive_percent": 73.40382678751259
+        },
+        {
+          "address": 2187139116,
+          "name": "sub_825D182C",
+          "own_seconds": 3.020100125,
+          "inclusive_seconds": 3.020100125,
+          "own_percent": 6.052366565961732,
+          "inclusive_percent": 6.052366565961732
+        },
+        {
+          "address": 2186662200,
+          "name": "sub_8255D138",
+          "own_seconds": 2.64321575,
+          "inclusive_seconds": 2.64321575,
+          "own_percent": 5.297079556898288,
+          "inclusive_percent": 5.297079556898288
+        },
+        {
+          "address": 2187139036,
+          "name": "sub_825D17DC",
+          "own_seconds": 2.6331655,
+          "inclusive_seconds": 2.6331655,
+          "own_percent": 5.276938569989929,
+          "inclusive_percent": 5.276938569989929
+        },
+        {
+          "address": 2186872632,
+          "name": "sub_82590738",
+          "own_seconds": 0.040201,
+          "inclusive_seconds": 13.1658275,
+          "own_percent": 0.08056394763343404,
+          "inclusive_percent": 26.384692849949648
+        },
+        {
+          "address": 2187305632,
+          "name": "sub_825FA2A0",
+          "own_seconds": 0.040201,
+          "inclusive_seconds": 0.105527625,
+          "own_percent": 0.08056394763343404,
+          "inclusive_percent": 0.21148036253776434
+        },
+        {
+          "address": 2187145232,
+          "name": "sub_825D3010",
+          "own_seconds": 0.03015075,
+          "inclusive_seconds": 0.035175875,
+          "own_percent": 0.06042296072507553,
+          "inclusive_percent": 0.07049345417925479
+        },
+        {
+          "address": 2186773864,
+          "name": "sub_82578568",
+          "own_seconds": 0.025125625,
+          "inclusive_seconds": 0.05025125,
+          "own_percent": 0.050352467270896276,
+          "inclusive_percent": 0.10070493454179255
+        },
+        {
+          "address": 2186870216,
+          "name": "sub_8258FDC8",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 9.49748625,
+          "own_percent": 0.04028197381671702,
+          "inclusive_percent": 19.033232628398792
+        },
+        {
+          "address": 2182594856,
+          "name": "sub_8217C128",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.055276375,
+          "own_percent": 0.04028197381671702,
+          "inclusive_percent": 0.1107754279959718
+        },
+        {
+          "address": 2186933864,
+          "name": "sub_8259F668",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.040201,
+          "own_percent": 0.04028197381671702,
+          "inclusive_percent": 0.08056394763343404
+        },
+        {
+          "address": 2186773184,
+          "name": "sub_825782C0",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 0.04028197381671702,
+          "inclusive_percent": 0.050352467270896276
+        },
+        {
+          "address": 2186772608,
+          "name": "sub_82578080",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.04028197381671702,
+          "inclusive_percent": 0.04028197381671702
+        },
+        {
+          "address": 2186923240,
+          "name": "sub_8259CCE8",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.04028197381671702,
+          "inclusive_percent": 0.04028197381671702
+        },
+        {
+          "address": 2186746104,
+          "name": "sub_825718F8",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 11.954772375,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 23.957703927492446
+        },
+        {
+          "address": 2186745096,
+          "name": "sub_82571508",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.35175875,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.7049345417925479
+        },
+        {
+          "address": 2186863136,
+          "name": "sub_8258E220",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.050352467270896276
+        },
+        {
+          "address": 2186847320,
+          "name": "sub_8258A458",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.04028197381671702
+        },
+        {
+          "address": 2186852704,
+          "name": "sub_8258B960",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.04028197381671702
+        },
+        {
+          "address": 2186919752,
+          "name": "sub_8259BF48",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.04028197381671702
+        },
+        {
+          "address": 2186776832,
+          "name": "sub_82579100",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.030211480362537766
+        },
+        {
+          "address": 2186852408,
+          "name": "sub_8258B838",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.030211480362537766
+        },
+        {
+          "address": 2186923168,
+          "name": "sub_8259CCA0",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.030211480362537766
+        },
+        {
+          "address": 2187380688,
+          "name": "sub_8260C7D0",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.030211480362537766,
+          "inclusive_percent": 0.030211480362537766
+        },
+        {
+          "address": 2187305296,
+          "name": "sub_825FA150",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 12.015073875,
+          "own_percent": 0.02014098690835851,
+          "inclusive_percent": 24.078549848942597
+        },
+        {
+          "address": 2186777152,
+          "name": "sub_82579240",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.120603,
+          "own_percent": 0.02014098690835851,
+          "inclusive_percent": 0.24169184290030213
+        },
+        {
+          "address": 2186865536,
+          "name": "sub_8258EB80",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.11055275,
+          "own_percent": 0.02014098690835851,
+          "inclusive_percent": 0.2215508559919436
+        },
+        {
+          "address": 2186865904,
+          "name": "sub_8258ECF0",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.045226125,
+          "own_percent": 0.02014098690835851,
+          "inclusive_percent": 0.09063444108761329
+        },
+        {
+          "address": 2183174256,
+          "name": "sub_82209870",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.02014098690835851,
+          "inclusive_percent": 0.030211480362537766
+        }
+      ]
+    },
+    {
+      "tid": 2031794,
+      "name": "XThread42FFE6C0",
+      "samples": 4259,
+      "sampled_cpu_seconds": 21.402007375,
+      "observed_seconds": 55.02730899996823,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 68.93637003991547
+        },
+        {
+          "symbol": "nier::render::(anonymous namespace)::ReplayDraw(nier::render::(anonymous namespace)::Frame const&, nier::render::(anonymous namespace)::Cmd const&)",
+          "percent": 14.06433435078657
+        },
+        {
+          "symbol": "nier::render::(anonymous namespace)::RenderThread()",
+          "percent": 0.3521953510213665
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.3287156609532754
+        },
+        {
+          "symbol": "pthread_cond_signal",
+          "percent": 0.3287156609532754
+        },
+        {
+          "symbol": "__popcountdi2",
+          "percent": 0.2582765907490021
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.2113172106128199
+        },
+        {
+          "symbol": "cfree",
+          "percent": 0.1643578304766377
+        },
+        {
+          "symbol": "_IO_fwrite",
+          "percent": 0.1643578304766377
+        },
+        {
+          "symbol": "nier::render::(anonymous namespace)::UploadConstants(int, int, unsigned char const*, nier::render::GuestShader const*)",
+          "percent": 0.11739845034045551
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031747,
+      "name": "llvmpipe-2",
+      "samples": 3577,
+      "sampled_cpu_seconds": 17.974872125,
+      "observed_seconds": 54.9276340000215,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 16.3265306122449
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.2795638803466592
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.16773832820799553
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.05591277606933184
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031746,
+      "name": "llvmpipe-1",
+      "samples": 3558,
+      "sampled_cpu_seconds": 17.87939475,
+      "observed_seconds": 54.93513699999312,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.879707700955594
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.3372681281618887
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.08431703204047218
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.028105677346824058
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031745,
+      "name": "llvmpipe-0",
+      "samples": 3532,
+      "sampled_cpu_seconds": 17.7487415,
+      "observed_seconds": 54.99740600003861,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 14.977349943374858
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.22650056625141562
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.14156285390713477
+        },
+        {
+          "symbol": "pthread_cond_signal",
+          "percent": 0.028312570781426953
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031752,
+      "name": "llvmpipe-7",
+      "samples": 3525,
+      "sampled_cpu_seconds": 17.713565625,
+      "observed_seconds": 54.892766000004485,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 14.638297872340425
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.2553191489361702
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.1702127659574468
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.05673758865248227
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.028368794326241134
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031748,
+      "name": "llvmpipe-3",
+      "samples": 3503,
+      "sampled_cpu_seconds": 17.603012875,
+      "observed_seconds": 54.85014900000533,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.158435626605767
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.3140165572366543
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.17128175849272054
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.05709391949757351
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031749,
+      "name": "llvmpipe-4",
+      "samples": 3487,
+      "sampled_cpu_seconds": 17.522610875,
+      "observed_seconds": 54.797843000036664,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.65815887582449
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.2007456266131345
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.2007456266131345
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.028677946659019213
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031751,
+      "name": "llvmpipe-6",
+      "samples": 3477,
+      "sampled_cpu_seconds": 17.472359625,
+      "observed_seconds": 54.9994140000199,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.530629853321829
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.3738855335058959
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.23008340523439746
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 0.028760425654299683
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.028760425654299683
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031750,
+      "name": "llvmpipe-5",
+      "samples": 3455,
+      "sampled_cpu_seconds": 17.361806875,
+      "observed_seconds": 54.85285399999702,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 14.558610709117222
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.23154848046309695
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.20260492040520983
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.02894356005788712
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 0.02894356005788712
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031753,
+      "name": "llvmpipe-8",
+      "samples": 3393,
+      "sampled_cpu_seconds": 17.050249125,
+      "observed_seconds": 54.974184999999125,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.915119363395226
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.2357795461243737
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.1768346595932803
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031755,
+      "name": "llvmpipe-10",
+      "samples": 3380,
+      "sampled_cpu_seconds": 16.9849225,
+      "observed_seconds": 54.936574000050314,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 14.615384615384615
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.35502958579881655
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.14792899408284024
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.05917159763313609
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.029585798816568046
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031754,
+      "name": "llvmpipe-9",
+      "samples": 3357,
+      "sampled_cpu_seconds": 16.869344625,
+      "observed_seconds": 54.88357200002065,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.102770330652369
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.20851951146857314
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.14894250819183796
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.08936550491510277
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 0.02978850163836759
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.02978850163836759
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031757,
+      "name": "llvmpipe-12",
+      "samples": 3345,
+      "sampled_cpu_seconds": 16.809043125,
+      "observed_seconds": 54.937154999992345,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 16.113602391629296
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.32884902840059793
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.059790732436472344
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.059790732436472344
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.029895366218236172
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031758,
+      "name": "llvmpipe-13",
+      "samples": 3337,
+      "sampled_cpu_seconds": 16.768842125,
+      "observed_seconds": 54.95009599998593,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.792628109080011
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.2097692538207971
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.2097692538207971
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.05993407252022775
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.029967036260113874
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031756,
+      "name": "llvmpipe-11",
+      "samples": 3292,
+      "sampled_cpu_seconds": 16.5427115,
+      "observed_seconds": 54.92606099997647,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.856622114216282
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.3037667071688943
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.1822600243013366
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.030376670716889428
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.030376670716889428
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031759,
+      "name": "llvmpipe-14",
+      "samples": 3115,
+      "sampled_cpu_seconds": 15.653264375,
+      "observed_seconds": 54.96086000005016,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.666131621187802
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.449438202247191
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.2568218298555377
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.03210272873194221
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 0.03210272873194221
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.03210272873194221
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031760,
+      "name": "llvmpipe-15",
+      "samples": 3114,
+      "sampled_cpu_seconds": 15.64823925,
+      "observed_seconds": 54.977286000037566,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.703275529865126
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.16056518946692358
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.12845215157353887
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.12845215157353887
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.06422607578676943
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031761,
+      "name": "llvmpipe-16",
+      "samples": 2865,
+      "sampled_cpu_seconds": 14.396983125,
+      "observed_seconds": 54.966726000013296,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 16.858638743455497
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.2094240837696335
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.10471204188481675
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.10471204188481675
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031762,
+      "name": "llvmpipe-17",
+      "samples": 2763,
+      "sampled_cpu_seconds": 13.884420375,
+      "observed_seconds": 54.977651999972295,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 16.178067318132463
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.5428881650380022
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.21715526601520088
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031763,
+      "name": "llvmpipe-18",
+      "samples": 2539,
+      "sampled_cpu_seconds": 12.758792375,
+      "observed_seconds": 54.825685999996495,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 16.305632138637257
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.3938558487593541
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.3544702638834187
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.07877116975187082
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 0.03938558487593541
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031764,
+      "name": "llvmpipe-19",
+      "samples": 2118,
+      "sampled_cpu_seconds": 10.64321475,
+      "observed_seconds": 54.860627999994904,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 17.56373937677054
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.28328611898017
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.18885741265344666
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.141643059490085
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.047214353163361665
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 0.047214353163361665
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031768,
+      "name": "llvmpipe-23",
+      "samples": 1866,
+      "sampled_cpu_seconds": 9.37688325,
+      "observed_seconds": 54.84179899998708,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 16.237942122186496
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.4287245444801715
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.3215434083601286
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031765,
+      "name": "llvmpipe-20",
+      "samples": 1817,
+      "sampled_cpu_seconds": 9.130652125,
+      "observed_seconds": 54.865911999950185,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 14.584479911942763
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.6604292790313704
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.3852504127682994
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.1100715465052284
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 0.0550357732526142
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 0.0550357732526142
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031766,
+      "name": "llvmpipe-21",
+      "samples": 1549,
+      "sampled_cpu_seconds": 7.783918625,
+      "observed_seconds": 54.7510229999898,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 14.654615881213687
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.6455777921239509
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.32278889606197547
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.0645577792123951
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031767,
+      "name": "llvmpipe-22",
+      "samples": 1507,
+      "sampled_cpu_seconds": 7.572863375,
+      "observed_seconds": 54.649222999985795,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 15.063039150630392
+        },
+        {
+          "symbol": "pthread_barrier_wait",
+          "percent": 0.53085600530856
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 0.19907100199071
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 0.06635700066357
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031695,
+      "name": "nier",
+      "samples": 1446,
+      "sampled_cpu_seconds": 7.26633075,
+      "observed_seconds": 54.963692000019364,
+      "top_host_own": [
+        {
+          "symbol": "rex::thread::TimerQueue::TimerThreadMain(std::stop_token)",
+          "percent": 97.57952973720609
+        },
+        {
+          "symbol": "[unknown]",
+          "percent": 0.6915629322268326
+        },
+        {
+          "symbol": "__sched_yield",
+          "percent": 0.5532503457814661
+        },
+        {
+          "symbol": "__vdso_clock_gettime",
+          "percent": 0.2074688796680498
+        },
+        {
+          "symbol": "rex::chrono::QueryGuestSystemTimeOffset()",
+          "percent": 0.13831258644536654
+        },
+        {
+          "symbol": "operator new(unsigned long)",
+          "percent": 0.13831258644536654
+        },
+        {
+          "symbol": "__close_nocancel_nostatus",
+          "percent": 0.13831258644536654
+        },
+        {
+          "symbol": "__read_nocancel",
+          "percent": 0.13831258644536654
+        },
+        {
+          "symbol": "std::_Function_handler<void",
+          "percent": 0.06915629322268327
+        },
+        {
+          "symbol": "clock_gettime",
+          "percent": 0.06915629322268327
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031743,
+      "name": "XThread27FFB6C0",
+      "samples": 662,
+      "sampled_cpu_seconds": 3.32663275,
+      "observed_seconds": 54.669378000020515,
+      "top_host_own": [
+        {
+          "symbol": "simde_mm_store_si128",
+          "percent": 5.438066465256798
+        },
+        {
+          "symbol": "simde_mm_load_si128",
+          "percent": 4.531722054380665
+        },
+        {
+          "symbol": "simde_mm_shuffle_epi8",
+          "percent": 4.380664652567976
+        },
+        {
+          "symbol": "compare",
+          "percent": 3.474320241691843
+        },
+        {
+          "symbol": "compare<unsigned int>",
+          "percent": 2.416918429003021
+        },
+        {
+          "symbol": "compare<int>",
+          "percent": 2.2658610271903323
+        },
+        {
+          "symbol": "simde_mm_store_ps",
+          "percent": 2.1148036253776437
+        },
+        {
+          "symbol": "simde_mm_load_ps",
+          "percent": 1.8126888217522659
+        },
+        {
+          "symbol": "simde_mm_add_ps",
+          "percent": 1.5105740181268883
+        },
+        {
+          "symbol": "disableFlushMode",
+          "percent": 1.2084592145015105
+        }
+      ],
+      "top30": [
+        {
+          "address": 2182366600,
+          "name": "sub_82144588",
+          "own_seconds": 0.185929625,
+          "inclusive_seconds": 0.6231155,
+          "own_percent": 5.589123867069486,
+          "inclusive_percent": 18.731117824773413
+        },
+        {
+          "address": 2182357296,
+          "name": "sub_82142130",
+          "own_seconds": 0.175879375,
+          "inclusive_seconds": 0.477386875,
+          "own_percent": 5.287009063444109,
+          "inclusive_percent": 14.350453172205437
+        },
+        {
+          "address": 2182438856,
+          "name": "sub_82155FC8",
+          "own_seconds": 0.155778875,
+          "inclusive_seconds": 0.547738625,
+          "own_percent": 4.682779456193353,
+          "inclusive_percent": 16.46525679758308
+        },
+        {
+          "address": 2182355248,
+          "name": "sub_82141930",
+          "own_seconds": 0.145728625,
+          "inclusive_seconds": 0.165829125,
+          "own_percent": 4.380664652567976,
+          "inclusive_percent": 4.984894259818731
+        },
+        {
+          "address": 2182497208,
+          "name": "sub_821643B8",
+          "own_seconds": 0.135678375,
+          "inclusive_seconds": 1.045226,
+          "own_percent": 4.078549848942598,
+          "inclusive_percent": 31.419939577039276
+        },
+        {
+          "address": 2182356712,
+          "name": "sub_82141EE8",
+          "own_seconds": 0.09045225,
+          "inclusive_seconds": 0.321608,
+          "own_percent": 2.719033232628399,
+          "inclusive_percent": 9.667673716012084
+        },
+        {
+          "address": 2182441448,
+          "name": "sub_821569E8",
+          "own_seconds": 0.075376875,
+          "inclusive_seconds": 0.15075375,
+          "own_percent": 2.2658610271903323,
+          "inclusive_percent": 4.531722054380665
+        },
+        {
+          "address": 2183218552,
+          "name": "sub_82214578",
+          "own_seconds": 0.075376875,
+          "inclusive_seconds": 0.125628125,
+          "own_percent": 2.2658610271903323,
+          "inclusive_percent": 3.7764350453172204
+        },
+        {
+          "address": 2182434184,
+          "name": "sub_82154D88",
+          "own_seconds": 0.0603015,
+          "inclusive_seconds": 0.316582875,
+          "own_percent": 1.8126888217522659,
+          "inclusive_percent": 9.516616314199396
+        },
+        {
+          "address": 2182596496,
+          "name": "sub_8217C790",
+          "own_seconds": 0.0603015,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 1.8126888217522659,
+          "inclusive_percent": 2.719033232628399
+        },
+        {
+          "address": 2182429672,
+          "name": "sub_82153BE8",
+          "own_seconds": 0.040201,
+          "inclusive_seconds": 0.085427125,
+          "own_percent": 1.2084592145015105,
+          "inclusive_percent": 2.56797583081571
+        },
+        {
+          "address": 2182664480,
+          "name": "sub_8218D120",
+          "own_seconds": 0.040201,
+          "inclusive_seconds": 0.040201,
+          "own_percent": 1.2084592145015105,
+          "inclusive_percent": 1.2084592145015105
+        },
+        {
+          "address": 2187138984,
+          "name": "sub_825D17A8",
+          "own_seconds": 0.040201,
+          "inclusive_seconds": 0.040201,
+          "own_percent": 1.2084592145015105,
+          "inclusive_percent": 1.2084592145015105
+        },
+        {
+          "address": 2187139064,
+          "name": "sub_825D17F8",
+          "own_seconds": 0.040201,
+          "inclusive_seconds": 0.040201,
+          "own_percent": 1.2084592145015105,
+          "inclusive_percent": 1.2084592145015105
+        },
+        {
+          "address": 2182355136,
+          "name": "sub_821418C0",
+          "own_seconds": 0.035175875,
+          "inclusive_seconds": 0.055276375,
+          "own_percent": 1.0574018126888218,
+          "inclusive_percent": 1.661631419939577
+        },
+        {
+          "address": 2182089960,
+          "name": "sub_82100CE8",
+          "own_seconds": 0.03015075,
+          "inclusive_seconds": 0.080402,
+          "own_percent": 0.9063444108761329,
+          "inclusive_percent": 2.416918429003021
+        },
+        {
+          "address": 2182492296,
+          "name": "sub_82163088",
+          "own_seconds": 0.025125625,
+          "inclusive_seconds": 0.11055275,
+          "own_percent": 0.7552870090634441,
+          "inclusive_percent": 3.323262839879154
+        },
+        {
+          "address": 2182424864,
+          "name": "sub_82152920",
+          "own_seconds": 0.025125625,
+          "inclusive_seconds": 0.085427125,
+          "own_percent": 0.7552870090634441,
+          "inclusive_percent": 2.56797583081571
+        },
+        {
+          "address": 2182386968,
+          "name": "sub_82149518",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 1.0653265,
+          "own_percent": 0.6042296072507553,
+          "inclusive_percent": 32.02416918429003
+        },
+        {
+          "address": 2182494752,
+          "name": "sub_82163A20",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.11055275,
+          "own_percent": 0.6042296072507553,
+          "inclusive_percent": 3.323262839879154
+        },
+        {
+          "address": 2182461920,
+          "name": "sub_8215B9E0",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.035175875,
+          "own_percent": 0.6042296072507553,
+          "inclusive_percent": 1.0574018126888218
+        },
+        {
+          "address": 2187139028,
+          "name": "sub_825D17D4",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.6042296072507553,
+          "inclusive_percent": 0.6042296072507553
+        },
+        {
+          "address": 2182384608,
+          "name": "sub_82148BE0",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 1.5075375,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 45.31722054380665
+        },
+        {
+          "address": 2184385728,
+          "name": "sub_823314C0",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.286432125,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 8.610271903323262
+        },
+        {
+          "address": 2182359784,
+          "name": "sub_82142AE8",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 2.719033232628399
+        },
+        {
+          "address": 2182665008,
+          "name": "sub_8218D330",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.07035175,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 2.1148036253776437
+        },
+        {
+          "address": 2182432248,
+          "name": "sub_821545F8",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 0.7552870090634441
+        },
+        {
+          "address": 2186881600,
+          "name": "sub_82592A40",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 0.6042296072507553
+        },
+        {
+          "address": 2187139108,
+          "name": "sub_825D1824",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 0.45317220543806647
+        },
+        {
+          "address": 2187139116,
+          "name": "sub_825D182C",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.45317220543806647,
+          "inclusive_percent": 0.45317220543806647
+        }
+      ]
+    },
+    {
+      "tid": 2031737,
+      "name": "XThread2AFFE6C0",
+      "samples": 265,
+      "sampled_cpu_seconds": 1.331658125,
+      "observed_seconds": 54.54582399997162,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 8.30188679245283
+        },
+        {
+          "symbol": "compare<unsigned int>",
+          "percent": 7.169811320754717
+        },
+        {
+          "symbol": "compare",
+          "percent": 2.2641509433962264
+        },
+        {
+          "symbol": "disableFlushMode",
+          "percent": 2.2641509433962264
+        },
+        {
+          "symbol": "clock_nanosleep",
+          "percent": 0.7547169811320755
+        },
+        {
+          "symbol": "__imp__KeDelayExecutionThread",
+          "percent": 0.37735849056603776
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186239552,
+          "name": "sub_824F5E40",
+          "own_seconds": 0.286432125,
+          "inclusive_seconds": 0.336683375,
+          "own_percent": 21.50943396226415,
+          "inclusive_percent": 25.28301886792453
+        },
+        {
+          "address": 2186239728,
+          "name": "sub_824F5EF0",
+          "own_seconds": 0.165829125,
+          "inclusive_seconds": 0.5427135,
+          "own_percent": 12.452830188679245,
+          "inclusive_percent": 40.75471698113208
+        },
+        {
+          "address": 2186278336,
+          "name": "sub_824FF5C0",
+          "own_seconds": 0.085427125,
+          "inclusive_seconds": 0.3015075,
+          "own_percent": 6.415094339622642,
+          "inclusive_percent": 22.641509433962263
+        },
+        {
+          "address": 2186149944,
+          "name": "sub_824E0038",
+          "own_seconds": 0.0603015,
+          "inclusive_seconds": 0.125628125,
+          "own_percent": 4.528301886792453,
+          "inclusive_percent": 9.433962264150944
+        },
+        {
+          "address": 2186326136,
+          "name": "sub_8250B078",
+          "own_seconds": 0.0603015,
+          "inclusive_seconds": 0.07035175,
+          "own_percent": 4.528301886792453,
+          "inclusive_percent": 5.283018867924528
+        },
+        {
+          "address": 2187145232,
+          "name": "sub_825D3010",
+          "own_seconds": 0.03015075,
+          "inclusive_seconds": 0.035175875,
+          "own_percent": 2.2641509433962264,
+          "inclusive_percent": 2.641509433962264
+        },
+        {
+          "address": 2182176672,
+          "name": "sub_82115FA0",
+          "own_seconds": 0.025125625,
+          "inclusive_seconds": 1.331658125,
+          "own_percent": 1.8867924528301887,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2182176168,
+          "name": "sub_82115DA8",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 1.271356625,
+          "own_percent": 1.509433962264151,
+          "inclusive_percent": 95.47169811320755
+        },
+        {
+          "address": 2186236232,
+          "name": "sub_824F5148",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 1.1457285,
+          "own_percent": 1.509433962264151,
+          "inclusive_percent": 86.0377358490566
+        },
+        {
+          "address": 2186223928,
+          "name": "sub_824F2138",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 1.09547725,
+          "own_percent": 1.509433962264151,
+          "inclusive_percent": 82.26415094339623
+        },
+        {
+          "address": 2186146264,
+          "name": "sub_824DF1D8",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.67336675,
+          "own_percent": 1.1320754716981132,
+          "inclusive_percent": 50.56603773584906
+        },
+        {
+          "address": 2186148880,
+          "name": "sub_824DFC10",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.05025125,
+          "own_percent": 1.1320754716981132,
+          "inclusive_percent": 3.7735849056603774
+        },
+        {
+          "address": 2186150088,
+          "name": "sub_824E00C8",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 1.1320754716981132,
+          "inclusive_percent": 1.1320754716981132
+        },
+        {
+          "address": 2186321992,
+          "name": "sub_8250A048",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 1.1320754716981132,
+          "inclusive_percent": 1.1320754716981132
+        },
+        {
+          "address": 2187148688,
+          "name": "sub_825D3D90",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 1.1320754716981132,
+          "inclusive_percent": 1.1320754716981132
+        },
+        {
+          "address": 2182150448,
+          "name": "sub_8210F930",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 1.221105375,
+          "own_percent": 0.7547169811320755,
+          "inclusive_percent": 91.69811320754717
+        },
+        {
+          "address": 2186156032,
+          "name": "sub_824E1800",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.65326625,
+          "own_percent": 0.7547169811320755,
+          "inclusive_percent": 49.056603773584904
+        },
+        {
+          "address": 2186290416,
+          "name": "sub_825024F0",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.17085425,
+          "own_percent": 0.7547169811320755,
+          "inclusive_percent": 12.830188679245284
+        },
+        {
+          "address": 2186231600,
+          "name": "sub_824F3F30",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.7547169811320755,
+          "inclusive_percent": 1.1320754716981132
+        },
+        {
+          "address": 2185851832,
+          "name": "sub_824973B8",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.7547169811320755,
+          "inclusive_percent": 0.7547169811320755
+        },
+        {
+          "address": 2186275056,
+          "name": "sub_824FE8F0",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.7547169811320755,
+          "inclusive_percent": 0.7547169811320755
+        },
+        {
+          "address": 2186284056,
+          "name": "sub_82500C18",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.7547169811320755,
+          "inclusive_percent": 0.7547169811320755
+        },
+        {
+          "address": 2186233120,
+          "name": "sub_824F4520",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.33165825,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 24.90566037735849
+        },
+        {
+          "address": 2186285168,
+          "name": "sub_82501070",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.31155775,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 23.39622641509434
+        },
+        {
+          "address": 2186279728,
+          "name": "sub_824FFB30",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.175879375,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 13.20754716981132
+        },
+        {
+          "address": 2186150256,
+          "name": "sub_824E0170",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.1005025,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 7.547169811320755
+        },
+        {
+          "address": 2186231232,
+          "name": "sub_824F3DC0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.045226125,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 3.3962264150943398
+        },
+        {
+          "address": 2186229944,
+          "name": "sub_824F38B8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.035175875,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 2.641509433962264
+        },
+        {
+          "address": 2185872704,
+          "name": "sub_8249C540",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 2.2641509433962264
+        },
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.37735849056603776,
+          "inclusive_percent": 2.2641509433962264
+        }
+      ]
+    },
+    {
+      "tid": 2031704,
+      "name": "Main XThread (F",
+      "samples": 84,
+      "sampled_cpu_seconds": 0.4221105,
+      "observed_seconds": 53.34739999996964,
+      "top_host_own": [
+        {
+          "symbol": "compare<unsigned int>",
+          "percent": 4.761904761904762
+        },
+        {
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "percent": 2.380952380952381
+        },
+        {
+          "symbol": "[unknown]",
+          "percent": 2.380952380952381
+        },
+        {
+          "symbol": "simde_mm_store_si128",
+          "percent": 2.380952380952381
+        },
+        {
+          "symbol": "simde_mm_shuffle_epi8",
+          "percent": 1.1904761904761905
+        },
+        {
+          "symbol": "_ZN3rex3ppc19HostToGuestFunctionITnDaXadL_ZNS_6kernel3xam22XamInputGetState_entryEjjNS_9MappedPtrINS_5input13X_INPUT_STATEEEEEEEEvR10PPCContextPh",
+          "percent": 1.1904761904761905
+        },
+        {
+          "symbol": "SDL_strcmp_REAL",
+          "percent": 1.1904761904761905
+        },
+        {
+          "symbol": "__dynamic_cast",
+          "percent": 1.1904761904761905
+        },
+        {
+          "symbol": "simde_mm_add_ps",
+          "percent": 1.1904761904761905
+        },
+        {
+          "symbol": "disableFlushMode",
+          "percent": 1.1904761904761905
+        }
+      ],
+      "top30": [
+        {
+          "address": 2187148688,
+          "name": "sub_825D3D90",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2187175056,
+          "name": "sub_825DA490",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2186905320,
+          "name": "sub_825986E8",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 2.380952380952381,
+          "inclusive_percent": 3.5714285714285716
+        },
+        {
+          "address": 2184408968,
+          "name": "sub_82336F88",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 2.380952380952381,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2184990136,
+          "name": "sub_823C4DB8",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 2.380952380952381,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2186754088,
+          "name": "sub_82573828",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 2.380952380952381,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2186934848,
+          "name": "sub_8259FA40",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 2.380952380952381,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2186899104,
+          "name": "sub_82596EA0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 21.428571428571427
+        },
+        {
+          "address": 2184963832,
+          "name": "sub_823BE6F8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.035175875,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 8.333333333333334
+        },
+        {
+          "address": 2182108144,
+          "name": "sub_821053F0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 7.142857142857143
+        },
+        {
+          "address": 2182107488,
+          "name": "sub_82105160",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 5.9523809523809526
+        },
+        {
+          "address": 2185099864,
+          "name": "sub_823DFA58",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 5.9523809523809526
+        },
+        {
+          "address": 2184907640,
+          "name": "sub_823B0B78",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2184955928,
+          "name": "sub_823BC818",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 3.5714285714285716
+        },
+        {
+          "address": 2186950248,
+          "name": "sub_825A3668",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 3.5714285714285716
+        },
+        {
+          "address": 2186964160,
+          "name": "sub_825A6CC0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 3.5714285714285716
+        },
+        {
+          "address": 2182131872,
+          "name": "sub_8210B0A0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2182489656,
+          "name": "sub_82162638",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2185464616,
+          "name": "sub_82438B28",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2186859064,
+          "name": "sub_8258D238",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2186969320,
+          "name": "sub_825A80E8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 2.380952380952381
+        },
+        {
+          "address": 2182126664,
+          "name": "sub_82109C48",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2182131296,
+          "name": "sub_8210AE60",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2182133032,
+          "name": "sub_8210B528",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2182135224,
+          "name": "sub_8210BDB8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2182628296,
+          "name": "sub_821843C8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2182628728,
+          "name": "sub_82184578",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2184408888,
+          "name": "sub_82336F38",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2184697872,
+          "name": "sub_8237D810",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        },
+        {
+          "address": 2184935128,
+          "name": "sub_823B76D8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 1.1904761904761905,
+          "inclusive_percent": 1.1904761904761905
+        }
+      ]
+    },
+    {
+      "tid": 2031699,
+      "name": "GPU Commands (F",
+      "samples": 69,
+      "sampled_cpu_seconds": 0.346733625,
+      "observed_seconds": 53.53607400000328,
+      "top_host_own": [
+        {
+          "symbol": "rex::graphics::CommandProcessor::WriteRegister(unsigned int, unsigned int)",
+          "percent": 21.73913043478261
+        },
+        {
+          "symbol": "rex::graphics::CommandProcessor::ExecutePacket(rex::memory::RingBuffer*)",
+          "percent": 17.391304347826086
+        },
+        {
+          "symbol": "rex::graphics::CommandProcessor::ExecutePacketType0(rex::memory::RingBuffer*, unsigned int)",
+          "percent": 11.594202898550725
+        },
+        {
+          "symbol": "rex::graphics::RegisterFile::GetRegisterInfo(unsigned int)",
+          "percent": 8.695652173913043
+        },
+        {
+          "symbol": "rex::graphics::CommandProcessor::ExecutePacketType3(rex::memory::RingBuffer*, unsigned int)",
+          "percent": 8.695652173913043
+        },
+        {
+          "symbol": "[unknown]",
+          "percent": 5.797101449275362
+        },
+        {
+          "symbol": "rex::graphics::CommandProcessor::WriteRegistersFromMem(unsigned int, unsigned int*, unsigned int)",
+          "percent": 5.797101449275362
+        },
+        {
+          "symbol": "__sched_yield",
+          "percent": 4.3478260869565215
+        },
+        {
+          "symbol": "rex::graphics::CommandProcessor::ExecutePacketType3Draw(rex::memory::RingBuffer*, unsigned int, char const*, unsigned int, unsigned int)",
+          "percent": 4.3478260869565215
+        },
+        {
+          "symbol": "rex::graphics::CommandProcessor::ExecutePacketType3_WAIT_REG_MEM(rex::memory::RingBuffer*, unsigned int, unsigned int)",
+          "percent": 2.898550724637681
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186781872,
+          "name": "sub_8257A4B0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 1.4492753623188406,
+          "inclusive_percent": 2.898550724637681
+        },
+        {
+          "address": 2186752816,
+          "name": "sub_82573330",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 2.898550724637681
+        }
+      ]
+    },
+    {
+      "tid": 2031698,
+      "name": "Audio Worker (F",
+      "samples": 49,
+      "sampled_cpu_seconds": 0.246231125,
+      "observed_seconds": 53.98147399997106,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 28.571428571428573
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 12.244897959183673
+        },
+        {
+          "symbol": "rex::thread::PosixConditionBase::WaitMultiple(std::vector<rex::thread::PosixConditionBase*, std::allocator<rex::thread::PosixConditionBase*> >&&, bool, std::chrono::duration<long, std::ratio<1l, 1000l> >)",
+          "percent": 6.122448979591836
+        },
+        {
+          "symbol": "std::chrono::_V2::steady_clock::now()",
+          "percent": 4.081632653061225
+        },
+        {
+          "symbol": "cfree",
+          "percent": 4.081632653061225
+        },
+        {
+          "symbol": "rex::thread::PosixCondition<rex::thread::Semaphore>::signaled() const",
+          "percent": 4.081632653061225
+        },
+        {
+          "symbol": "rex::system::XObject::GetNativeObject(rex::system::KernelState*, void*, int)",
+          "percent": 4.081632653061225
+        },
+        {
+          "symbol": "rex::thread::WaitMultiple(rex::thread::WaitHandle**, unsigned long, bool, bool, std::chrono::duration<long, std::ratio<1l, 1000l> >)",
+          "percent": 4.081632653061225
+        },
+        {
+          "symbol": "__tls_get_addr",
+          "percent": 2.0408163265306123
+        },
+        {
+          "symbol": "rex::thread::PosixConditionBase::NotifyAll()",
+          "percent": 2.0408163265306123
+        }
+      ],
+      "top30": [
+        {
+          "address": 2185977728,
+          "name": "sub_824B5F80",
+          "own_seconds": 0.05025125,
+          "inclusive_seconds": 0.075376875,
+          "own_percent": 20.408163265306122,
+          "inclusive_percent": 30.612244897959183
+        }
+      ]
+    },
+    {
+      "tid": 2031694,
+      "name": "nier",
+      "samples": 40,
+      "sampled_cpu_seconds": 0.201005,
+      "observed_seconds": 48.15109900000971,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 12.5
+        },
+        {
+          "symbol": "SDL_UpdateJoysticks_REAL",
+          "percent": 12.5
+        },
+        {
+          "symbol": "SDL_PeepEventsInternal",
+          "percent": 10.0
+        },
+        {
+          "symbol": "__vdso_clock_gettime",
+          "percent": 7.5
+        },
+        {
+          "symbol": "SDL_UpdateCursorAnimation",
+          "percent": 5.0
+        },
+        {
+          "symbol": "SDL_GetVideoDevice",
+          "percent": 5.0
+        },
+        {
+          "symbol": "HIDAPI_UpdateDevices",
+          "percent": 5.0
+        },
+        {
+          "symbol": "clock_gettime",
+          "percent": 5.0
+        },
+        {
+          "symbol": "SDL_UDEV_Poll",
+          "percent": 5.0
+        },
+        {
+          "symbol": "SDL_AssertJoysticksLocked",
+          "percent": 5.0
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031725,
+      "name": "XThread2BFFF6C0",
+      "samples": 33,
+      "sampled_cpu_seconds": 0.165829125,
+      "observed_seconds": 50.56108700000914,
+      "top_host_own": [
+        {
+          "symbol": "simde_mm_store_si128",
+          "percent": 6.0606060606060606
+        },
+        {
+          "symbol": "compare<unsigned int>",
+          "percent": 6.0606060606060606
+        },
+        {
+          "symbol": "compare<int>",
+          "percent": 3.0303030303030303
+        },
+        {
+          "symbol": "rex::memory::Memory::LookupHeap(unsigned int) const",
+          "percent": 3.0303030303030303
+        },
+        {
+          "symbol": "compare<long>",
+          "percent": 3.0303030303030303
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 3.0303030303030303
+        },
+        {
+          "symbol": "pthread_mutex_unlock",
+          "percent": 3.0303030303030303
+        },
+        {
+          "symbol": "rex::audio::XmaDecoder::WriteRegister(unsigned int, unsigned int)",
+          "percent": 3.0303030303030303
+        },
+        {
+          "symbol": "rex::system::XObject::GetNativeObject(rex::system::KernelState*, void*, int)",
+          "percent": 3.0303030303030303
+        },
+        {
+          "symbol": "rex::system::object_ref<rex::system::XObject> rex::system::util::ObjectTable::LookupObject<rex::system::XObject>(unsigned int)",
+          "percent": 3.0303030303030303
+        }
+      ],
+      "top30": [
+        {
+          "address": 2187145232,
+          "name": "sub_825D3010",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 9.090909090909092,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2185968240,
+          "name": "sub_824B3A70",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.145728625,
+          "own_percent": 6.0606060606060606,
+          "inclusive_percent": 87.87878787878788
+        },
+        {
+          "address": 2185991680,
+          "name": "sub_824B9600",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 6.0606060606060606,
+          "inclusive_percent": 12.121212121212121
+        },
+        {
+          "address": 2185908656,
+          "name": "sub_824A51B0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 15.151515151515152
+        },
+        {
+          "address": 2185855568,
+          "name": "sub_82498250",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2185964368,
+          "name": "sub_824B2B50",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 6.0606060606060606
+        },
+        {
+          "address": 2185891168,
+          "name": "sub_824A0D60",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2185895776,
+          "name": "sub_824A1F60",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2185897544,
+          "name": "sub_824A2648",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2185962608,
+          "name": "sub_824B2470",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2185975816,
+          "name": "sub_824B5808",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2186089432,
+          "name": "sub_824D13D8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2187139104,
+          "name": "sub_825D1820",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2187148688,
+          "name": "sub_825D3D90",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.0303030303030303,
+          "inclusive_percent": 3.0303030303030303
+        },
+        {
+          "address": 2185964112,
+          "name": "sub_824B2A50",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.165829125,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2185968616,
+          "name": "sub_824B3BE8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.165829125,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.165829125,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186093920,
+          "name": "sub_824D2560",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.045226125,
+          "own_percent": 0.0,
+          "inclusive_percent": 27.272727272727273
+        },
+        {
+          "address": 2186085896,
+          "name": "sub_824D0608",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.0,
+          "inclusive_percent": 18.181818181818183
+        },
+        {
+          "address": 2185963920,
+          "name": "sub_824B2990",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 12.121212121212121
+        },
+        {
+          "address": 2185976296,
+          "name": "sub_824B59E8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 12.121212121212121
+        },
+        {
+          "address": 2186093424,
+          "name": "sub_824D2370",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 12.121212121212121
+        },
+        {
+          "address": 2185902888,
+          "name": "sub_824A3B28",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2185977632,
+          "name": "sub_824B5F20",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186085480,
+          "name": "sub_824D0468",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186091240,
+          "name": "sub_824D1AE8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2185868880,
+          "name": "sub_8249B650",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 6.0606060606060606
+        },
+        {
+          "address": 2185974856,
+          "name": "sub_824B5448",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 6.0606060606060606
+        },
+        {
+          "address": 2185975544,
+          "name": "sub_824B56F8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 6.0606060606060606
+        },
+        {
+          "address": 2185975912,
+          "name": "sub_824B5868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 6.0606060606060606
+        }
+      ]
+    },
+    {
+      "tid": 2031713,
+      "name": "XThread62FFE6C0",
+      "samples": 26,
+      "sampled_cpu_seconds": 0.13065325,
+      "observed_seconds": 48.77980600000592,
+      "top_host_own": [
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 19.23076923076923
+        },
+        {
+          "symbol": "rex::system::XThread::Delay(unsigned int, unsigned int, unsigned long)",
+          "percent": 11.538461538461538
+        },
+        {
+          "symbol": "[unknown]",
+          "percent": 7.6923076923076925
+        },
+        {
+          "symbol": "std::condition_variable::notify_all()",
+          "percent": 3.8461538461538463
+        },
+        {
+          "symbol": "_ZN3rex3ppc19HostToGuestFunctionITnDaXadL_ZNS_6kernel8xboxkrnl28KeDelayExecutionThread_entryEjjNS_9MappedPtrINS_12endian_storeImLSt6endian4321EEEEEEEEEvR10PPCContextPh",
+          "percent": 3.8461538461538463
+        },
+        {
+          "symbol": "rex::kernel::xboxkrnl::xeNtSetEvent(unsigned int, rex::endian_store<unsigned int,",
+          "percent": 3.8461538461538463
+        },
+        {
+          "symbol": "__tls_get_addr",
+          "percent": 3.8461538461538463
+        },
+        {
+          "symbol": "rex::thread::PosixConditionBase::NotifyAll()",
+          "percent": 3.8461538461538463
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 3.8461538461538463
+        },
+        {
+          "symbol": "rex::thread::Sleep(std::chrono::duration<long, std::ratio<1l, 1000000l> >)",
+          "percent": 3.8461538461538463
+        }
+      ],
+      "top30": [
+        {
+          "address": 2182217336,
+          "name": "sub_8211FE78",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.13065325,
+          "own_percent": 11.538461538461538,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.05025125,
+          "own_percent": 7.6923076923076925,
+          "inclusive_percent": 38.46153846153846
+        },
+        {
+          "address": 2186356216,
+          "name": "sub_825125F8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.0603015,
+          "own_percent": 3.8461538461538463,
+          "inclusive_percent": 46.15384615384615
+        },
+        {
+          "address": 2186354336,
+          "name": "sub_82511EA0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 3.8461538461538463,
+          "inclusive_percent": 19.23076923076923
+        },
+        {
+          "address": 2186654832,
+          "name": "sub_8255B470",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.8461538461538463,
+          "inclusive_percent": 3.8461538461538463
+        },
+        {
+          "address": 2187245672,
+          "name": "sub_825EB868",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 3.8461538461538463,
+          "inclusive_percent": 3.8461538461538463
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.13065325,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186860872,
+          "name": "sub_8258D948",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.13065325,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186654640,
+          "name": "sub_8255B3B0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.045226125,
+          "own_percent": 0.0,
+          "inclusive_percent": 34.61538461538461
+        },
+        {
+          "address": 2186354424,
+          "name": "sub_82511EF8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.0,
+          "inclusive_percent": 23.076923076923077
+        },
+        {
+          "address": 2186360800,
+          "name": "sub_825137E0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 15.384615384615385
+        }
+      ]
+    },
+    {
+      "tid": 2031723,
+      "name": "XThread32FFE6C0",
+      "samples": 23,
+      "sampled_cpu_seconds": 0.115577875,
+      "observed_seconds": 48.33015799999703,
+      "top_host_own": [
+        {
+          "symbol": "compare<int>",
+          "percent": 4.3478260869565215
+        },
+        {
+          "symbol": "rex::system::XEvent::GetWaitHandle()",
+          "percent": 4.3478260869565215
+        },
+        {
+          "symbol": "rex::system::XObject::Wait(unsigned int, unsigned int, unsigned int, unsigned long*)",
+          "percent": 4.3478260869565215
+        },
+        {
+          "symbol": "[unknown]",
+          "percent": 4.3478260869565215
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 4.3478260869565215
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186271376,
+          "name": "sub_824FDA90",
+          "own_seconds": 0.015075375,
+          "inclusive_seconds": 0.07035175,
+          "own_percent": 13.043478260869565,
+          "inclusive_percent": 60.869565217391305
+        },
+        {
+          "address": 2186325008,
+          "name": "sub_8250AC10",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 8.695652173913043,
+          "inclusive_percent": 8.695652173913043
+        },
+        {
+          "address": 2186220992,
+          "name": "sub_824F15C0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.085427125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 73.91304347826087
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 21.73913043478261
+        },
+        {
+          "address": 2186195176,
+          "name": "sub_824EB0E8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 8.695652173913043
+        },
+        {
+          "address": 2186191784,
+          "name": "sub_824EA3A8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186221392,
+          "name": "sub_824F1750",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186260592,
+          "name": "sub_824FB070",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186263520,
+          "name": "sub_824FBBE0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186264136,
+          "name": "sub_824FBE48",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186264368,
+          "name": "sub_824FBF30",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186321992,
+          "name": "sub_8250A048",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186322144,
+          "name": "sub_8250A0E0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2187139092,
+          "name": "sub_825D1814",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2187139116,
+          "name": "sub_825D182C",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.3478260869565215,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.115577875,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.115577875,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.115577875,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186270088,
+          "name": "sub_824FD588",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.045226125,
+          "own_percent": 0.0,
+          "inclusive_percent": 39.130434782608695
+        },
+        {
+          "address": 2186193808,
+          "name": "sub_824EAB90",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.040201,
+          "own_percent": 0.0,
+          "inclusive_percent": 34.78260869565217
+        },
+        {
+          "address": 2186191848,
+          "name": "sub_824EA3E8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 17.391304347826086
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 17.391304347826086
+        },
+        {
+          "address": 2186192208,
+          "name": "sub_824EA550",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 13.043478260869565
+        },
+        {
+          "address": 2186261352,
+          "name": "sub_824FB368",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 8.695652173913043
+        },
+        {
+          "address": 2186261504,
+          "name": "sub_824FB400",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186264784,
+          "name": "sub_824FC0D0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 4.3478260869565215
+        }
+      ]
+    },
+    {
+      "tid": 2031710,
+      "name": "XThread72FFE6C0",
+      "samples": 22,
+      "sampled_cpu_seconds": 0.11055275,
+      "observed_seconds": 42.205050999997184,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 13.636363636363637
+        },
+        {
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "percent": 4.545454545454546
+        },
+        {
+          "symbol": "std::condition_variable::wait(std::unique_lock<std::mutex>&)",
+          "percent": 4.545454545454546
+        },
+        {
+          "symbol": "rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l> >)",
+          "percent": 4.545454545454546
+        },
+        {
+          "symbol": "__cxxabiv1::__class_type_info::__do_dyncast(long, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const",
+          "percent": 4.545454545454546
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 4.545454545454546
+        },
+        {
+          "symbol": "__imp__RtlLeaveCriticalSection",
+          "percent": 4.545454545454546
+        },
+        {
+          "symbol": "rex::system::XEvent::Reset()",
+          "percent": 4.545454545454546
+        },
+        {
+          "symbol": "__tls_get_addr@plt",
+          "percent": 4.545454545454546
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186382536,
+          "name": "sub_82518CC8",
+          "own_seconds": 0.0201005,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 18.181818181818183,
+          "inclusive_percent": 27.272727272727273
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.07035175,
+          "own_percent": 9.090909090909092,
+          "inclusive_percent": 63.63636363636363
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.11055275,
+          "own_percent": 4.545454545454546,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.05025125,
+          "own_percent": 4.545454545454546,
+          "inclusive_percent": 45.45454545454545
+        },
+        {
+          "address": 2186316992,
+          "name": "sub_82508CC0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 4.545454545454546,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186382672,
+          "name": "sub_82518D50",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.545454545454546,
+          "inclusive_percent": 4.545454545454546
+        },
+        {
+          "address": 2187139112,
+          "name": "sub_825D1828",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.545454545454546,
+          "inclusive_percent": 4.545454545454546
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.11055275,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.11055275,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186385400,
+          "name": "sub_825197F8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186316824,
+          "name": "sub_82508C18",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 4.545454545454546
+        },
+        {
+          "address": 2186654704,
+          "name": "sub_8255B3F0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 4.545454545454546
+        }
+      ]
+    },
+    {
+      "tid": 2031719,
+      "name": "XThread43FFF6C0",
+      "samples": 21,
+      "sampled_cpu_seconds": 0.105527625,
+      "observed_seconds": 50.40141200000653,
+      "top_host_own": [
+        {
+          "symbol": "compare<int>",
+          "percent": 9.523809523809524
+        },
+        {
+          "symbol": "simde_mm_store_ps",
+          "percent": 9.523809523809524
+        },
+        {
+          "symbol": "simde_mm_load_si128",
+          "percent": 9.523809523809524
+        },
+        {
+          "symbol": "compare",
+          "percent": 9.523809523809524
+        },
+        {
+          "symbol": "__cxxabiv1::__vmi_class_type_info::__do_dyncast(long, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const",
+          "percent": 4.761904761904762
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 4.761904761904762
+        },
+        {
+          "symbol": "simde_mm_cmpgt_ps",
+          "percent": 4.761904761904762
+        }
+      ],
+      "top30": [
+        {
+          "address": 2187372448,
+          "name": "sub_8260A7A0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.065326625,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 61.904761904761905
+        },
+        {
+          "address": 2187352064,
+          "name": "sub_82605800",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.035175875,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 33.333333333333336
+        },
+        {
+          "address": 2187371408,
+          "name": "sub_8260A390",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 14.285714285714286
+        },
+        {
+          "address": 2186927952,
+          "name": "sub_8259DF50",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 9.523809523809524
+        },
+        {
+          "address": 2187351880,
+          "name": "sub_82605748",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 9.523809523809524
+        },
+        {
+          "address": 2183563088,
+          "name": "sub_82268750",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2185853584,
+          "name": "sub_82497A90",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2187139012,
+          "name": "sub_825D17C4",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2187347000,
+          "name": "sub_82604438",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2187353456,
+          "name": "sub_82605D70",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 4.761904761904762,
+          "inclusive_percent": 4.761904761904762
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.105527625,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186860872,
+          "name": "sub_8258D948",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.105527625,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186926808,
+          "name": "sub_8259DAD8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.105527625,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186931640,
+          "name": "sub_8259EDB8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.095477375,
+          "own_percent": 0.0,
+          "inclusive_percent": 90.47619047619048
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.523809523809524
+        }
+      ]
+    },
+    {
+      "tid": 2031736,
+      "name": "SDLAudioP59",
+      "samples": 20,
+      "sampled_cpu_seconds": 0.1005025,
+      "observed_seconds": 52.35096599999815,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 35.0
+        },
+        {
+          "symbol": "snd_pcm_lfloat_convert_float_integer",
+          "percent": 20.0
+        },
+        {
+          "symbol": "rex::audio::sdl::SDLAudioDriver::SDLCallback(void*, SDL_AudioStream*, int, int)",
+          "percent": 15.0
+        },
+        {
+          "symbol": "snd_pcm_writei",
+          "percent": 5.0
+        },
+        {
+          "symbol": "semtimedop",
+          "percent": 5.0
+        },
+        {
+          "symbol": "SDL_GetAtomicInt_REAL",
+          "percent": 5.0
+        },
+        {
+          "symbol": "PutAudioStreamBufferInternal",
+          "percent": 5.0
+        },
+        {
+          "symbol": "pthread_cond_broadcast",
+          "percent": 5.0
+        },
+        {
+          "symbol": "ioctl",
+          "percent": 5.0
+        }
+      ],
+      "top30": []
+    },
+    {
+      "tid": 2031711,
+      "name": "XThread71FFD6C0",
+      "samples": 19,
+      "sampled_cpu_seconds": 0.095477375,
+      "observed_seconds": 53.51451700000325,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 21.05263157894737
+        },
+        {
+          "symbol": "__tls_get_addr",
+          "percent": 10.526315789473685
+        },
+        {
+          "symbol": "_ZN3rex3ppc19HostToGuestFunctionITnDaXadL_ZNS_6kernel8xboxkrnl29RtlLeaveCriticalSection_entryENS_9MappedPtrINS3_22X_RTL_CRITICAL_SECTIONEEEEEEEvR10PPCContextPh",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "_pthread_cleanup_push",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "compare<int>",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "_ZN3rex3ppc19HostToGuestFunctionITnDaXadL_ZNS_6kernel8xboxkrnl29RtlEnterCriticalSection_entryENS_9MappedPtrINS3_22X_RTL_CRITICAL_SECTIONEEEEEEEvR10PPCContextPh",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "rex::thread::Wait(rex::thread::WaitHandle*, bool, std::chrono::duration<long, std::ratio<1l, 1000l> >)",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "rex::system::XObject::Wait(unsigned int, unsigned int, unsigned int, unsigned long*)",
+          "percent": 5.2631578947368425
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.01005025,
+          "inclusive_seconds": 0.095477375,
+          "own_percent": 10.526315789473685,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.07035175,
+          "own_percent": 5.2631578947368425,
+          "inclusive_percent": 73.6842105263158
+        },
+        {
+          "address": 2186382672,
+          "name": "sub_82518D50",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.2631578947368425,
+          "inclusive_percent": 5.2631578947368425
+        },
+        {
+          "address": 2187139032,
+          "name": "sub_825D17D8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.2631578947368425,
+          "inclusive_percent": 5.2631578947368425
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.095477375,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.095477375,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0603015,
+          "own_percent": 0.0,
+          "inclusive_percent": 63.1578947368421
+        },
+        {
+          "address": 2186382536,
+          "name": "sub_82518CC8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 10.526315789473685
+        },
+        {
+          "address": 2186385400,
+          "name": "sub_825197F8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 10.526315789473685
+        },
+        {
+          "address": 2186316704,
+          "name": "sub_82508BA0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.2631578947368425
+        },
+        {
+          "address": 2186316824,
+          "name": "sub_82508C18",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.2631578947368425
+        },
+        {
+          "address": 2186316936,
+          "name": "sub_82508C88",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.2631578947368425
+        },
+        {
+          "address": 2186316992,
+          "name": "sub_82508CC0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.2631578947368425
+        },
+        {
+          "address": 2186654704,
+          "name": "sub_8255B3F0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.2631578947368425
+        }
+      ]
+    },
+    {
+      "tid": 2031700,
+      "name": "GPU VSync (F800",
+      "samples": 19,
+      "sampled_cpu_seconds": 0.095477375,
+      "observed_seconds": 39.051138999988325,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 26.31578947368421
+        },
+        {
+          "symbol": "pthread_mutex_trylock",
+          "percent": 10.526315789473685
+        },
+        {
+          "symbol": "__vdso_clock_gettime",
+          "percent": 10.526315789473685
+        },
+        {
+          "symbol": "__tls_get_addr",
+          "percent": 10.526315789473685
+        },
+        {
+          "symbol": "rex::memory::Memory::LookupHeap(unsigned int) const",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "std::_Function_handler<int",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "rex::graphics::GraphicsSystem::ReadRegister(unsigned int)",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "rex::kernel::xboxkrnl::KfAcquireSpinLock_entry(rex::MappedPtr<rex::endian_store<unsigned int,",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 5.2631578947368425
+        },
+        {
+          "symbol": "rex::thread::Sleep(std::chrono::duration<long, std::ratio<1l, 1000000l> >)",
+          "percent": 5.2631578947368425
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186781592,
+          "name": "sub_8257A398",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 5.2631578947368425,
+          "inclusive_percent": 15.789473684210526
+        },
+        {
+          "address": 2187139036,
+          "name": "sub_825D17DC",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.2631578947368425,
+          "inclusive_percent": 5.2631578947368425
+        },
+        {
+          "address": 2186752816,
+          "name": "sub_82573330",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 0.0,
+          "inclusive_percent": 26.31578947368421
+        }
+      ]
+    },
+    {
+      "tid": 2031706,
+      "name": "XThread837FE6C0",
+      "samples": 18,
+      "sampled_cpu_seconds": 0.09045225,
+      "observed_seconds": 49.756626999995206,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 38.888888888888886
+        },
+        {
+          "symbol": "_ZN3rex3ppc19HostToGuestFunctionITnDaXadL_ZNS_6kernel8xboxkrnl29NtWaitForSingleObjectEx_entryEjjjNS_9MappedPtrINS_12endian_storeImLSt6endian4321EEEEEEEEEvR10PPCContextPh",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "__tls_get_addr",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "rex::system::XObject::WaitCallback()",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "__cxxabiv1::__si_class_type_info::__do_dyncast(long, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "rex::system::XObject::Wait(unsigned int, unsigned int, unsigned int, unsigned long*)",
+          "percent": 5.555555555555555
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186385400,
+          "name": "sub_825197F8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186654632,
+          "name": "sub_8255B3A8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186686520,
+          "name": "sub_82563038",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2187139112,
+          "name": "sub_825D1828",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2187176880,
+          "name": "sub_825DABB0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.080402,
+          "own_percent": 0.0,
+          "inclusive_percent": 88.88888888888889
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.07035175,
+          "own_percent": 0.0,
+          "inclusive_percent": 77.77777777777777
+        },
+        {
+          "address": 2186382536,
+          "name": "sub_82518CC8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 11.11111111111111
+        },
+        {
+          "address": 2186265856,
+          "name": "sub_824FC500",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186266376,
+          "name": "sub_824FC708",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186317104,
+          "name": "sub_82508D30",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186335376,
+          "name": "sub_8250D490",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186335984,
+          "name": "sub_8250D6F0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186336816,
+          "name": "sub_8250DA30",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186338016,
+          "name": "sub_8250DEE0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186346008,
+          "name": "sub_8250FE18",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186347512,
+          "name": "sub_825103F8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186350904,
+          "name": "sub_82511138",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186351232,
+          "name": "sub_82511280",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186365080,
+          "name": "sub_82514898",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186369000,
+          "name": "sub_825157E8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186370160,
+          "name": "sub_82515C70",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 5.555555555555555
+        }
+      ]
+    },
+    {
+      "tid": 2031708,
+      "name": "XThread817FC6C0",
+      "samples": 18,
+      "sampled_cpu_seconds": 0.09045225,
+      "observed_seconds": 51.86857799999416,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 22.22222222222222
+        },
+        {
+          "symbol": "__cxxabiv1::__si_class_type_info::__do_dyncast(long, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const",
+          "percent": 11.11111111111111
+        },
+        {
+          "symbol": "rex::system::kernel_state()",
+          "percent": 11.11111111111111
+        },
+        {
+          "symbol": "rex::thread::atomic_inc(int volatile*)",
+          "percent": 11.11111111111111
+        },
+        {
+          "symbol": "rex::system::XObject::WaitCallback()",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "__cxxabiv1::__vmi_class_type_info::__do_dyncast(long, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "compare<int>",
+          "percent": 5.555555555555555
+        },
+        {
+          "symbol": "non-virtual thunk to rex::thread::PosixConditionHandle<rex::thread::Event>::condition()",
+          "percent": 5.555555555555555
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186382536,
+          "name": "sub_82518CC8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 27.77777777777778
+        },
+        {
+          "address": 2186316704,
+          "name": "sub_82508BA0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 16.666666666666668
+        },
+        {
+          "address": 2186316992,
+          "name": "sub_82508CC0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 5.555555555555555,
+          "inclusive_percent": 5.555555555555555
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.09045225,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.065326625,
+          "own_percent": 0.0,
+          "inclusive_percent": 72.22222222222223
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.055276375,
+          "own_percent": 0.0,
+          "inclusive_percent": 61.111111111111114
+        },
+        {
+          "address": 2186385400,
+          "name": "sub_825197F8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 22.22222222222222
+        },
+        {
+          "address": 2186316936,
+          "name": "sub_82508C88",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 16.666666666666668
+        },
+        {
+          "address": 2186654704,
+          "name": "sub_8255B3F0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 11.11111111111111
+        }
+      ]
+    },
+    {
+      "tid": 2031707,
+      "name": "XThread827FD6C0",
+      "samples": 12,
+      "sampled_cpu_seconds": 0.0603015,
+      "observed_seconds": 53.93702300003497,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 25.0
+        },
+        {
+          "symbol": "pthread_mutex_lock",
+          "percent": 16.666666666666668
+        },
+        {
+          "symbol": "pthread_cond_wait",
+          "percent": 16.666666666666668
+        },
+        {
+          "symbol": "__cxxabiv1::__class_type_info::__do_dyncast(long, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const",
+          "percent": 8.333333333333334
+        },
+        {
+          "symbol": "_ZN3rex3ppc19HostToGuestFunctionITnDaXadL_ZNS_6kernel8xboxkrnl29NtWaitForSingleObjectEx_entryEjjjNS_9MappedPtrINS_12endian_storeImLSt6endian4321EEEEEEEEEvR10PPCContextPh",
+          "percent": 8.333333333333334
+        },
+        {
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "percent": 8.333333333333334
+        },
+        {
+          "symbol": "std::condition_variable::wait(std::unique_lock<std::mutex>&)",
+          "percent": 8.333333333333334
+        }
+      ],
+      "top30": [
+        {
+          "address": 2187139032,
+          "name": "sub_825D17D8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 8.333333333333334,
+          "inclusive_percent": 8.333333333333334
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0603015,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0603015,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0603015,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0603015,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.055276375,
+          "own_percent": 0.0,
+          "inclusive_percent": 91.66666666666667
+        },
+        {
+          "address": 2186654704,
+          "name": "sub_8255B3F0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 8.333333333333334
+        }
+      ]
+    },
+    {
+      "tid": 2031709,
+      "name": "XThread73FFF6C0",
+      "samples": 11,
+      "sampled_cpu_seconds": 0.055276375,
+      "observed_seconds": 50.65802700002678,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 18.181818181818183
+        },
+        {
+          "symbol": "__cxxabiv1::__vmi_class_type_info::__do_dyncast(long, __cxxabiv1::__class_type_info::__sub_kind, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info const*, void const*, __cxxabiv1::__class_type_info::__dyncast_result&) const",
+          "percent": 9.090909090909092
+        },
+        {
+          "symbol": "rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l> >)",
+          "percent": 9.090909090909092
+        },
+        {
+          "symbol": "rex::system::XEvent::GetWaitHandle()",
+          "percent": 9.090909090909092
+        },
+        {
+          "symbol": "__imp__RtlEnterCriticalSection",
+          "percent": 9.090909090909092
+        },
+        {
+          "symbol": "__imp__NtClearEvent",
+          "percent": 9.090909090909092
+        },
+        {
+          "symbol": "rex::thread::Wait(rex::thread::WaitHandle*, bool, std::chrono::duration<long, std::ratio<1l, 1000l> >)",
+          "percent": 9.090909090909092
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.045226125,
+          "own_percent": 9.090909090909092,
+          "inclusive_percent": 81.81818181818181
+        },
+        {
+          "address": 2186316992,
+          "name": "sub_82508CC0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 9.090909090909092,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186654632,
+          "name": "sub_8255B3A8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 9.090909090909092,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.055276375,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.055276375,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.055276375,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.0,
+          "inclusive_percent": 54.54545454545455
+        },
+        {
+          "address": 2186382536,
+          "name": "sub_82518CC8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 18.181818181818183
+        },
+        {
+          "address": 2186385400,
+          "name": "sub_825197F8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 18.181818181818183
+        },
+        {
+          "address": 2186316704,
+          "name": "sub_82508BA0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186316936,
+          "name": "sub_82508C88",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        },
+        {
+          "address": 2186654704,
+          "name": "sub_8255B3F0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 9.090909090909092
+        }
+      ]
+    },
+    {
+      "tid": 2031724,
+      "name": "XThread31FFD6C0",
+      "samples": 6,
+      "sampled_cpu_seconds": 0.03015075,
+      "observed_seconds": 45.743855999957304,
+      "top_host_own": [
+        {
+          "symbol": "__tls_get_addr",
+          "percent": 16.666666666666668
+        },
+        {
+          "symbol": "rex::system::XThread::Delay(unsigned int, unsigned int, unsigned long)",
+          "percent": 16.666666666666668
+        },
+        {
+          "symbol": "rex::thread::PosixEvent::Set()",
+          "percent": 16.666666666666668
+        },
+        {
+          "symbol": "[unknown]",
+          "percent": 16.666666666666668
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186220968,
+          "name": "sub_824F15A8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 16.666666666666668,
+          "inclusive_percent": 16.666666666666668
+        },
+        {
+          "address": 2186220984,
+          "name": "sub_824F15B8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 16.666666666666668,
+          "inclusive_percent": 16.666666666666668
+        },
+        {
+          "address": 2186322616,
+          "name": "sub_8250A2B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.03015075,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 50.0
+        },
+        {
+          "address": 2186220928,
+          "name": "sub_824F1580",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 33.333333333333336
+        },
+        {
+          "address": 2186654640,
+          "name": "sub_8255B3B0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 16.666666666666668
+        }
+      ]
+    },
+    {
+      "tid": 2031738,
+      "name": "XThread29FFD6C0",
+      "samples": 5,
+      "sampled_cpu_seconds": 0.025125625,
+      "observed_seconds": 49.82964999997057,
+      "top_host_own": [
+        {
+          "symbol": "[unknown]",
+          "percent": 40.0
+        },
+        {
+          "symbol": "compare<unsigned int>",
+          "percent": 20.0
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186143920,
+          "name": "sub_824DE8B0",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 20.0,
+          "inclusive_percent": 60.0
+        },
+        {
+          "address": 2186216760,
+          "name": "sub_824F0538",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 20.0,
+          "inclusive_percent": 20.0
+        },
+        {
+          "address": 2182153584,
+          "name": "sub_82110570",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186860872,
+          "name": "sub_8258D948",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.025125625,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2182151200,
+          "name": "sub_8210FC20",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 60.0
+        },
+        {
+          "address": 2186141592,
+          "name": "sub_824DDF98",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 60.0
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 0.0,
+          "inclusive_percent": 40.0
+        },
+        {
+          "address": 2186316824,
+          "name": "sub_82508C18",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 20.0
+        },
+        {
+          "address": 2186316992,
+          "name": "sub_82508CC0",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 0.0,
+          "inclusive_percent": 20.0
+        }
+      ]
+    },
+    {
+      "tid": 2031722,
+      "name": "XThread33FFF6C0",
+      "samples": 4,
+      "sampled_cpu_seconds": 0.0201005,
+      "observed_seconds": 17.647563999984413,
+      "top_host_own": [
+        {
+          "symbol": "__tls_get_addr",
+          "percent": 25.0
+        },
+        {
+          "symbol": "rex::kernel::xboxkrnl::RtlEnterCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)",
+          "percent": 25.0
+        },
+        {
+          "symbol": "rex::chrono::Clock::ScaleGuestDurationMillis(unsigned int)",
+          "percent": 25.0
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.01005025,
+          "own_percent": 25.0,
+          "inclusive_percent": 50.0
+        },
+        {
+          "address": 2182101536,
+          "name": "sub_82103A20",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186860872,
+          "name": "sub_8258D948",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        }
+      ]
+    },
+    {
+      "tid": 2031721,
+      "name": "XThread41FFD6C0",
+      "samples": 4,
+      "sampled_cpu_seconds": 0.0201005,
+      "observed_seconds": 25.580148999986704,
+      "top_host_own": [
+        {
+          "symbol": "rex::thread::Sleep(std::chrono::duration<long, std::ratio<1l, 1000000l> >)",
+          "percent": 25.0
+        },
+        {
+          "symbol": "rex::system::XThread::Delay(unsigned int, unsigned int, unsigned long)",
+          "percent": 25.0
+        },
+        {
+          "symbol": "clock_nanosleep",
+          "percent": 25.0
+        }
+      ],
+      "top30": [
+        {
+          "address": 2185853584,
+          "name": "sub_82497A90",
+          "own_seconds": 0.005025125,
+          "inclusive_seconds": 0.005025125,
+          "own_percent": 25.0,
+          "inclusive_percent": 25.0
+        },
+        {
+          "address": 2182101536,
+          "name": "sub_82103A20",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186860872,
+          "name": "sub_8258D948",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.0201005,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 75.0
+        }
+      ]
+    },
+    {
+      "tid": 2031717,
+      "name": "XThread52FFE6C0",
+      "samples": 3,
+      "sampled_cpu_seconds": 0.015075375,
+      "observed_seconds": 24.4262260000105,
+      "top_host_own": [
+        {
+          "symbol": "rex::system::util::ObjectTable::LookupObject(unsigned int, bool)",
+          "percent": 33.333333333333336
+        },
+        {
+          "symbol": "__imp__RtlLeaveCriticalSection",
+          "percent": 33.333333333333336
+        },
+        {
+          "symbol": "rex::kernel::xboxkrnl::xeKeWaitForSingleObject(void*, unsigned int, unsigned int, unsigned int, unsigned long*)",
+          "percent": 33.333333333333336
+        }
+      ],
+      "top30": [
+        {
+          "address": 2186713192,
+          "name": "sub_82569868",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        },
+        {
+          "address": 2186790224,
+          "name": "sub_8257C550",
+          "own_seconds": 0.0,
+          "inclusive_seconds": 0.015075375,
+          "own_percent": 0.0,
+          "inclusive_percent": 100.0
+        }
+      ]
+    }
+  ],
+  "host_binary_sha256": "4464309a990b401f619fc0e55f50f4f51c917a5ed1b6fda433a56bc107ca7a57",
+  "top30": [
+    {
+      "address": 2186779984,
+      "name": "sub_82579D50",
+      "own_seconds": 12.517586375,
+      "inclusive_seconds": 21.07537425,
+      "own_percent": 2.8134494403596157,
+      "inclusive_percent": 4.736895605326466
+    },
+    {
+      "address": 2186753880,
+      "name": "sub_82573758",
+      "own_seconds": 7.22612975,
+      "inclusive_seconds": 36.628136125,
+      "own_percent": 1.6241430330137,
+      "inclusive_percent": 8.232530297383073
+    },
+    {
+      "address": 2187139116,
+      "name": "sub_825D182C",
+      "own_seconds": 3.04522575,
+      "inclusive_seconds": 3.04522575,
+      "own_percent": 0.6844441432589029,
+      "inclusive_percent": 0.6844441432589029
+    },
+    {
+      "address": 2186662200,
+      "name": "sub_8255D138",
+      "own_seconds": 2.648240875,
+      "inclusive_seconds": 2.648240875,
+      "own_percent": 0.5952179265634353,
+      "inclusive_percent": 0.5952179265634353
+    },
+    {
+      "address": 2187139036,
+      "name": "sub_825D17DC",
+      "own_seconds": 2.648240875,
+      "inclusive_seconds": 2.648240875,
+      "own_percent": 0.5952179265634353,
+      "inclusive_percent": 0.5952179265634353
+    },
+    {
+      "address": 2186239552,
+      "name": "sub_824F5E40",
+      "own_seconds": 0.286432125,
+      "inclusive_seconds": 0.336683375,
+      "own_percent": 0.06437840951445126,
+      "inclusive_percent": 0.0756728673240041
+    },
+    {
+      "address": 2182366600,
+      "name": "sub_82144588",
+      "own_seconds": 0.185929625,
+      "inclusive_seconds": 0.6231155,
+      "own_percent": 0.04178949389534555,
+      "inclusive_percent": 0.14005127683845536
+    },
+    {
+      "address": 2182357296,
+      "name": "sub_82142130",
+      "own_seconds": 0.175879375,
+      "inclusive_seconds": 0.477386875,
+      "own_percent": 0.039530602333434986,
+      "inclusive_percent": 0.1072973491907521
+    },
+    {
+      "address": 2186239728,
+      "name": "sub_824F5EF0",
+      "own_seconds": 0.165829125,
+      "inclusive_seconds": 0.5427135,
+      "own_percent": 0.03727171077152441,
+      "inclusive_percent": 0.12198014434317081
+    },
+    {
+      "address": 2182438856,
+      "name": "sub_82155FC8",
+      "own_seconds": 0.155778875,
+      "inclusive_seconds": 0.547738625,
+      "own_percent": 0.03501281920961384,
+      "inclusive_percent": 0.12310959012412609
+    },
+    {
+      "address": 2182355248,
+      "name": "sub_82141930",
+      "own_seconds": 0.145728625,
+      "inclusive_seconds": 0.165829125,
+      "own_percent": 0.032753927647703275,
+      "inclusive_percent": 0.03727171077152441
+    },
+    {
+      "address": 2182497208,
+      "name": "sub_821643B8",
+      "own_seconds": 0.135678375,
+      "inclusive_seconds": 1.045226,
+      "own_percent": 0.030495036085792702,
+      "inclusive_percent": 0.23492472243869933
+    },
+    {
+      "address": 2182356712,
+      "name": "sub_82141EE8",
+      "own_seconds": 0.09045225,
+      "inclusive_seconds": 0.321608,
+      "own_percent": 0.020330024057195133,
+      "inclusive_percent": 0.07228452998113825
+    },
+    {
+      "address": 2186278336,
+      "name": "sub_824FF5C0",
+      "own_seconds": 0.085427125,
+      "inclusive_seconds": 0.3015075,
+      "own_percent": 0.01920057827623985,
+      "inclusive_percent": 0.06776674685731711
+    },
+    {
+      "address": 2187145232,
+      "name": "sub_825D3010",
+      "own_seconds": 0.080402,
+      "inclusive_seconds": 0.09045225,
+      "own_percent": 0.018071132495284564,
+      "inclusive_percent": 0.020330024057195133
+    },
+    {
+      "address": 2182441448,
+      "name": "sub_821569E8",
+      "own_seconds": 0.075376875,
+      "inclusive_seconds": 0.15075375,
+      "own_percent": 0.016941686714329277,
+      "inclusive_percent": 0.033883373428658554
+    },
+    {
+      "address": 2183218552,
+      "name": "sub_82214578",
+      "own_seconds": 0.075376875,
+      "inclusive_seconds": 0.125628125,
+      "own_percent": 0.016941686714329277,
+      "inclusive_percent": 0.02823614452388213
+    },
+    {
+      "address": 2182434184,
+      "name": "sub_82154D88",
+      "own_seconds": 0.0603015,
+      "inclusive_seconds": 0.316582875,
+      "own_percent": 0.013553349371463424,
+      "inclusive_percent": 0.07115508420018297
+    },
+    {
+      "address": 2186149944,
+      "name": "sub_824E0038",
+      "own_seconds": 0.0603015,
+      "inclusive_seconds": 0.125628125,
+      "own_percent": 0.013553349371463424,
+      "inclusive_percent": 0.02823614452388213
+    },
+    {
+      "address": 2182596496,
+      "name": "sub_8217C790",
+      "own_seconds": 0.0603015,
+      "inclusive_seconds": 0.09045225,
+      "own_percent": 0.013553349371463424,
+      "inclusive_percent": 0.020330024057195133
+    },
+    {
+      "address": 2186326136,
+      "name": "sub_8250B078",
+      "own_seconds": 0.0603015,
+      "inclusive_seconds": 0.07035175,
+      "own_percent": 0.013553349371463424,
+      "inclusive_percent": 0.015812240933373994
+    },
+    {
+      "address": 2185977728,
+      "name": "sub_824B5F80",
+      "own_seconds": 0.05025125,
+      "inclusive_seconds": 0.075376875,
+      "own_percent": 0.011294457809552853,
+      "inclusive_percent": 0.016941686714329277
+    },
+    {
+      "address": 2187148688,
+      "name": "sub_825D3D90",
+      "own_seconds": 0.045226125,
+      "inclusive_seconds": 0.045226125,
+      "own_percent": 0.010165012028597566,
+      "inclusive_percent": 0.010165012028597566
+    },
+    {
+      "address": 2186872632,
+      "name": "sub_82590738",
+      "own_seconds": 0.040201,
+      "inclusive_seconds": 13.1658275,
+      "own_percent": 0.009035566247642282,
+      "inclusive_percent": 2.9591479461028474
+    },
+    {
+      "address": 2187305632,
+      "name": "sub_825FA2A0",
+      "own_seconds": 0.040201,
+      "inclusive_seconds": 0.105527625,
+      "own_percent": 0.009035566247642282,
+      "inclusive_percent": 0.02371836140006099
+    },
+    {
+      "address": 2182429672,
+      "name": "sub_82153BE8",
+      "own_seconds": 0.040201,
+      "inclusive_seconds": 0.085427125,
+      "own_percent": 0.009035566247642282,
+      "inclusive_percent": 0.01920057827623985
+    },
+    {
+      "address": 2182664480,
+      "name": "sub_8218D120",
+      "own_seconds": 0.040201,
+      "inclusive_seconds": 0.040201,
+      "own_percent": 0.009035566247642282,
+      "inclusive_percent": 0.009035566247642282
+    },
+    {
+      "address": 2187138984,
+      "name": "sub_825D17A8",
+      "own_seconds": 0.040201,
+      "inclusive_seconds": 0.040201,
+      "own_percent": 0.009035566247642282,
+      "inclusive_percent": 0.009035566247642282
+    },
+    {
+      "address": 2187139064,
+      "name": "sub_825D17F8",
+      "own_seconds": 0.040201,
+      "inclusive_seconds": 0.040201,
+      "own_percent": 0.009035566247642282,
+      "inclusive_percent": 0.009035566247642282
+    },
+    {
+      "address": 2182355136,
+      "name": "sub_821418C0",
+      "own_seconds": 0.035175875,
+      "inclusive_seconds": 0.055276375,
+      "own_percent": 0.007906120466686997,
+      "inclusive_percent": 0.012423903590508137
+    }
+  ]
+}

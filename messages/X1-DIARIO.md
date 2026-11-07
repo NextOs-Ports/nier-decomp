@@ -5,3 +5,7 @@
 - host: `f14e213479de48808531148443427b329b064e2b77c2667552c9ebe0f17b7310`; `/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h1/host/librexruntime.so`.
 - arm64: `b79e167a30178221b0f700c7abe82660c18599dcc1754a6536b681e6de5b5041`; `/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/h1/arm64/librexruntime.so`.
 - Binários anteriores preservados em h1/previous; sem teste no aparelho. Host inclui também o patch C5 já presente na fonte.
+
+## Perfil guest preservado antes da nova prioridade H2
+- Coleta host GLES2, save vazio, timeout195+5s, perf cpu-clock:u199Hz/DWARF16KiB a partir140s:88539amostras/444,920sCPU. Captura75s jámostra3D. Top30 emX1-H-hot.json; buffers passam àprioridade porordemdo coordenador.
+- Baselineprivado h2-baseline; execução h2-perf; llvmpipeES2, nãoMali. Ranking CPU dominado porGPU/driver; decomp adiada.
