@@ -59,7 +59,7 @@ for line in profile['maps'].splitlines():
     start,end=(int(x,16) for x in parts[0].split('-'));name=parts[5] if len(parts)>5 else '[anonymous]'
     maps.append((start,end,int(parts[2],16),name.removesuffix(' (deleted)')))
 maps.sort();starts=[m[0] for m in maps]
-guest=collections.Counter();host=collections.Counter();threads=collections.Counter();thread_guest=collections.defaultdict(collections.Counter)
+guest=collections.Counter();host=collections.Counter();threads=collections.Counter();thread_guest=collections.defaultdict(collections.Counter);thread_host=collections.defaultdict(collections.Counter)
 for row in profile['pcs']:
     pc=int(row['pc'],16);count=row['count'];tid=row['tid'];threads[tid]+=count
     at=bisect.bisect_right(starts,pc)-1;mapping=maps[at] if at>=0 and pc<maps[at][1] else None
@@ -71,7 +71,8 @@ for row in profile['pcs']:
     address=int(match[1],16) if match else guest_names.get(normalized)
     if module=='nier' and address is not None:
         guest[address]+=count;thread_guest[tid][address]+=count
-    else:host[(module,symbol)]+=count
+    else:
+        host[(module,symbol)]+=count;thread_host[tid][(module,symbol)]+=count
 n=profile['samples'];names={t['tid']:t['name'] for t in profile['threads']};thread_metadata={t['tid']:t for t in profile['threads']}
 def guest_rows(counts,total,limit=30):
     return [{'address':address,'name':f'sub_{address:08X}','own_samples':count,'own_percent':100*count/total if total else 0} for address,count in counts.most_common(limit)]
@@ -83,7 +84,7 @@ r={'schema_version':2,'architecture':{183:'aarch64',62:'x86_64'}.get(next(iter(e
    'elf_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in a.elf},
    'executable_sha256':inventory['baseline']['executable_sha256'],'top30':guest_rows(guest,n),
    'runtime_top30':[{'module':module,'symbol':symbol,'own_samples':count,'own_percent':100*count/n if n else 0} for (module,symbol),count in host.most_common(30)],
-   'threads':[{'tid':tid,'name':names.get(tid,''),'cpu_seconds_observed':thread_metadata.get(tid,{}).get('cpu_seconds_observed'),'samples':count,'cpu_sample_percent':100*count/n if n else 0,'top_guest':guest_rows(thread_guest[tid],count,5)} for tid,count in threads.most_common()],
+   'threads':[{'tid':tid,'name':names.get(tid,''),'cpu_seconds_observed':thread_metadata.get(tid,{}).get('cpu_seconds_observed'),'samples':count,'cpu_sample_percent':100*count/n if n else 0,'top_guest':guest_rows(thread_guest[tid],count,5),'top_runtime':[{'module':m,'symbol':s,'samples':v} for (m,s),v in thread_host[tid].most_common(8)]} for tid,count in threads.most_common()],
    'blocked_threads':[t for t in profile['threads'] if t.get('sigprof_blocked_last_scan')],
    'limitations':['Own-PC sampling only, no inclusive stack cost.','CPU-clock signal delivery may coalesce; overruns and table drops are explicit.','Threads created during collection are registered within about 250 ms; shorter-lived threads can be missed.','Kernel CPU time is sampled at interrupted/resumed userspace PC; no kernel stacks.','This profile does not measure or certify FPS.']}
 a.output.write_text(json.dumps(r,indent=2)+'\n')
