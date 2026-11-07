@@ -1,0 +1,1 @@
+Este rascunho foi interrompido pela prioridade C6. As sete rotinas não foram aprovadas no comparador e não contam no total X1. Antes de movê-las para src/decomp/xdk, revisar e executar o comparador e as provas de borda pertinentes. Nenhum build atual inclui esta pasta.

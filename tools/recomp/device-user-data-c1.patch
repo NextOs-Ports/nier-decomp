@@ -1,0 +1,25 @@
+--- a/tools/render/run_device_c1.py
++++ b/tools/render/run_device_c1.py
+@@ -15,4 +15,5 @@
+ game = '/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-data/game'
+ remote = '/storage/roms/ports/nier-dev-c1'
++user_data = '/storage/roms/ports/nier-dev/user-data'
+ mnt = remote + '/game'
+ build = Path(sys.argv[1])
+@@ -55,4 +56,9 @@
+         run(['smbclient', '-N', '//' + host + '/roms', '-c', 'put "%s" "ports/nier-dev-c1/%s"' % (build / name, name)], timeout=180)
+     ssh('chmod +x %s/nier; sha256sum %s/nier %s/librexruntime.so %s/librexgpu-null.so' % (remote, remote, remote, remote))
++    # Persistent user data is separate from the read-only NFS game mount.
++    # Keep the unique write marker; never delete an existing save or profile.
++    ssh('mkdir -p %s && probe=$(mktemp %s/.nier-writecheck.XXXXXX) && '
++        'printf "NieR writable user-data\n" > "$probe" && '
++        'printf "user_data_root=%s write_probe=%%s\n" "$probe"' % (user_data, user_data, user_data))
+     env = ('NIER_NATIVE_RENDER=1 NIER_TIMING_PROBE=1 NIER_GLES2_CAPTURE_EVERY=' + capture_every + ' ' + ('NIER_GL_PROFILE=1 ' if profile else '') + '%sNIER_GLES2_SHADERS=%s/run/shaders '
+            'NIER_INPUT_SCRIPT="%s" LD_LIBRARY_PATH=%s' % ('NIER_GLES2_CAPTURE=%s/run/capturas ' % remote if capture else '', remote, script, remote))
+@@ -62,5 +68,5 @@
+            f'cat /sys/class/thermal/thermal_zone0/temp > {remote}/run/temp-antes.txt; '
+            f'cd {remote}/run && {env} flock -n /tmp/nextos-device-test.lock timeout -s TERM -k 5 {limit} {remote}/nier '
+-           f'--game_data_root={mnt} --user_data_root={remote}/run/user --cache_root={remote}/run/cache --gpu_plugin=null --headless '
++           f'--game_data_root={mnt} --user_data_root={user_data} --cache_root={remote}/run/cache --gpu_plugin=null --headless '
+            f'--log_file={remote}/run/runtime.log --log_level=info > {remote}/run/console.log 2>&1; echo status=$?; '
+            f'cat /sys/class/thermal/thermal_zone0/temp > {remote}/run/temp-depois.txt')

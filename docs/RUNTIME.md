@@ -371,3 +371,35 @@ Está em `nier-build/x1/c5/arm64/librexruntime.so` e nos stages ARM canônicos.
 QEMU passou também na reabertura de um setting de perfil em outro processo,
 no caminho `user-data/535107E8/profile/User`. O teste não alterou dados reais
 nem abriu o aparelho; o C1 valida a última rodada física.
+
+## X1-C6 — raiz gravável e prova de criação do save
+
+O launcher de aparelho agora fixa por padrão
+`/storage/roms/ports/nier-dev/user-data` (override explícito por
+`NIER_USER_DATA_ROOT`). Cria a pasta e exige uma gravação real num marcador
+único antes de abrir o jogo; a flag `--user_data_root` recebe exatamente a raiz
+verificada. O marcador é mantido e nenhum save/perfil existente é removido.
+O teste local do launcher confirmou passagem da raiz gravável e recusa de raiz
+somente leitura antes de executar o processo. `run_render_probe.sh` herda isso.
+
+A receita C1 consultada usava `/storage/roms/ports/nier-dev-c1/run/user`, já
+fora do NFS `.../game`. Assim, não há evidência suficiente para atribuir a tela
+F5 ao NFS. O patch revisável `tools/recomp/device-user-data-c1.patch`, conferido
+com `git apply --check` na árvore C1, padroniza a mesma raiz persistente e teste
+de escrita na receita dele. O coordenador integra esse patch antes da próxima
+rodada. Não é necessário trocar a DLL C5.
+
+`nier_save_create_probe` chama os imports reais dentro de XHostThread:
+XamContentCreateEx (CREATE_NEW, retorno inicial 997, overlapped concluído 0),
+NtCreateFile, NtWriteFile, NtFlushBuffersFile, NtReadFile, NtClose e
+XamContentClose. Em ARM64/QEMU todos passaram; outro processo reabriu o pacote
+e conferiu o payload. A fonte do XEX estava numa pasta de teste sem escrita,
+e user-data numa árvore gravável separada. Foram criados o header XContent e
+um arquivo de 35 bytes em `B13EBABEBABEBABE/535107E8/00000001/SYSTEM_DATA/`.
+Esse payload é sintético, não um save válido do jogo nem prova da transição da
+UI física. Os resultados ficam em `messages/X1-C6-save.json`.
+
+Próximo passo: C1/coordenador usar a raiz verificada e DLL C5 numa rodada finita
+autorizada. Se a tela repetir, registrar a chamada/retorno real de XContent e
+NT I/O; os logs F5 disponíveis não mostram uma falha de acesso para concluir
+essa causa. Nenhum acesso ao aparelho foi feito pelo X1 nesta etapa.
