@@ -49,6 +49,19 @@ Prova no PC: `prove_overrides_host.sh BUILD_REF BUILD_CAND GAME OUT [s]` roda re
 candidato com `tools/render/roteiro-3d.txt`, captura PCM (interposer do X1) e quadros GLES2,
 e resume em `OUT/resumo.json`.
 
+## Caminho D3D nativo (D1-C2)
+
+- `texture_state.cpp`: `8256F910` combina descritores de textura, limites de LOD,
+  flags de estado e a fila de referências. O comparador cobre textura presente/nula
+  e fila pendente; o alocador de fila continua sendo uma chamada guest existente.
+- `constant_runs.cpp`: `82578080` e `82578418` emitem intervalos contíguos de um
+  bitset de 64 bits. Copiam palavras/blocos já big-endian, sem conversão FP ou
+  registradores vetoriais do guest. A versão de blocos preserva alinhamento,
+  padding e leitura dos quatro vetores antes da escrita.
+- Provas adicionais: máscaras cheias, quatro alinhamentos da fila e reserva do
+  emissor de blocos; gate estrito com `NIER_TIME_SLACK=1.0 NIER_TIME_ABS=0`.
+  Resultados não medem ganho no Cortex-A53; a medição física pertence à coordenação.
+
 ## Limites conhecidos
 
 - Funções cujo caminho principal depende do que uma chamada indireta ESCREVE na memória
