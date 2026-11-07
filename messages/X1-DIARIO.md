@@ -26,3 +26,8 @@
 - BaseC1 2d5a41e integrada; check_leve global e incrementalOK. Auditoria agora segue holder deResolve como apresentação:156draws/21alvos/16.000.896bytes,0diferenças,replaysestáveis eoriginaligual. Teste90sencerrado. ARM64 de96ddd1e permaneceintacto duranteprova .164; ajuste posterior sódiagnósticoopt-in.
 - PCintegrado menu,ms: resolve=0.000, buffers=0.040, texture=0.010, state_without_texture=0.055, draw_gpu=4.460.
 - PCintegrado 3d,ms: resolve=1.170, buffers=0.410, texture=0.160, state_without_texture=0.370, draw_gpu=22.400.
+
+## X1-H4 — upload dinâmico único por quadro
+- F11Mali:menus186–271mscomanelSubData; PCnãoaprova buffers. Agora stagingCPUcompleto+1glBufferData(dados,STREAM_DRAW)porVBO/IBOantesdetodosdraws;rodízio3pares. SemSubDatadinâmico; STATICapós2quadrosmantido. Contadorconfirma2uploads/quadro; buffersincluicópia+upload.
+- PCapenasimagem/contadores:157draws3D/21alvos/16.000.896bytes,0diferenças,originaligual;rodada95sencerrada. Gatesglobal/incrementalOK. ARM64h4-upload/arm64/nier SHA1136e216e9dc12947262d93282999fee10d0196a767c1937d94b5c90e60b4ec7. AceiteMali(UI≤4,3D<21ms)aguardacoordenador.
+- CPUdraftcorrigido preservado emstash46abe590;16384bordas4modosFPpassaram,sem ganhoisoladoPC(10,589→10,640ns). Fora doELF entregue.

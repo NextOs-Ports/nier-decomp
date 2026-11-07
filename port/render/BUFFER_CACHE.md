@@ -8,18 +8,30 @@ podem não ser detectadas. UI/DrawUP ignora esse cache e é capturada integralme
 
 Só dados iguais observados em pelo menos dois quadros distintos são promovidos
 a VBO/IBO STATIC. Repetir o desenho no mesmo quadro não promove. Mudança detectada
-reinicia a observação. Dados em aquecimento ou dinâmicos usam três pares fixos
-de buffers STREAM (16 MiB VBO + 2 MiB IBO por slot), com offsets alinhados e
-glBufferSubData. UI sempre usa STREAM: zero criação/exclusão de VBO por draw.
-A capacidade só cresce se a marca máxima de bytes do quadro a exigir, reservando
-o desenho inteiro antes dos atributos; `ring_growth` mede essas ocorrências.
+reinicia a observação. UI/DrawUP sempre usa o stream dinâmico.
+
+**X1-H4: um upload por quadro em cada VBO/IBO.** Antes do primeiro draw,
+`PrepareFrameStreams` fixa as decisões de cache, calcula os offsets, reúne todos
+os atributos/índices dinâmicos em dois vetores CPU e chama `glBufferData` com os
+dados completos uma vez para cada buffer não vazio. Três pares de objetos GL
+são alternados entre quadros; a orfanagem preserva o backing store ainda em voo.
+O caminho normal não usa glBufferSubData. A referência opt-in anterior ainda
+usa SubData após orfanagem por draw, antes de qualquer uso daquele novo store.
+
+Não restaurar o anel H3 de SubData: F11 no Mali mediu 186–271 ms/quadro nos
+menus, apesar de zero criações e resultado rápido no PC. O driver sincroniza
+ou copia o buffer inteiro mesmo quando a região atualizada não se sobrepõe.
+**PC valida a imagem e os contadores; só o .164 aprova desempenho dos buffers.**
+Aceite físico: menus≤4 ms e 3D<21 ms, perseguindo a meta final≤3 ms.
 
 Cada snapshot tem serial único; bytes pendentes não mudam. CPU: LRU de
 64 MiB/4096 entradas. STATIC GL: 64 MiB, descarte entre frames após ao menos
-três quadros sem uso. Evicção pode exigir reenvio posterior. Anel STREAM: 54 MiB
-iniciais. O teto de 192 MiB do quadro inclui os snapshots referenciados.
+três quadros sem uso. Evicção pode exigir reenvio posterior. Staging CPU cresce
+até o maior quadro observado; não há mais a pré-alocação H3 de 54 MiB em GL.
+O teto de 192 MiB do quadro inclui os snapshots referenciados.
 `[nier-perfil] buffers/quadros` informa misses, criações, uploads static/stream
-e crescimento do anel por quadro na janela de 120 apresentações.
+e bytes dinâmicos por quadro. Stream tem no máximo 2 uploads/quadro (1 VBO+1 IBO).
+O tempo de `buffers` inclui cálculo/cópia do staging e uploads, além dos binds.
 
 Formatos compactos: byte/short inteiros, unsigned normalizados, float1/2/3/4 e
 half2/4 se `GL_OES_vertex_half_float` estiver anunciado. Packed 10/11 bits,
