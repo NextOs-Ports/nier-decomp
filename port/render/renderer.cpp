@@ -212,6 +212,7 @@ uint64_t g_mainTarget = 0;
 // textura destino for amostrada ou antes de o alvo de origem ser alterado; sem uso no quadro, é descartada.
 GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
 GLint g_blitRect = -1, g_blitFlip = -1;
+bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
 struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; bool srcResolved; };
 std::vector<PendingCopy> g_pendingCopies;
 std::set<uint64_t> g_frameSampled, g_everSampled;
@@ -241,6 +242,7 @@ void DoCopy(const PendingCopy& p) {
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   dst.from3D = src.drew3DFrame == g_frames.load();
   ++g_copiesDone;
+  if (GlProfile()) { static int n = 0; if (n++ < 12) std::fprintf(stderr, "[nier-perfil] cópia parcial: origem %dx%d%s janela %d,%d %dx%d -> destino %dx%d (chave %016llX)\n", src.w, src.h, p.srcResolved ? " (resolvida)" : "", p.x0, p.y0, p.w, p.h, dst.w, dst.h, (unsigned long long)p.dst); }
 }
 uint32_t g_aliases = 0, g_directDraws = 0, g_directPasses = 0;
 void FlushCopiesFrom(uint64_t src) {  // antes de alterar o alvo de origem
@@ -371,7 +373,10 @@ Target& CurrentTarget(const uint8_t* state, bool forDraw = true) {
 }
 
 // ---- texturas
-struct Texture { GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; GLenum glFormat = 0; };
+// Conferência de mudança com recuo (regime ≤ 1 ms/quadro na Mali): textura que não muda é conferida a cada
+// 2, 4, … 64 quadros; a que já mudou alguma vez, no máximo a cada 8 (texto novo aparece em < 0,3 s a 30 fps);
+// a que muda sempre (planos de vídeo) volta a ser conferida todo quadro.
+struct Texture { GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; GLenum glFormat = 0; uint64_t nextCheck = 0; uint32_t stable = 0; };
 std::unordered_map<uint64_t, Texture> g_textures;
 std::vector<uint8_t> g_pixels;
 GLuint g_white = 0;
@@ -410,7 +415,6 @@ GLuint White() {
 
 double g_pResolve = 0; uint32_t g_resolves = 0, g_resolveCopies = 0;
 double g_pTarget = 0, g_pState = 0, g_pBuffers = 0, g_pDraw = 0, g_pFinish = 0;
-bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
 double Ms(Clock::time_point a, Clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); }
 double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs = 0, g_swapMs = 0;
 std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
@@ -443,7 +447,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   }
   Texture& tex = g_textures[key ^ uint64_t(t.format) << 58];
   uint64_t frame = g_frames.load();
-  if (tex.id && tex.checkedFrame == frame) return tex.id;
+  if (tex.id && (tex.checkedFrame == frame || frame < tex.nextCheck)) return tex.id;
   tex.checkedFrame = frame;
   uint32_t bpe = xenos::BytesPerElement(t.format);
   bool block = xenos::Block(t.format);
@@ -455,7 +459,12 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   uint64_t sig = Signature(t.base, span, t.format == xenos::k8 && tex.uploads >= 2);
   auto td = Clock::now();
   g_sigMs += std::chrono::duration<double, std::milli>(td - ts).count();
-  if (tex.id && sig == tex.signature) return tex.id;
+  if (tex.id && sig == tex.signature) {
+    tex.stable = std::min<uint32_t>(tex.stable + 1, tex.uploads > 1 ? 3 : 6);
+    tex.nextCheck = frame + (1ull << tex.stable);
+    return tex.id;
+  }
+  tex.stable = 0; tex.nextCheck = frame + 1;
   if (t.format == xenos::k8) { static int n = 0; if (n++ < 4) std::fprintf(stderr, "[nier-k8] %ux%u swizzle %03X endian %u tiled %d\n", t.width, t.height, t.swizzle, t.endian, int(t.tiled)); }
   // k8 com swizzle identidade (planos de vídeo): caminho rápido direto para LUMINANCE_ALPHA.
   td = Clock::now();
@@ -522,6 +531,7 @@ struct Program {
   std::vector<std::pair<int, GLint>> bools;    // (índice, local)
   std::vector<std::pair<int, GLint>> samplers; // (fetch slot, local nx_size) — unidade = ordem
   int vcCount = 256, pcCount = 256;
+  std::vector<float> lastVc, lastPc;  // último banco enviado: glUniform4fv só quando muda (estado ≤ 3 ms na Mali)
 };
 std::unordered_map<uint64_t, Program> g_programs;
 
@@ -584,7 +594,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
 
 std::vector<float> g_constants;
 // Envia as constantes na ordem compactada (GuestShader::constMap); literais por índice original.
-void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s) {
+void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s, std::vector<float>& last) {
   if (location < 0) return;
   size_t n = std::min<size_t>(size_t(count), s->constMap.size());
   g_constants.resize(n * 4);
@@ -594,6 +604,8 @@ void UploadConstants(GLint location, int count, const uint8_t* bank, const Guest
     if (reg >= 256 - literals) std::memcpy(&g_constants[j * 4], &s->literals[(reg - (256 - literals)) * 4], 16);
     else for (int c = 0; c < 4; ++c) g_constants[j * 4 + c] = BEF(bank + reg * 16 + 4 * c);
   }
+  if (last.size() == g_constants.size() && std::memcmp(last.data(), g_constants.data(), g_constants.size() * 4) == 0) return;
+  last = g_constants;
   glUniform4fv(location, GLsizei(n), g_constants.data());
 }
 
@@ -653,8 +665,8 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up);
   if (!p) { Skip("programa não compilou/linkou"); return; }
   glUseProgram(p->id);
-  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs);
-  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps);
+  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc);
+  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps, p->lastPc);
   for (auto [b, loc] : p->bools) glUniform1i(loc, (BE32(Field(state, kBoolConstants + 4 * (b >> 5))) >> (b & 31)) & 1);
   uint32_t colorControl = BE32(Field(state, kColorControl));
   if (p->alphaFunc >= 0) glUniform1i(p->alphaFunc, (colorControl & 8) ? int(colorControl & 7) : 7);
