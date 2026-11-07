@@ -379,16 +379,16 @@ bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; r
 double Ms(Clock::time_point a, Clock::time_point b) { return std::chrono::duration<double, std::milli>(b - a).count(); }
 double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs = 0, g_swapMs = 0;
 std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
-GLuint TextureForImpl(const xenos::TextureFetch& t);
-GLuint TextureFor(const xenos::TextureFetch& t) {
+GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved);
+GLuint TextureFor(const xenos::TextureFetch& t, bool allowResolved = true) {
   auto t0 = Clock::now();
-  GLuint id = TextureForImpl(t);
+  GLuint id = TextureForImpl(t, allowResolved);
   g_textureMs += std::chrono::duration<double, std::milli>(Clock::now() - t0).count();
   return id;
 }
-GLuint TextureForImpl(const xenos::TextureFetch& t) {
+GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   uint64_t key = TexKey(t);
-  if (auto r = g_resolved.find(key); r != g_resolved.end()) {
+  if (auto r = g_resolved.find(key); allowResolved && r != g_resolved.end()) {
     g_everSampled.insert(key);
     if (!g_pendingCopies.empty()) FlushCopyTo(key);
     return r->second.texture;
@@ -619,7 +619,10 @@ void ReplayDraw(const Frame& f, const Cmd& c) {
     const uint8_t* fetch = Field(state, kFetchConstants + 24 * slot);
     auto t = xenos::DecodeFetch(fetch);
     glActiveTexture(GL_TEXTURE0 + unit);
-    glBindTexture(GL_TEXTURE_2D, (BE32(fetch) & 3) == 2 ? TextureFor(t) : White());
+    // Heurística (07/11): a tela resolvida só alimenta desenhos não-UP (composição 3D). A UI (BeginVertices)
+    // amostra a memória do guest como antes; com a tela resolvida os menus ficavam com faixas brancas.
+    static bool resolvedInUi = std::getenv("NIER_RESOLVED_IN_UI") != nullptr;
+    glBindTexture(GL_TEXTURE_2D, (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White());
     if (sizeLoc >= 0) glUniform2f(sizeLoc, float(t.width), float(t.height));
     ++unit;
   }
