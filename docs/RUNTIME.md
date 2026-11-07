@@ -326,3 +326,26 @@ Recibo para integração: `messages/X1-C2-ARM64.json`.
 liga o renderer e chama o supervisor de 55 + 5 s, preservando SELECT+START e
 user-data persistente. Os dois scripts devem ficar juntos ao ELF. A trava do
 aparelho, preparação do frontend e dados ficam sob o roteiro do C1/coordenador.
+
+## X1-C4 — nome do herói sem teclado
+
+O `default_text` vazio fazia a implementação headless devolver uma string
+vazia e o jogo repetir o pedido de nome. O patch do SDK usa a cvar
+`default_keyboard_text` (padrão `Nier`) apenas quando o texto guest é vazio/nulo.
+A cvar é UTF-8; o resultado é UTF-16 big-endian, terminado e limitado ao buffer.
+A leitura de defaults não vazios também foi corrigida para preservar Unicode.
+Os caminhos headless e sem ImGui usam o mesmo callback e completam o overlapped
+com sucesso, mantendo o retorno inicial `X_ERROR_IO_PENDING`.
+
+Prova do import real, em XHostThread: oito casos passaram no host e oito no
+ARM64/QEMU, incluindo nome existente, acento, caractere fora do BMP, truncamento
+sem meio surrogate, fallback vazio, buffer pequeno e capacidade zero. C1 faz
+a confirmação no fluxo do jogo e no aparelho; o X1 não abriu o aparelho.
+
+Novos SHA-256 de `librexruntime.so`:
+
+- Host: `24e2f84e799240ff10fcd749b2eda4388fdf04448f65ba98d36783b62704d741`.
+- ARM64: `01c5092956c31982047969c7ddd3d08a61c0da72179d64df8241f4bb1b91c5f1`.
+
+As cópias em `nier-build/x1/host`, `arm64` e `c2/arm64` foram atualizadas;
+o ELF C2 permanece com o SHA anterior. Recibo: `messages/X1-C4-keyboard.json`.
