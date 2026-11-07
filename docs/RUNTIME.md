@@ -308,3 +308,21 @@ metadados e hashes em `messages/X1-C1-audio.json`. O renderer do C1 não foi
 modificado: a prova PC usou ES 2.0 e adaptação privada dos prelúdios conhecidos
 para mediump. As capturas mostram o contexto, sem certificar os defeitos visuais
 restantes do renderer experimental.
+
+## X1-C2 — build ARM64 com renderer do C1
+
+Renderer `1212ec2` integrado pela main/work/c1, mantendo os thunks X1-2c,
+a espera de áudio corrigida e os controles. Build AArch64 com
+`NIER_RENDER_GLES2=ON`, `-O3 -mcpu=cortex-a53`, ISA ARMv8-a e ThinLTO OFF.
+Dependências gráficas são GLESv2/EGL/SDL3 do firmware; nenhum governor foi alterado.
+O ELF e suas dependências passaram na conferência de arquitetura/linkagem, sem
+avisos de compilação. **O X1 não abriu esse build no aparelho; C1 valida a imagem.**
+
+ELF: SHA-256 `62ce45a579fa8f8b8afd06dd9b4d9b1efba6a8725f65f3ac69bd0f46698b276c`.
+Artefatos privados e `SHA256SUMS`: `nier-build/x1/c2/arm64/`.
+Recibo para integração: `messages/X1-C2-ARM64.json`.
+
+`build_render_nextos.sh` reproduz as opções. O launcher `run_render_probe.sh`
+liga o renderer e chama o supervisor de 55 + 5 s, preservando SELECT+START e
+user-data persistente. Os dois scripts devem ficar juntos ao ELF. A trava do
+aparelho, preparação do frontend e dados ficam sob o roteiro do C1/coordenador.
