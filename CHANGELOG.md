@@ -2,6 +2,11 @@
 
 ## 2026-11-07
 
+- No PC, com o renderizador GLES2: logos, vídeo de abertura inteiro, tela de título, aviso de save, New Game, escolha de dificuldade e confirmação passam com imagem correta. O nome do herói, que travava no teclado do sistema, agora recebe "Nier" por padrão.
+- No Mali-450 (.164): logos e vídeo com imagem correta; todos os shaders compilam e linkam na Mali, nenhum desenho pulado, sem erro de GL, 368–389 MB de RAM.
+- Áudio provado no PC: música da abertura/título e efeitos de menu com sinal real. A thread de áudio caiu de 47 s para 0,4 s de CPU por minuto.
+- Controles (14 botões, 4 eixos, 2 gatilhos), SELECT+START e saves persistentes provados no PC e no ARM64.
+- Lotes 2 e 3 da reconstrução: construtores, cálculo de tiles da EDRAM, listas paginadas de menu, ordenação por nome, tabelas por máscara. 37 funções verificadas; o comparador roda tudo em fatias paralelas em cerca de 30 s.
 - Executável ARM64 rodou no Mali-450 (.164): abriu e leu os dois CPK, 56 trocas de quadro por segundo com GPU nula, ~357 MiB de memória, 61→63 °C.
 - Esqueleto do renderizador GLES2 próprio (MIT): thread dona do contexto, render interno 854x480, mipmaps em texturas estáticas, decodificação Xenos e ganchos nos 6 pontos do D3D.
 - Primeira imagem do jogo no PC com o renderizador GLES2 próprio: logo da CRIWARE, abertura da SQUARE ENIX e partículas da tela de título.

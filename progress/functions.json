@@ -1520,11 +1520,15 @@
    "address": 2182115408,
    "size": 36,
    "name": "sub_82107050",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 36,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/ctor_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182115448,
@@ -1560,11 +1564,15 @@
    "address": 2182115496,
    "size": 56,
    "name": "sub_821070A8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 56,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/ctor_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182115552,
@@ -1580,31 +1588,43 @@
    "address": 2182115568,
    "size": 76,
    "name": "sub_821070F0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 76,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/ctor_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182115648,
    "size": 36,
    "name": "sub_82107140",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 36,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/ctor_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182115688,
    "size": 28,
    "name": "sub_82107168",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 28,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/ctor_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182115720,
@@ -1850,11 +1870,15 @@
    "address": 2182123000,
    "size": 32,
    "name": "sub_82108DF8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 32,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/ctor_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182123032,
@@ -1870,11 +1894,15 @@
    "address": 2182123208,
    "size": 120,
    "name": "sub_82108EC8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 120,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/edram.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182123328,
@@ -2680,11 +2708,15 @@
    "address": 2182138224,
    "size": 36,
    "name": "sub_8210C970",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 36,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182138264,
@@ -2700,11 +2732,15 @@
    "address": 2182138368,
    "size": 72,
    "name": "sub_8210CA00",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 72,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182138440,
@@ -2750,11 +2786,15 @@
    "address": 2182138888,
    "size": 152,
    "name": "sub_8210CC08",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 152,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182139040,
@@ -2880,21 +2920,29 @@
    "address": 2182140936,
    "size": 88,
    "name": "sub_8210D408",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "explicit-reviewed-extent",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182141024,
    "size": 92,
    "name": "sub_8210D460",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 92,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182141120,
@@ -2910,11 +2958,15 @@
    "address": 2182141288,
    "size": 84,
    "name": "sub_8210D568",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_a.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182141376,
@@ -3030,21 +3082,29 @@
    "address": 2182143848,
    "size": 52,
    "name": "sub_8210DF68",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 52,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_paging.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182143904,
    "size": 116,
    "name": "sub_8210DFA0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 116,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_paging.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182144024,
@@ -3090,11 +3150,15 @@
    "address": 2182145056,
    "size": 72,
    "name": "sub_8210E420",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 72,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_paging.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182145128,
@@ -3120,21 +3184,29 @@
    "address": 2182145504,
    "size": 60,
    "name": "sub_8210E5E0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_paging.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182145568,
    "size": 124,
    "name": "sub_8210E620",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 124,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/ui/list_paging.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182145696,
@@ -3220,11 +3292,15 @@
    "address": 2182148008,
    "size": 28,
    "name": "sub_8210EFA8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 28,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/input_masks.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182148040,
@@ -3260,21 +3336,29 @@
    "address": 2182148984,
    "size": 84,
    "name": "sub_8210F378",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/input_masks.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182149072,
    "size": 140,
    "name": "sub_8210F3D0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 140,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/input_masks.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182149216,
@@ -3290,21 +3374,29 @@
    "address": 2182149512,
    "size": 84,
    "name": "sub_8210F588",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/input_masks.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182149600,
    "size": 140,
    "name": "sub_8210F5E0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 140,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/input_masks.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182149744,

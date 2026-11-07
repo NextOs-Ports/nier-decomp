@@ -37,6 +37,8 @@ cmake -S tools/verify -B <build> -G Ninja -DCMAKE_CXX_COMPILER=clang++ \
   -DNIER_GENERATED_DIR=<generated/default privado> -Drexglue_DIR=<sdk linux-amd64>/lib/cmake/rexglue
 cmake --build <build>
 NIER_PE=<default.pe privado> NIER_OUT=run.json <build>/nierverify
+# ou em fatias paralelas (37 funções em ~30 s com 8 fatias):
+tools/verify/run_all.sh <build> <default.pe> run.json 8
 python3 tools/verify/apply_results.py run.json
 python3 tools/progress.py --snapshot && python3 tools/progress.py --check
 ```

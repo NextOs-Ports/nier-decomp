@@ -36,10 +36,10 @@ int add(const char* n, uint32_t a, PPCFunc* o, PPCFunc* d, const char* s, const 
 namespace {
 constexpr uint64_t kImageBase = 0x82000000ull, kImageSize = 0x4090000ull;
 constexpr uint64_t kCodeBase = 0x82100000ull, kCodeSize = 0x52AA08ull, kThunk = 0x10000ull;
-constexpr uint32_t kScratch = 0x40000000u, kScratchSize = 1u << 20;
-constexpr uint32_t kTls = 0x50000000u, kTlsSize = 1u << 16;
-constexpr uint32_t kStack = 0x70000000u, kStackSize = 1u << 20;
-constexpr uint32_t kSp = kStack + kStackSize - 0x8000u;
+constexpr uint32_t kScratch = 0x40000000u, kScratchSize = 1u << 19;
+constexpr uint32_t kTls = 0x50000000u, kTlsSize = 1u << 14;
+constexpr uint32_t kStack = 0x70000000u, kStackSize = 1u << 16;
+constexpr uint32_t kSp = kStack + kStackSize - 0x4000u;
 constexpr size_t kPage = 4096;
 
 uint8_t* g_base;
@@ -176,7 +176,7 @@ PPCRegister* fpr(PPCContext& c, int n) {
 
 uint32_t scratch_ptr(std::mt19937_64& rng, uint32_t align) {
   uint32_t off = (uint32_t)(rng() % (kScratchSize - 0x10000)) & ~(align - 1);
-  return kScratch + 0x8000 + (off % (kScratchSize - 0x18000));
+  return kScratch + 0x8000 + off;
 }
 
 uint64_t gen_value(const Arg& a, std::mt19937_64& rng, bool& is_float, double& fv) {
@@ -313,8 +313,12 @@ int main(int argc, char** argv) {
   if (!out) { perror("NIER_OUT"); return 2; }
   fprintf(out, "{\"tool\":\"nierverify\",\"functions_in_table\":%zu,\"trials\":%d,\"results\":[\n", nfn, trials);
   int bad = 0; bool first = true;
+  int shard = 0, shards = 1;
+  if (getenv("NIER_SHARD")) sscanf(getenv("NIER_SHARD"), "%d/%d", &shard, &shards);
+  int idx = -1;
   for (auto& e : nierverify::registry()) {
-    if (only && strcmp(only, e.name)) continue;
+    if (only && !strstr((std::string(",") + only + ",").c_str(), (std::string(",") + e.name + ",").c_str())) continue;
+    if (++idx % shards != shard) continue;
     auto spec = parse_spec(e.spec);
     int callargs = spec.count("callargs") ? (int)spec["callargs"].lo : 6;
     g_callargs = callargs;
