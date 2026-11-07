@@ -70,3 +70,18 @@ e resume em `OUT/resumo.json`.
 - Chamadas ao kernel (eventos, esperas: `sub_824B5F80`) e à inicialização real do CRT
   (`static_init`) faltam/abortam no comparador: ambas as execuções falham e a função não conta.
 - Sinal/carga de NaN: só com `nan=payload` na especificação (DSP), nunca por padrão.
+
+## Partículas e cache (D1-C3)
+
+`particle_update.cpp` reconstrói `82144588` com vetores locais do host
+(`particle_math.h`), integração, curvas, eventos, colisão e chamada virtual final.
+O comparador força o ramo de física em todas as 2.000 entradas; r3/r4 são os dois
+argumentos inteiros do callback, além de dt em f1. A seleção de payload quando
+ambos os operandos são NaN é preservada sem habilitar tolerância de NaN.
+A fixture principal desliga eventos e colisão externos; esses caminhos mantêm
+as chamadas guest e exigem a prova no jogo, não são certificados isoladamente
+pela fixture principal.
+
+`shader_cache.cpp` reconstrói `82579100`, preservando a reserva atômica/global
+lock e as sentinelas de versão. O caminho de atualização de descritores continua
+chamando a rotina guest existente.
