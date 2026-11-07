@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cctype>
 #include <cmath>
 #include <condition_variable>
 #include <cstdio>
@@ -178,6 +179,7 @@ struct GlCache {
   GlCache() { for (auto& t : tex) t = ~0u; }
 };
 GlCache g_gl;
+GLint g_vsUniformVectors = 256;  // medido no init (Mali-450: 256)
 void InvalidateGl() { g_gl = GlCache{}; }
 void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
 void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; glUseProgram(id); } }
@@ -235,6 +237,11 @@ void FlushCopyTo(uint64_t dst) {  // antes de amostrar a textura destino
 }
 std::map<std::string, uint32_t> g_skipReasons;
 bool g_depth24 = false;
+// Profundidade como textura (GL_OES_depth_texture): o Resolve de profundidade do jogo (flags & 4) vira alias da
+// textura de profundidade do alvo, amostrada pelos PS de formato 22 (nuvens/partículas suaves, sombra). Sem a
+// extensão, branco (sem sombra) como antes.
+bool g_depthTexture = false;
+std::map<uint64_t, GLuint> g_depthAlias;  // chave da textura fmt 22 -> textura de profundidade GL
 
 void Skip(const char* reason) {
   ++g_skipped;
@@ -275,13 +282,15 @@ void CreateBlit() {
   glGenBuffers(1, &g_indexBuffer);
   const char* ext = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
   g_depth24 = ext && std::strstr(ext, "GL_OES_depth24");
+  g_depthTexture = ext && std::strstr(ext, "GL_OES_depth_texture") && !std::getenv("NIER_NO_DEPTH_TEXTURE");
+  std::fprintf(stderr, "[nier-gl] profundidade: depth24 %d, textura de profundidade %d\n", int(g_depth24), int(g_depthTexture));
 }
 
 void ReleaseTarget(Target& t) {
   if (!t.shared) {
     if (t.texture) glDeleteTextures(1, &t.texture);
     if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
-    if (t.depth) glDeleteRenderbuffers(1, &t.depth);
+    if (t.depth) { if (g_depthTexture) glDeleteTextures(1, &t.depth); else glDeleteRenderbuffers(1, &t.depth); }
   }
   t = Target{};
 }
@@ -299,7 +308,16 @@ void CreateTarget(Target& t, int w, int h, bool withDepth) {
   glGenFramebuffers(1, &t.fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
-  if (withDepth) {
+  if (withDepth && g_depthTexture) {
+    glGenTextures(1, &t.depth);
+    glBindTexture(GL_TEXTURE_2D, t.depth);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, g_depth24 ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, nullptr);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, t.depth, 0);
+  } else if (withDepth) {
     glGenRenderbuffers(1, &t.depth);
     glBindRenderbuffer(GL_RENDERBUFFER, t.depth);
     glRenderbufferStorage(GL_RENDERBUFFER, g_depth24 ? GL_DEPTH_COMPONENT24_OES : GL_DEPTH_COMPONENT16, w, h);
@@ -343,10 +361,13 @@ Target& CurrentTarget(const uint8_t* state, bool forDraw = true) {
   uint32_t surface = BE32(Field(state, kSurfaceInfo)), color = BE32(Field(state, kColorInfo));
   uint64_t key = uint64_t(color & 0xF0FFF) << 16 | (surface & 0x3FFF);
   uint32_t guestPitch = std::max<uint32_t>(surface & 0x3FFF, 1);
-  int w = std::max(1, int(guestPitch * Scale() + 0.5f)), h = std::max(1, int(720 * Scale() + 0.5f));
+  // altura: 720 do guest, ou o que o viewport pedir (mapa de sombra 1024x1024 desenha até y = 1024)
+  float vpBottom = BEF(Field(state, kViewport + 12)) + std::fabs(BEF(Field(state, kViewport + 8)));
+  int guestH = std::clamp(int(std::lround(vpBottom)), 720, 2048);
+  int w = std::max(1, int(guestPitch * Scale() + 0.5f)), h = std::max(1, int(guestH * Scale() + 0.5f));
   if (!g_pendingCopies.empty()) FlushCopiesFrom(key);
   Target& t = g_targets[key];
-  if (t.w != w || t.h != h) CreateTarget(t, w, h, true);
+  if (t.w != w || (forDraw ? t.h < h : t.h != h && t.h < h)) CreateTarget(t, w, std::max(h, t.h), true);
   if (forDraw) t.holder = 0;  // o conteúdo mais novo volta a ser a textura do próprio alvo
   if ((key & 0x3FFF) > (g_mainTarget & 0x3FFF)) g_mainTarget = key;
   BindFbo(t.fbo);
@@ -419,8 +440,8 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
     return r->second.texture;
   }
   if (t.format == xenos::k248) {
-    // Profundidade resolvida (mapa de sombra 1024x1024 / cena 1280x720): o Resolve de profundidade não é
-    // emulado; branco = "sem sombra" nos PS que comparam. Não é desenho pulado.
+    if (auto d = g_depthAlias.find(key); d != g_depthAlias.end()) return d->second;
+    // Sem textura de profundidade: branco = "sem sombra" nos PS que comparam. Não é desenho pulado.
     static bool once = false;
     if (!once) { once = true; std::fprintf(stderr, "[nier-gl] textura de profundidade (fmt 22) %ux%u amostrada: branco (sem sombra)\n", t.width, t.height); }
     return White();
@@ -541,7 +562,29 @@ struct Program {
   std::vector<int8_t> lastBools;      // -1 = nunca enviado
   int lastAlphaFunc = -2; float lastAlphaRef = -1e30f;
   std::vector<std::pair<float, float>> lastSizes;
+  // Textura no VS (paleta de ossos 1024x1 float4): janela de texels em uniformes VT<t>[k], VT<t>_p = (largura, base)
+  struct Vtf { int slot; GLint loc, params; int k; };
+  std::vector<Vtf> vtf;
 };
+// Substitui o stub "nx_sample<t> devolve 0" do tradutor por busca num array de uniformes (a Mali-450 não tem
+// textura no vértice). k texels cabem no orçamento de uniformes do VS depois das constantes VC.
+std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs, std::vector<std::pair<int, int>>& slots) {
+  std::string out = src;
+  int budget = int(g_vsUniformVectors) - int(vs->constMap.size()) - 24;
+  int k = std::clamp(budget, 32, 1024);  // Mali-450: ~220 (55 ossos); host: 1024
+  for (int t = 0; t < 32; ++t) {
+    if (!(vs->textureMask & (1u << t))) continue;
+    std::string n = std::to_string(t);
+    std::string stub = "vec4 nx_sample" + n + "(vec2 uv) { return vec4(0.0); }\n";
+    size_t at = out.find(stub);
+    if (at == std::string::npos) continue;
+    std::string repl = "uniform vec4 VT" + n + "[" + std::to_string(k) + "];\nuniform vec2 VT" + n + "_p;\n"
+      "vec4 nx_sample" + n + "(vec2 uv) { int i = int(floor(uv.x * VT" + n + "_p.x + 0.001)) - int(VT" + n + "_p.y); i = nx_clamp_int(i, 0, " + std::to_string(k - 1) + "); return VT" + n + "[i]; }\n";
+    out.replace(at, stub.size(), repl);
+    slots.push_back({t, k});
+  }
+  return out;
+}
 std::unordered_map<uint64_t, Program> g_programs;
 
 // Variante sem alpha test (alphaTest = false): o bloco "bool pass … if (!pass) discard;" sai do PS. Na Mali-450 um
@@ -552,6 +595,32 @@ std::string StripAlphaTest(const std::string& src) {
   if (a == std::string::npos || b == std::string::npos || b < a) return src;
   return src.substr(0, a) + src.substr(b + std::strlen("    if (!pass) discard;\n"));
 }
+// r[N] (índices sempre estáticos no tradutor) vira variáveis r0..rN: compiladores antigos (MaliGP2/Mali-450)
+// tratam arrays como memória e não cabem no limite de 512 palavras; variáveis soltas são alocadas em registros.
+std::string ScalarizeRegisters(const std::string& src) {
+  static bool keep = std::getenv("NIER_KEEP_REG_ARRAY") != nullptr;
+  if (keep) return src;
+  const std::string decl = "    vec4 r[";
+  size_t a = src.find(decl);
+  if (a == std::string::npos) return src;
+  size_t b = src.find("];\n", a);
+  int n = std::atoi(src.c_str() + a + decl.size());
+  if (b == std::string::npos || n <= 0 || n > 64) return src;
+  size_t loopEnd = src.find("\n", b + 3);  // linha "for (int i = 0; i < n; i++) r[i] = vec4(0.0);"
+  if (loopEnd == std::string::npos) return src;
+  std::string out = src.substr(0, a) + "    vec4 ";
+  for (int i = 0; i < n; ++i) out += "r" + std::to_string(i) + " = vec4(0.0)" + (i + 1 < n ? ", " : ";\n");
+  std::string rest = src.substr(loopEnd + 1);
+  std::string res; res.reserve(rest.size());
+  for (size_t i = 0; i < rest.size();) {
+    if (rest[i] == 'r' && i + 1 < rest.size() && rest[i + 1] == '[' && (i == 0 || !std::isalnum(uint8_t(rest[i - 1])) && rest[i - 1] != '_')) {
+      size_t j = i + 2; while (j < rest.size() && std::isdigit(uint8_t(rest[j]))) ++j;
+      if (j < rest.size() && rest[j] == ']' && j > i + 2) { res += "r" + rest.substr(i + 2, j - i - 2); i = j + 1; continue; }
+    }
+    res += rest[i++];
+  }
+  return out + res;
+}
 Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true) {
   uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2);
   auto it = g_programs.find(key);
@@ -561,8 +630,10 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
-  std::string psSource = alphaTest ? ps->source : StripAlphaTest(ps->source);
-  GLuint v = CompileShader(GL_VERTEX_SHADER, vs->source.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : psSource.c_str(), pn);
+  std::string psSource = ScalarizeRegisters(alphaTest ? ps->source : StripAlphaTest(ps->source));
+  std::vector<std::pair<int, int>> vtfSlots;
+  std::string vsSource = ScalarizeRegisters(vs->textureMask ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source);
+  GLuint v = CompileShader(GL_VERTEX_SHADER, vsSource.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : psSource.c_str(), pn);
   if (!v || !f) { if (v) glDeleteShader(v); if (f) glDeleteShader(f); return nullptr; }
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
@@ -608,6 +679,13 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
       ++unit;
     }
   if (p.wideScale >= 0) glUniform1f(p.wideScale, 1.0f);
+  for (auto [t, k] : vtfSlots) {
+    std::string n = std::to_string(t);
+    p.vtf.push_back({t, glGetUniformLocation(p.id, ("VT" + n).c_str()), glGetUniformLocation(p.id, ("VT" + n + "_p").c_str()), k});
+  }
+  // VC[i] em vc + i? (envio por faixa); conferido uma vez no link
+  if (p.vc >= 0 && p.vcCount > 1) p.vcSeq = glGetUniformLocation(p.id, ("VC[" + std::to_string(p.vcCount - 1) + "]").c_str()) == p.vc + p.vcCount - 1 && glGetUniformLocation(p.id, "VC[1]") == p.vc + 1;
+  if (p.pc >= 0 && p.pcCount > 1) p.pcSeq = glGetUniformLocation(p.id, ("PC[" + std::to_string(p.pcCount - 1) + "]").c_str()) == p.pc + p.pcCount - 1 && glGetUniformLocation(p.id, "PC[1]") == p.pc + 1;
   return &p;
 }
 
@@ -730,6 +808,56 @@ void TrimBufferObjects(bool all = false) {
 }
 
 bool g_bufferAuditReference = false; // render-thread-only diagnostic
+// Paleta de ossos para o VS: lê a textura float4 1024x1 (fmt 38) da memória do guest e envia só a janela de
+// texels [4*osso_min, 4*osso_max+4) que o desenho usa (ossos = atributo inteiro 8_8_8_8 do VS).
+std::unordered_map<uint64_t, std::pair<int, int>> g_boneRange;  // serial do atributo -> (min, max)
+void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
+  int bmin = 0, bmax = -1;
+  for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+    const auto& in = c.vs->inputs[i];
+    if (in.format != 6 || !in.isInteger) continue;
+    int lo = 1 << 30, hi = -1;
+    uint64_t serial = c.vertexData[i] ? c.vertexData[i]->serial : 0;
+    auto cached = serial ? g_boneRange.find(serial) : g_boneRange.end();
+    if (cached != g_boneRange.end()) { lo = cached->second.first; hi = cached->second.second; }
+    else {
+      const float* v = nullptr; static std::vector<float> tmp;
+      if (c.vertexData[i]) {
+        tmp.resize(size_t(c.vertexCount) * 4);
+        ConvertInput(c.vertexData[i]->input, c.vertexData[i]->raw.data(), c.vertexData[i]->endian, 0, c.vertexCount, tmp.data());
+        v = tmp.data();
+      } else if (c.inputs[i] != 0) v = reinterpret_cast<const float*>(f.blob.data() + c.inputs[i]);
+      if (!v) continue;
+      for (size_t k = 0, n = size_t(c.vertexCount) * 4; k < n; ++k) { int b = int(v[k]); lo = std::min(lo, b); hi = std::max(hi, b); }
+      if (serial) g_boneRange[serial] = {lo, hi};
+    }
+    if (hi < 0) continue;
+    if (bmax < 0) { bmin = lo; bmax = hi; } else { bmin = std::min(bmin, lo); bmax = std::max(bmax, hi); }
+  }
+  for (const auto& vt : p.vtf) {
+    const uint8_t* fetch = Field(state, kFetchConstants + 24 * vt.slot);
+    auto t = xenos::DecodeFetch(fetch);
+    static std::map<uint32_t, bool> warned;
+    if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) {
+      if (!warned[t.format]) { warned[t.format] = true; std::fprintf(stderr, "[nier-gl] textura no VS fmt %u %ux%u tiled %d: só float4 1024x1 linear é emulada\n", t.format, t.width, t.height, int(t.tiled)); }
+      if (vt.params >= 0) glUniform2f(vt.params, float(t.width), 0.0f);
+      continue;
+    }
+    int base = bmax >= 0 ? std::clamp(4 * bmin, 0, int(t.width)) : 0;
+    int n = bmax >= 0 ? std::min(vt.k, std::max(0, 4 * (bmax - bmin + 1))) : std::min(vt.k, int(t.width));
+    n = std::min(n, int(t.width) - base);
+    if (bmax >= 0 && 4 * (bmax - bmin + 1) > vt.k) { static bool once = false; if (!once) { once = true; std::fprintf(stderr, "[nier-gl] textura no VS: %d ossos não cabem em %d texels\n", bmax - bmin + 1, vt.k); } }
+    const uint8_t* src = Physical(t.base + uint32_t(base) * 16, uint32_t(n) * 16);
+    if (!src || n <= 0) continue;
+    static std::vector<float> vals; vals.resize(size_t(n) * 4);
+    for (int k = 0; k < n * 4; ++k) {
+      uint8_t e[4]; std::memcpy(e, src + 4 * k, 4); xenos::Swap(e, 4, t.endian);
+      std::memcpy(&vals[k], e, 4);
+    }
+    if (vt.loc >= 0) glUniform4fv(vt.loc, n, vals.data());
+    if (vt.params >= 0) glUniform2f(vt.params, float(t.width), float(base));
+  }
+}
 struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; };
 void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
@@ -757,6 +885,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   if (p->alphaFunc >= 0) { int af = (colorControl & 8) ? int(colorControl & 7) : 7; if (af != p->lastAlphaFunc) { p->lastAlphaFunc = af; glUniform1i(p->alphaFunc, af); } }
   if (p->alphaRef >= 0) { float ar = BEF(Field(state, 0x2904)); if (ar != p->lastAlphaRef) { p->lastAlphaRef = ar; glUniform1f(p->alphaRef, ar); } }
   if (p->lastSizes.size() != p->samplers.size()) p->lastSizes.assign(p->samplers.size(), {-1.f, -1.f});
+  if (!p->vtf.empty()) UploadVertexTextures(f, c, *p, state);
   int unit = 0;
   for (auto [slot, sizeLoc] : p->samplers) {
     const uint8_t* fetch = Field(state, kFetchConstants + 24 * slot);
@@ -838,6 +967,7 @@ void PlanDirectPasses(const Frame& f) {
     const uint8_t* state = f.blob.data() + c.state;
     uint64_t srcKey = TargetKeyOf(state);
     auto& draws = open[srcKey];
+    if (c.flags & 4) continue;  // Resolve de profundidade: não fecha o passe nem redireciona
     if (c.fetch != SIZE_MAX && !draws.empty()) {
       auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
       int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
@@ -876,7 +1006,19 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
   uint64_t srcKey = TargetKeyOf(state);
   bool clears = c.flags & 0x300;
   float s = Scale();
-  if (c.fetch != SIZE_MAX) {
+  if ((c.flags & 4) && c.fetch != SIZE_MAX) {
+    // Resolve de profundidade: a textura fmt 22 passa a ser a textura de profundidade do FBO que tem a cena
+    // (o próprio alvo, ou o destino do alias se a cor já foi resolvida antes).
+    auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
+    if (g_depthTexture) {
+      auto srcIt = g_targets.find(srcKey);
+      if (srcIt != g_targets.end()) {
+        Target& src = srcIt->second;
+        GLuint depth = src.holder ? g_resolved[src.holder].depth : src.depth;
+        if (depth) g_depthAlias[TexKey(t)] = depth;
+      }
+    }
+  } else if (c.fetch != SIZE_MAX) {
     auto t = xenos::DecodeFetch(f.blob.data() + c.fetch);
     static bool noCopy = std::getenv("NIER_NO_RESOLVE_COPY") != nullptr;  // diagnóstico
     uint64_t key = TexKey(t);
@@ -1092,6 +1234,7 @@ void RenderThread() {
                ReferenceBuffers() ? "reference/off" : "on", int(g_vertexHalf.load()));
   GLint vsUniforms = 0, fsUniforms = 0;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
+  g_vsUniformVectors = vsUniforms > 0 ? vsUniforms : 256;
   glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
@@ -1256,7 +1399,7 @@ void TraceDraw(const Cmd& c, const uint8_t* state, uint32_t primitive, uint32_t 
     const uint8_t* k = Field(state, kVertexConstants + 16 * r);
     std::fprintf(stderr, "[nier-trace]   VC%d %g %g %g %g\n", r, BEF(k), BEF(k + 4), BEF(k + 8), BEF(k + 12));
   }
-  for (int t = 0; t < 32; ++t) if (c.ps->textureMask & (1u << t)) {
+  for (int t = 0; t < 32; ++t) if ((c.ps->textureMask | c.vs->textureMask) & (1u << t)) {
     const uint8_t* f = Field(state, kFetchConstants + 24 * t);
     auto tf = xenos::DecodeFetch(f);
     std::fprintf(stderr, "[nier-trace]   T%d words %08X %08X %08X %08X %08X %08X fmt %u %ux%u base %08X tiled %d endian %u dim %u pitch %u\n", t,
@@ -1437,7 +1580,8 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
 void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb) {
   FlushPendingUP();
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
-  if (!state || (flags & 4)) return;  // D3DRESOLVE_DEPTHSTENCIL = 4 (rastro 07/11): profundidade não é copiada
+  if (!state) return;
+  if ((flags & 4) && !destTexture && !(flags & 0x300)) return;  // D3DRESOLVE_DEPTHSTENCIL = 4 sem destino nem limpeza
   Cmd c{Kind::Resolve};
   c.flags = flags; c.argb = clearColorArgb;
   if (rect) { std::memcpy(c.rect, rect, sizeof c.rect); c.hasRect = true; }

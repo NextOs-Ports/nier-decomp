@@ -18,7 +18,7 @@ enum Format : uint32_t {
   k8 = 2, k1555 = 3, k565 = 4, k8888 = 6, k2101010 = 7, k8A = 8, k8B = 9, k88 = 10, k4444 = 15,
   kDXT1 = 18, kDXT3 = 19, kDXT5 = 20, k248 = 22, k16 = 24, k1616 = 25, k16161616 = 26,
   k16Expand = 27, k1616Expand = 28, k16161616Expand = 29, k16Float = 30, k1616Float = 31, k16161616Float = 32,
-  k32Float = 36, kDXN = 49, kDXT3A = 58, kDXT5A = 59, kCTX1 = 60
+  k32Float = 36, k32323232Float = 38, kDXN = 49, kDXT3A = 58, kDXT5A = 59, kCTX1 = 60
 };
 
 struct TextureFetch {
@@ -60,6 +60,7 @@ inline uint32_t BytesPerElement(uint32_t format) {
     case k565: case k4444: case k1555: case k88: case k16: case k16Expand: case k16Float: return 2;
     case k8888: case k2101010: case k1616: case k1616Expand: case k1616Float: case k32Float: return 4;
     case k16161616: case k16161616Expand: case k16161616Float: return 8;
+    case k32323232Float: return 16;
     case kDXT1: case kDXT3A: case kDXT5A: case kCTX1: return 8;
     case kDXT3: case kDXT5: case kDXN: return 16;
     default: return 0;
@@ -209,6 +210,7 @@ inline bool DecodeLevel0(Reader read, const TextureFetch& t, std::vector<uint8_t
           for (int c = 0; c < 4; ++c) o[c] = Unorm(HalfToFloat(uint16_t(e[2 * c] | e[2 * c + 1] << 8)));
           break;
         case k32Float: { float v; std::memcpy(&v, e, 4); o[0] = Unorm(v); break; }
+        case k32323232Float: for (int c = 0; c < 4; ++c) { float v; std::memcpy(&v, e + 4 * c, 4); o[c] = Unorm(v); } break;
         default: o[0] = 255; o[1] = o[2] = 255; break;
       }
     }
