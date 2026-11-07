@@ -166,6 +166,7 @@ struct Target {
   // (sharedFrom/sharedFrame); mantém os próprios recursos (nada recriado por quadro na Mali).
   uint64_t sharedFrom = 0, sharedFrame = ~0ull;
   uint64_t lastCopy = 0;  // destino que já recebeu cópia deste conteúdo (Resolve repetido referencia, não copia)
+  uint64_t whiteFrame = ~0ull;  // quadro em que foi limpo em branco (recepção de sombra pulada)
 };
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
@@ -190,7 +191,7 @@ GLint g_vsUniformVectors = 256;  // medido no init (Mali-450: 256)
 void InvalidateGl() { g_gl = GlCache{}; }
 // Medição do "desenho" (CPU dentro de glDrawElements no driver Mali): o que cada janela enviou
 uint64_t g_vec4Sent = 0, g_vtVec4Sent = 0, g_indicesDrawn = 0, g_programsLinked = 0, g_programSwitches = 0;
-uint64_t g_idxByClass[4] = {}, g_drawsByClass[4] = {}, g_skippedPrepass = 0, g_skippedShadow = 0;
+uint64_t g_idxByClass[5] = {}, g_drawsByClass[5] = {}, g_skippedPrepass = 0, g_skippedShadow = 0, g_skippedReceive = 0;
 bool g_mali = false;
 bool g_skipPrepass = false, g_skipShadow = false, g_sortByProgram = false;
 uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
@@ -1195,7 +1196,11 @@ void PlanDirectPasses(const Frame& f) {
     uint64_t key = TargetKeyOf(st);
     uint32_t mask = BE32(Field(st, 0x28DC)) & 15, depth = BE32(Field(st, kDepthControl));
     uint8_t cls = 0;
-    if (c.up || g_redirects[i].key) cls = 3;
+    bool samplesShadowMap = false;  // PS amostra o mapa de sombra (fmt 22, 1024x1024): passe de recepção de sombra
+    if (c.ps) for (int t = 0; t < 32 && !samplesShadowMap; ++t)
+      if (c.ps->textureMask & (1u << t)) { auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t)); samplesShadowMap = tf.format == xenos::k248 && tf.width == tf.height && tf.width >= 1024; }
+    if (!c.up && samplesShadowMap) cls = 4;
+    else if (c.up || g_redirects[i].key) cls = 3;
     else if (keyKind.count(key) && keyKind[key] == 2) cls = 1;
     else if (mask == 0 && (depth & 4)) cls = 2;
     g_drawClass[i] = cls;
@@ -1539,6 +1544,13 @@ void RenderThread() {
         uint8_t cls = g_drawClass[i];
         if (cls == 2 && g_skipPrepass) { ++g_skippedPrepass; continue; }
         if (cls == 1 && g_skipShadow) { ++g_skippedShadow; continue; }
+        if (cls == 4 && g_skipShadow) {
+          // recepção de sombra sem mapa de sombra: o destino (máscara) fica branco = tudo iluminado
+          ++g_skippedReceive;
+          const Redirect& rd = g_redirects[i];
+          if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
+          continue;
+        }
         g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
         ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
       }
@@ -1573,12 +1585,12 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu\n",
-                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow);
+        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f), recepção de sombra %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu, recepção %llu\n",
+                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), g_idxByClass[4] / double(W), g_drawsByClass[4] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow, (unsigned long long)g_skippedReceive);
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
                      g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
