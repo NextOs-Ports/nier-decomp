@@ -14,6 +14,9 @@ def bl_target(pc, w):
     li = w & 0x03FFFFFC
     if li & 0x02000000: li -= 0x04000000
     return (pc + li) & 0xFFFFFFFF
+targets = set()
+def sym(addr):
+    targets.add(addr); return f'sub_{addr:08X}'
 def shape(w): return tuple((x & 0xFC000003) if (x >> 26) == 18 and x & 1 else (x if (x >> 26) in (16, 18) else x & 0xFFFF0000) for x in w)
 
 REF = {'dtor_vtable_delete': (0x824DEAB8, 76), 'ctor_base_field_vtable': (0x8226C400, 72),
@@ -22,11 +25,13 @@ REF = {'dtor_vtable_delete': (0x824DEAB8, 76), 'ctor_base_field_vtable': (0x8226
        'forward_member_then_self': (0x8226AC18, 76), 'ctor_base_memset': (0x8226B490, 96),
        'member_pair_virtual_then': (0x8226BA98, 92), 'find_then_resolve': (0x82175360, 116),
        'field_bits': (0x82269EE0, 12), 'global_address': (0x8210F920, 12), 'clamped_plus': (0x821B5F10, 44),
-       'list_item_field': (0x823B62B8, 76)}
-# dtor_two_members e make_node (templates no cabeçalho) chamam código do runtime que encerra o
-# processo do comparador fora do caminho interceptado; ficam fora até isso ser resolvido.
-# chain3_global e static_init (templates no cabeçalho) chamam inicialização real do CRT/runtime,
-# que não roda com estado aleatório no comparador; ficam fora até haver prova específica.
+       'list_item_field': (0x823B62B8, 76),
+       # Famílias reativadas em 07/11 (D1): o comparador agora intercepta exit/abort e o relógio
+       # (mftb), então as instâncias são provadas uma a uma como as outras.
+       'dtor_two_members': (0x8226B9E8, 148), 'make_node': (0x821056B0, 176),
+       'chain3_global': (0x82383D88, 60)}
+# static_init (template no cabeçalho) chama a inicialização real do CRT, que no comparador cai em
+# "R6030 CRT not initialized" → KeBugCheckEx → o runtime mata o processo. Fica fora.
 refs = {k: shape(words(a, n)) for k, (a, n) in REF.items()}
 done = set()
 for f in (root / 'src/decomp').rglob('*.cpp'):
@@ -65,56 +70,56 @@ for fn in inv:
         hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
         if kind == 'dtor_vtable_delete':
             vt = ((s16(w[4]) << 16) + s16(w[6])) & 0xFFFFFFFF
-            args = f'{frame}, 0x{vt:08X}, {s16(w[11])}, 0x{bl_target(a + 48, w[12]):08X}, {s16(w[9])}'
+            args = f'{frame}, 0x{vt:08X}, {s16(w[11])}, {sym(bl_target(a + 48, w[12]))}, {s16(w[9])}'
             spec = 'r3=ptr r4=range:0..1'
         elif kind == 'ctor_base_field_vtable':
             vt = ((s16(w[7]) << 16) + s16(w[9])) & 0xFFFFFFFF
-            args = f'{frame}, 0x{bl_target(a + 24, w[6]):08X}, {s16(w[4])}, {s16(w[10])}, 0x{vt:08X}, {s16(w[12])}'
+            args = f'{frame}, {sym(bl_target(a + 24, w[6]))}, {s16(w[4])}, {s16(w[10])}, 0x{vt:08X}, {s16(w[12])}'
             spec = 'r3=ptr'
         elif kind == 'forward_swapped_virtual':
             args = f'{s16(w[4]) // 4}'; spec = 'r3=ptr r4=obj'
         elif kind == 'dtor_vtable_free':
-            args = f'{frame}, 0x{hi_lo(4, 6):08X}, 0x{bl_target(a + 44, w[11]):08X}, {s16(w[9])}'; spec = 'r3=ptr r4=range:0..1'
+            args = f'{frame}, 0x{hi_lo(4, 6):08X}, {sym(bl_target(a + 44, w[11]))}, {s16(w[9])}'; spec = 'r3=ptr r4=range:0..1'
         elif kind == 'dtor_body_free':
-            args = f'{frame}, 0x{bl_target(a + 28, w[7]):08X}, 0x{bl_target(a + 44, w[11]):08X}'; spec = 'r3=ptr r4=range:0..1'
+            args = f'{frame}, {sym(bl_target(a + 28, w[7]))}, {sym(bl_target(a + 44, w[11]))}'; spec = 'r3=ptr r4=range:0..1'
         elif kind == 'forward_member_then_self':
-            args = f'{frame}, {s16(w[8])}, 0x{bl_target(a + 36, w[9]):08X}, 0x{bl_target(a + 48, w[12]):08X}'
+            args = f'{frame}, {s16(w[8])}, {sym(bl_target(a + 36, w[9]))}, {sym(bl_target(a + 48, w[12]))}'
             spec = 'r3=ptr f1=f32'
         elif kind == 'ctor_base_memset':
             fa = ((s16(w[11]) << 16) + s16(w[15])) & 0xFFFFFFFF
-            args = (f'{frame}, 0x{bl_target(a + 24, w[6]):08X}, {s16(w[4])}, {s16(w[7])}, {s16(w[9])}, {s16(w[8])}, '
-                    f'0x{bl_target(a + 40, w[10]):08X}, 0x{hi_lo(12, 14):08X}, 0x{fa:08X}, {s16(w[16])}, {s16(w[17])}, {s16(w[18])}')
+            args = (f'{frame}, {sym(bl_target(a + 24, w[6]))}, {s16(w[4])}, {s16(w[7])}, {s16(w[9])}, {s16(w[8])}, '
+                    f'{sym(bl_target(a + 40, w[10]))}, 0x{hi_lo(12, 14):08X}, 0x{fa:08X}, {s16(w[16])}, {s16(w[17])}, {s16(w[18])}')
             spec = 'r3=ptr'
         elif kind == 'member_pair_virtual_then':
             if s16(w[6]) != s16(w[9]): break
-            args = (f'{frame}, {s16(w[6])}, 0x{bl_target(a + 28, w[7]):08X}, 0x{bl_target(a + 40, w[10]):08X}, '
-                    f'{s16(w[13]) // 4}, 0x{bl_target(a + 68, w[17]):08X}')
+            args = (f'{frame}, {s16(w[6])}, {sym(bl_target(a + 28, w[7]))}, {sym(bl_target(a + 40, w[10]))}, '
+                    f'{s16(w[13]) // 4}, {sym(bl_target(a + 68, w[17]))}')
             spec = 'r3=obj'
         elif kind == 'find_then_resolve':
             rl = lambda x: f'{(x >> 11) & 31}, {(x >> 6) & 31}, {(x >> 1) & 31}'
-            args = (f'{frame}, {s16(w[9])}, {s16(w[8])}, 0x{bl_target(a + 40, w[10]):08X}, 0x{bl_target(a + 76, w[19]):08X}, '
+            args = (f'{frame}, {s16(w[9])}, {s16(w[8])}, {sym(bl_target(a + 40, w[10]))}, {sym(bl_target(a + 76, w[19]))}, '
                     f'{rl(w[16])}, {rl(w[22])}')
             spec = 'r3=ptr'
         elif kind == 'dtor_two_members':
             args = (f'{frame}, {s16(w[5])}, 0x{hi_lo(6, 8):08X}, {s16(w[10])}, 0x{hi_lo(7, 9):08X}, {s16(w[12])}, '
                     f'{s16(w[16]) // 4}, {s16(w[15])}, {s16(w[20])}, 0x{hi_lo(19, 21):08X}, {s16(w[23])}, '
-                    f'{s16(w[27]) // 4}, {s16(w[26])}, 0x{bl_target(a + 124, w[31]):08X}')
-            spec = 'r3=ptr @r3.0=ptr callargs=2'   # o destrutor virtual do membro recebe (this, flags)
+                    f'{s16(w[27]) // 4}, {s16(w[26])}, {sym(bl_target(a + 124, w[31]))}')
+            spec = f'r3=ptr @r3.{s16(w[5])}=obj @r3.{s16(w[20])}=obj callargs=2'   # membros com vtable; dtor virtual recebe (this, flags)
         elif kind == 'make_node':
             fa = ((s16(w[16]) << 16) + s16(w[24])) & 0xFFFFFFFF
             args = (f'{frame}, {s16(w[6])}, {s16(w[8])}, {s16(w[7])}, {s16(w[10]) // 4}, 0x{hi_lo(17, 21):08X}, '
-                    f'0x{fa:08X}, 0x{bl_target(a + 140, w[35]):08X}')
-            spec = 'r3=ptr'
+                    f'0x{fa:08X}, {sym(bl_target(a + 144, w[36]))}')
+            spec = f'r3=ptr @r3.{s16(w[6])}=obj callret=ptr'   # alocador com vtable; o método devolve um ponteiro
         elif kind == 'chain3_global':
-            args = (f'{frame}, {s16(w[4])}, {s16(w[3])}, 0x{bl_target(a + 20, w[5]):08X}, 0x{bl_target(a + 24, w[6]):08X}, '
-                    f'0x{hi_lo(7, 9):08X}, 0x{bl_target(a + 40, w[10]):08X}')
+            args = (f'{frame}, {s16(w[4])}, {s16(w[3])}, {sym(bl_target(a + 20, w[5]))}, {sym(bl_target(a + 24, w[6]))}, '
+                    f'0x{hi_lo(7, 9):08X}, {sym(bl_target(a + 40, w[10]))}')
             spec = 'r3=ptr'
         elif kind == 'static_init':
-            args = (f'{frame}, 0x{hi_lo(3, 4):08X}, 0x{bl_target(a + 20, w[5]):08X}, 0x{hi_lo(6, 7):08X}, '
-                    f'0x{bl_target(a + 32, w[8]):08X}')
+            args = (f'{frame}, 0x{hi_lo(3, 4):08X}, {sym(bl_target(a + 20, w[5]))}, 0x{hi_lo(6, 7):08X}, '
+                    f'{sym(bl_target(a + 32, w[8]))}')
             spec = ''
         else:
-            args = (f'{frame}, 0x{bl_target(a + 28, w[7]):08X}, 0x{bl_target(a + 48, w[12]):08X}, {s16(w[17]) // 4}, '
+            args = (f'{frame}, {sym(bl_target(a + 28, w[7]))}, {sym(bl_target(a + 48, w[12]))}, {s16(w[17]) // 4}, '
                     f'{s16(w[11])}, {s16(w[15])}')
             spec = 'r3=ptr r4=range:0..1'
         out.append(f'// sub_{a:08X} ({n} bytes) — {kind}\n'
@@ -123,6 +128,8 @@ for fn in inv:
         break
 hdr = ('// GERADO por tools/decomp/gen_lifecycle_instances.py — não editar à mão.\n'
        '// Instâncias dos templates de construtor/destrutor, provadas uma a uma pelo tools/verify.\n'
-       '#include "lifecycle_template.h"\n\n')
+       '#include "lifecycle_template.h"\n'
+       '// Alvos chamados diretamente pelas instâncias (símbolos da tradução ou de outra reconstrução).\n'
+       + ''.join(f'DECLARE_REX_FUNC(sub_{t:08X});\n' for t in sorted(targets)) + '\n')
 (root / 'src/decomp/game/lifecycle_instances.cpp').write_text(hdr + '\n'.join(out))
 print(len(out), 'instâncias')

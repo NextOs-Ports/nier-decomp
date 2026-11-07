@@ -16,6 +16,8 @@ for i in range(n):
     d = json.load(open(f'{tmp}/{i}.json')); res += d['results']; trials = d['trials']
 json.dump({'tool': 'nierverify', 'trials': trials, 'results': res, 'failed': sum(not r['pass'] for r in res)}, open(out, 'w'), indent=1)
 print(f"{len(res)} funções, {sum(r['pass'] for r in res)} aprovadas")
+slow = [r for r in res if r.get('time_pass') is False and r['pass'] is False and 'mais lenta' in r['error']]
+print(f"tempo: {sum(1 for r in res if r.get('time_pass'))} dentro do gate, {len(slow)} mais lentas que a tradução")
 for r in res:
     if not r['pass']: print('REPROVADA', r['name'], r['error'])
 PY

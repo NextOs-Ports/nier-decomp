@@ -1,5 +1,6 @@
 // Ciclo de vida de objetos C++ do NieR (construtores e destrutores gerados pelo
 // compilador), reconstruído como templates e instanciado por tipo.
+// Alvos de código são símbolos (PPCFunc*): chamada direta, como o `bl` traduzido.
 #pragma once
 #include <nier/decomp.h>
 
@@ -9,7 +10,7 @@ using namespace nier::guest;
 // Destrutor "com delete": restaura a vtable da classe; se flags & 1, libera o objeto
 // com operator delete(this, size). Devolve this.
 inline void dtor_vtable_delete(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vtable, uint32_t size,
-                               uint32_t op_delete, uint32_t vt_off = 0) {
+                               PPCFunc* op_delete, uint32_t vt_off = 0) {
   const uint32_t self = ctx.r3.u32;
   const uint32_t flags = ctx.r4.u32;
   st32(base, self + vt_off, vtable);
@@ -23,7 +24,7 @@ inline void dtor_vtable_delete(PPCContext& ctx, uint8_t* base, uint32_t frame, u
 }
 
 // Construtor: chama o construtor da base com (this, arg), zera um campo e grava a vtable.
-inline void ctor_base_field_vtable(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t base_ctor, uint32_t arg,
+inline void ctor_base_field_vtable(PPCContext& ctx, uint8_t* base, uint32_t frame, PPCFunc* base_ctor, uint32_t arg,
                                    uint32_t field, uint32_t vtable, uint32_t vt_off = 0) {
   const uint32_t self = ctx.r3.u32;
   {
@@ -38,7 +39,7 @@ inline void ctor_base_field_vtable(PPCContext& ctx, uint8_t* base, uint32_t fram
 
 // Destrutor "com delete" pelo alocador global: chama o destrutor do corpo; se flags & 1,
 // pede o alocador (objeto estático) e chama o método de liberação dele com o objeto.
-inline void dtor_allocator_delete(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t dtor, uint32_t get_allocator,
+inline void dtor_allocator_delete(PPCContext& ctx, uint8_t* base, uint32_t frame, PPCFunc* dtor, PPCFunc* get_allocator,
                                   uint32_t free_slot, uint32_t tmp_off = 80, uint32_t holder_off = 4) {
   const uint32_t self = ctx.r3.u32;
   const uint32_t flags = ctx.r4.u32;
@@ -69,7 +70,7 @@ inline void forward_swapped_virtual(PPCContext& ctx, uint8_t* base, uint32_t slo
 }
 
 // Destrutor com delete sem tamanho: restaura a vtable; se flags & 1, delete(this).
-inline void dtor_vtable_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vtable, uint32_t op_delete,
+inline void dtor_vtable_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vtable, PPCFunc* op_delete,
                              uint32_t vt_off = 0) {
   const uint32_t self = ctx.r3.u32;
   st32(base, self + vt_off, vtable);
@@ -81,7 +82,7 @@ inline void dtor_vtable_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uin
 }
 
 // Destrutor com delete: corpo do destrutor e, se flags & 1, delete(this).
-inline void dtor_body_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t dtor, uint32_t op_delete) {
+inline void dtor_body_free(PPCContext& ctx, uint8_t* base, uint32_t frame, PPCFunc* dtor, PPCFunc* op_delete) {
   const uint32_t self = ctx.r3.u32;
   const uint32_t flags = ctx.r4.u32;
   GuestFrame f(ctx, base, frame);
@@ -95,7 +96,7 @@ inline void dtor_body_free(PPCContext& ctx, uint8_t* base, uint32_t frame, uint3
 
 // Encaminhador com float: first(campo, this), depois second(this, f1 original).
 inline void forward_member_then_self(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t member_off,
-                                     uint32_t first, uint32_t second) {
+                                     PPCFunc* first, PPCFunc* second) {
   const uint64_t self = ctx.r3.u64;
   const uint64_t f1 = ctx.f1.u64;
   GuestFrame f(ctx, base, frame);
@@ -108,8 +109,8 @@ inline void forward_member_then_self(PPCContext& ctx, uint8_t* base, uint32_t fr
 }
 
 // Cadeia: a(this + off, arg) → b(resultado) → c(global, resultado de b). Devolve o de c.
-inline void chain3_global(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t off, uint32_t arg, uint32_t a,
-                          uint32_t b, uint32_t global, uint32_t c) {
+inline void chain3_global(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t off, uint32_t arg, PPCFunc* a,
+                          PPCFunc* b, uint32_t global, PPCFunc* c) {
   GuestFrame f(ctx, base, frame);
   ctx.r4.u64 = arg;
   ctx.r3.u64 = ctx.r3.u64 + static_cast<int64_t>(off);
@@ -121,8 +122,8 @@ inline void chain3_global(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_
 }
 
 // Inicializador estático: construtor(objeto global) e registro do destrutor (atexit).
-inline void static_init(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t obj, uint32_t ctor, uint32_t arg2,
-                        uint32_t reg) {
+inline void static_init(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t obj, PPCFunc* ctor, uint32_t arg2,
+                        PPCFunc* reg) {
   GuestFrame f(ctx, base, frame);
   ctx.r3.s64 = static_cast<int32_t>(obj);
   call_guest(ctx, base, ctor);
@@ -133,8 +134,8 @@ inline void static_init(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t
 
 namespace nier::lifecycle {
 // Construtor: base(this, arg); memset(this + block, value, size); vtable; dois floats iguais.
-inline void ctor_base_memset(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t base_ctor, uint32_t arg,
-                             int32_t block, uint32_t value, uint32_t size, uint32_t memset_fn, uint32_t vtable,
+inline void ctor_base_memset(PPCContext& ctx, uint8_t* base, uint32_t frame, PPCFunc* base_ctor, uint32_t arg,
+                             int32_t block, uint32_t value, uint32_t size, PPCFunc* memset_fn, uint32_t vtable,
                              uint32_t float_addr, int32_t vt_off, int32_t f_off_a, int32_t f_off_b) {
   const uint32_t self = ctx.r3.u32;
   {
@@ -154,8 +155,8 @@ inline void ctor_base_memset(PPCContext& ctx, uint8_t* base, uint32_t frame, uin
 }
 
 // Método: a(membro, this); b(membro, this); this->método virtual; c(this).
-inline void member_pair_virtual_then(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t member_off, uint32_t a,
-                                     uint32_t b, uint32_t slot, uint32_t c) {
+inline void member_pair_virtual_then(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t member_off, PPCFunc* a,
+                                     PPCFunc* b, uint32_t slot, PPCFunc* c) {
   const uint32_t self = ctx.r3.u32;
   GuestFrame f(ctx, base, frame);
   ctx.r4.u64 = ctx.r3.u64;
@@ -173,7 +174,7 @@ inline void member_pair_virtual_then(PPCContext& ctx, uint8_t* base, uint32_t fr
 // Busca: índice = find(this + off, 1, x, y); -1 se não achou; senão tenta
 // resolve(this, 2*índice, 2*índice + 2) e, se falhar, devolve 4*índice.
 inline void find_then_resolve(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t off, uint32_t first_arg,
-                              uint32_t find, uint32_t resolve, uint32_t sh1 = 1, uint32_t mb1 = 0, uint32_t me1 = 30,
+                              PPCFunc* find, PPCFunc* resolve, uint32_t sh1 = 1, uint32_t mb1 = 0, uint32_t me1 = 30,
                               uint32_t sh2 = 2, uint32_t mb2 = 0, uint32_t me2 = 29) {
   const uint64_t self = ctx.r3.u64;
   GuestFrame f(ctx, base, frame);
@@ -199,7 +200,7 @@ namespace nier::lifecycle {
 inline void dtor_two_members(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t m1_off, uint32_t vt_a,
                              uint32_t vt_a_off, uint32_t vt_b, uint32_t vt_b_off, uint32_t slot1, uint32_t arg1,
                              uint32_t m2_off, uint32_t vt_c, uint32_t vt_c_off, uint32_t slot2, uint32_t arg2,
-                             uint32_t base_dtor) {
+                             PPCFunc* base_dtor) {
   const uint32_t self = ctx.r3.u32;
   GuestFrame f(ctx, base, frame);
   const uint32_t m1 = ld32(base, self + m1_off);
@@ -224,7 +225,7 @@ inline void dtor_two_members(PPCContext& ctx, uint8_t* base, uint32_t frame, uin
 // Fábrica de nó: aloca pelo alocador do dono (+alloc_off, método `slot`), inicializa o nó
 // como lista vazia com vtable e escala padrão, guarda o alocador e insere no dono.
 inline void make_node(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t alloc_off, uint32_t size,
-                      uint32_t align, uint32_t slot, uint32_t vtable, uint32_t scale_addr, uint32_t insert) {
+                      uint32_t align, uint32_t slot, uint32_t vtable, uint32_t scale_addr, PPCFunc* insert) {
   const uint32_t owner = ctx.r3.u32;
   GuestFrame f(ctx, base, frame);
   const uint32_t allocator = ld32(base, owner + alloc_off);
