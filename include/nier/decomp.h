@@ -25,6 +25,13 @@ inline void st16(uint8_t* base, uint32_t a, uint16_t v) { v = __builtin_bswap16(
 inline void st32(uint8_t* base, uint32_t a, uint32_t v) { v = __builtin_bswap32(v); std::memcpy(base + a, &v, 4); }
 inline void st64(uint8_t* base, uint32_t a, uint64_t v) { v = __builtin_bswap64(v); std::memcpy(base + a, &v, 8); }
 inline void stf (uint8_t* base, uint32_t a, float f) { uint32_t v; std::memcpy(&v, &f, 4); st32(base, a, v); }
+// Deslocamentos com quantidade em registrador, com a semântica do PowerPC:
+// usam os 6 (32 bits) ou 7 (64 bits) bits baixos, e quantidade >= largura dá 0 (ou o sinal).
+inline uint32_t slw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x << n; }
+inline uint32_t srw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? 0 : x >> n; }
+inline uint32_t sraw(uint32_t x, uint64_t n) { n &= 63; return n >= 32 ? (static_cast<int32_t>(x) < 0 ? 0xFFFFFFFFu : 0u) : static_cast<uint32_t>(static_cast<int32_t>(x) >> n); }
+inline uint64_t sld(uint64_t x, uint64_t n) { n &= 127; return n >= 64 ? 0 : x << n; }
+inline uint64_t srd(uint64_t x, uint64_t n) { n &= 127; return n >= 64 ? 0 : x >> n; }
 }  // namespace nier::guest
 
 #ifdef REX_CALL_INDIRECT_FUNC
