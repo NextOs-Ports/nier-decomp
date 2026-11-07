@@ -515,6 +515,9 @@ double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs 
 // 1 = sem pulo. Pular é seguro para a lógica: o renderizador não devolve nada à memória do guest; alvos/Resolve
 // ficam do último quadro desenhado.
 std::atomic<bool> g_frameskipAuto{false};
+// C1-I2: linha [nier-exposicao] sempre ligada (janela de log): PC0 de material, última cópia de volta, tarja (cor do vértice e texel)
+float g_expPc0[3] = {0, 0, 0}; uint8_t g_expRb[4] = {0, 0, 0, 0}; uint32_t g_expRbLevel = 0, g_expRbAddr = 0, g_expRbCount = 0;
+float g_barColor[4] = {0, 0, 0, 0}; uint8_t g_barTexel[4] = {0, 0, 0, 0}; uint32_t g_barFmt = 0, g_barCount = 0; bool g_barDecoded = false;
 // C1-H7 NIER_AB_CYCLE=1: numa abertura só, a partir da 1ª cena 3D troca de modo a cada NIER_AB_PERIOD s (padrão 6) e
 // registra o custo do quadro na thread GL por modo. Imagem errada de propósito (diagnóstico).
 // 0 base, 1 sem pós/UP (cls 3), 2 sem cenário (cls 0), 3 sem Resolve, 4 PS chapado, 5 tesoura 1x1 (sem preenchimento)
@@ -1555,6 +1558,18 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
   Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask));
+  if (!c.up && g_drawClassCurrent == 0 && !c.ps->constMap.empty() && c.ps->constMap[0] == 0) { const uint8_t* pc = Field(state, kPixelConstants); g_expPc0[0] = BEF(pc); g_expPc0[1] = BEF(pc + 4); g_expPc0[2] = BEF(pc + 8); }
+  if (c.up && BE32(Field(state, kBlendControl)) == 0x00010706 && c.ps->textureMask == 1 && c.inputCount >= 3) {
+    auto t0 = xenos::DecodeFetch(Field(state, kFetchConstants));
+    if (t0.width == 1 && t0.height == 1) {
+      ++g_barCount; g_barFmt = t0.format;
+      const float* v = reinterpret_cast<const float*>(f.blob.data() + c.inputs[2]);
+      if (c.inputs[2]) for (int k = 0; k < 4; ++k) g_barColor[k] = v[k];
+      thread_local std::vector<uint8_t> px1;
+      g_barDecoded = xenos::DecodeLevel0(Physical, t0, px1) && px1.size() >= 4;
+      if (g_barDecoded) std::memcpy(g_barTexel, px1.data(), 4);
+    }
+  }
   { static bool diagRes = std::getenv("NIER_DIAG_RESOLVE") != nullptr;  // PC0 (exposição) dos PS que o leem, a cada 300 quadros
     if (diagRes && g_frames.load() % 300 == 0) { static uint64_t lastF = ~0ull; static int n = 0; if (lastF != g_frames.load()) { lastF = g_frames.load(); n = 0; }
       const uint8_t* pc = Field(state, kPixelConstants);
@@ -1876,6 +1891,7 @@ void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFet
       std::memcpy(dst + off, e, 4);
     }
   }
+  g_expRbLevel = level; g_expRbAddr = addr; ++g_expRbCount; { const uint8_t* p0 = &px[0]; g_expRb[0] = p0[3]; g_expRb[1] = p0[0]; g_expRb[2] = p0[1]; g_expRb[3] = p0[2]; }
   static bool diag = std::getenv("NIER_DIAG_RESOLVE") != nullptr;
   if (diag) { static uint64_t n = 0; if (n++ < 40 || n % 200 == 0) std::fprintf(stderr, "[nier-readback] nível %u %ux%u endereço %08X gl %dx%d texel0 RGBA %u %u %u %u\n", level, t.width, t.height, addr, tg->w, tg->h, px[0], px[1], px[2], px[3]); }
 }
@@ -2285,6 +2301,10 @@ void RenderThread() {
         uint64_t up = g_fsUpdates.exchange(0), dr = g_fsDropped.exchange(0);
         uint64_t rec = g_recordNs.exchange(0), th = g_triHits.exchange(0), tm = g_triMisses.exchange(0);
         if (W) {
+          std::fprintf(stderr, "[nier-exposicao] PC0 material %.4g %.4g %.4g | cópia de volta %u na janela, nível %u endereço %08X A,R,G,B %u %u %u %u | tarja %u desenhos, cor do vértice %.3g %.3g %.3g %.3g, textura 1x1 fmt %u texel RGBA %u %u %u %u%s\n",
+                       g_expPc0[0], g_expPc0[1], g_expPc0[2], g_expRbCount, g_expRbLevel, g_expRbAddr, g_expRb[0], g_expRb[1], g_expRb[2], g_expRb[3],
+                       g_barCount, g_barColor[0], g_barColor[1], g_barColor[2], g_barColor[3], g_barFmt, g_barTexel[0], g_barTexel[1], g_barTexel[2], g_barTexel[3], g_barDecoded ? "" : " (não decodificou)");
+          g_expRbCount = 0; g_barCount = 0;
           std::fprintf(stderr, "[nier-lod] índices de cenário/quadro por distância (w): <5 %.0f, 5-10 %.0f, 10-20 %.0f, 20-40 %.0f, 40-80 %.0f, 80-160 %.0f, 160-320 %.0f, >=320 %.0f; cortados por LOD %.0f\n",
                        g_lodHist[0] / double(W), g_lodHist[1] / double(W), g_lodHist[2] / double(W), g_lodHist[3] / double(W), g_lodHist[4] / double(W), g_lodHist[5] / double(W), g_lodHist[6] / double(W), g_lodHist[7] / double(W), g_lodCulledIdx / double(W));
           for (auto& h : g_lodHist) h = 0; g_lodCulledIdx = 0;
