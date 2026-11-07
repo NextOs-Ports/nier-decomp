@@ -136,3 +136,16 @@ A primeira prova encontrou 64 diferenças no sinal de NaNs de seno/cosseno:
 o compilador do host escolhia outro sinal nas operações intermediárias.
 A reconstrução explicita o NaN quieto positivo, preservando o payload como
 o original. A prova certifica resultados e memória ABI, não todos os flags FP.
+
+## Lote X1-16 — captura de contexto
+
+`825D5DE0` (716 bytes) grava o jump-buffer CRT: FPR14–31, GPR13–31, SP,
+CR/LR e VMX128 v64–v127, preservando lacunas e stores vetoriais parciais para
+buffers desalinhados. Mantém o callback opcional e seus argumentos; o retorno
+normal é zero. As dependências de layout de PPCContext têm static_assert.
+
+Passou em 2.000 comparações e em 8.192 casos extras com registradores
+aleatórios, todos os 16 alinhamentos e um callback instrumentado. A prova
+cobre captura/encaminhamento, não execução de um longjmp ou desenrolamento
+de pilha. Os callbacks do teste são sintéticos e não substituem funções
+comerciais para produzir equivalência artificial.

@@ -143,3 +143,8 @@ a proteção retornou zero igualmente nos dois lados. A especificação aleatór
 do comparador cobre literais; os caminhos de backreference são provados pelo
 encoder sintético separado. Não se certifica entrada corrompida/truncada;
 o contrato original exige buffers e stream válidos.
+
+O lote X1-16 também inclui três folhas de máscaras/tags (`824C4258`,
+`824CF0B8`, `824CF110`, 208 bytes), todas com 2.000 comparações iguais.
+A posição da máscara conta os bits até o primeiro bit da máscara de destino,
+com resultado -1 quando não existe interseção; não assume destino one-hot.
