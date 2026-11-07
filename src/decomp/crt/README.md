@@ -84,3 +84,23 @@ modos de arredondamento, todos os 52 bits líderes possíveis de subnormais,
 ambos os sinais, NaNs com payload, zeros, infinito e expoentes que transbordam.
 Compara resultados, dados e spills observáveis; flags FP completos não foram
 certificados. Cópias usam RAM válida e regiões separadas.
+
+## Lote X1-8 — resto, classificação e conversões de texto
+
+Oito funções passaram em 2.000 comparações cada, sem falhas: wcsncpy
+(`825D3958`), conversão de um byte em unidade UTF-16 (`825E9678`),
+classificação de infinito/NaN (`825DE3D0`), seleção de status FP
+(`825E5270`), tradução de erros pela tabela guest (`825D4FC8`),
+consulta ctype por locale (`825DCC78`), resto binary64 (`825D9258`)
+e remoção de zeros decimais finais antes de e/E (`825DBF00`).
+
+O resto usa significandos inteiros e devolve o NaN da tabela guest nos
+mesmos casos do original. A consulta ctype usa a tabela original de locale,
+inclusive EOF, sem assumir que toda classificação seja ASCII. O aparador
+de zeros devolve o ponteiro à vírgula/ponto decimal ou ao terminador, como
+a rotina original. Tabelas comerciais continuam somente na imagem privada.
+
+A prova extra `nier_crt_contract_probe` passou 7.685 casos: produto dos
+especiais IEEE em quatro modos FP, 4.000 pares aleatórios de binary64,
+formatos decimais com expoente, buffers opcionais nulos, todos os 256 bytes
+na classificação, entradas da tabela de erros e combinações de status.

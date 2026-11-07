@@ -78,3 +78,12 @@ if(NIER_VERIFY_BUILD AND NIER_VERIFY_GENERATED)
   target_link_libraries(nier_numeric_bits_probe PRIVATE rex::runtime)
   rexglue_apply_target_settings(nier_numeric_bits_probe)
 endif()
+if(NIER_VERIFY_BUILD AND NIER_VERIFY_GENERATED)
+  add_executable(nier_crt_contract_probe crt_contract_probe.cpp
+    ../../src/decomp/crt/remainder.cpp ../../src/decomp/crt/classification.cpp
+    ../../src/decomp/crt/byte_strings.cpp ../../src/decomp/crt/wide_strings.cpp ${NIER_ORACLE_OBJECTS})
+  target_compile_definitions(nier_crt_contract_probe PRIVATE NIER_VERIFY=1)
+  target_include_directories(nier_crt_contract_probe PRIVATE ../../include "${NIER_VERIFY_GENERATED}")
+  target_link_libraries(nier_crt_contract_probe PRIVATE rex::runtime)
+  rexglue_apply_target_settings(nier_crt_contract_probe)
+endif()

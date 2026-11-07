@@ -2,6 +2,27 @@
 #include <nier/decomp.h>
 using namespace nier::guest;
 
+// wcsncpy counts 16-bit code units and pads with zero units after the NUL.
+NIER_DECOMP(sub_825D3958) {
+    uint32_t dst=ctx.r3.u32,src=ctx.r4.u32,n=ctx.r5.u32;
+    while(n) {
+        const uint16_t ch=ld16(base,src);src+=2;st16(base,dst,ch);dst+=2;--n;
+        if(!ch) {while(n--) {st16(base,dst,0);dst+=2;}break;}
+    }
+}
+NIER_VERIFY_SPEC(sub_825D3958,0x825D3958,"r3=const:0x40010000 r4=const:0x40050000 r5=range:0..128");
+
+// Single-byte locale conversion: zero/input absent/count zero returns 0;
+// otherwise one byte becomes one BE code unit. A null output is allowed.
+NIER_DECOMP(sub_825E9678) {
+    const uint32_t dst=ctx.r3.u32,src=ctx.r4.u32;
+    if(!src || !ctx.r5.u32) {ctx.r3.u64=0;return;}
+    const uint8_t ch=ld8(base,src);
+    if(dst)st16(base,dst,ch);
+    ctx.r3.u64=ch?1:0;
+}
+NIER_VERIFY_SPEC(sub_825E9678,0x825E9678,"r3=const:0x40010000 r4=const:0x40050000 r5=range:0..8");
+
 // wcslen semantics, 36 bytes: count code units, not Unicode scalar values.
 NIER_DECOMP(sub_825D3620) {
     const uint32_t string=ctx.r3.u32;
