@@ -5,6 +5,7 @@
 #pragma once
 
 #include <rex/rex_app.h>
+#include "lifecycle.h"
 
 class NierApp : public rex::ReXApp {
  public:
@@ -15,6 +16,12 @@ class NierApp : public rex::ReXApp {
     return std::unique_ptr<NierApp>(new NierApp(ctx, "nier",
         PPCImageConfig));
   }
+
+  void OnPostSetup() override { lifecycle_.Start(); }
+  void OnShutdown() override { lifecycle_.Stop(); }
+
+ private:
+  NierLifecycle lifecycle_;
 
   // Override virtual hooks for customization:
   // void OnPostInitLogging() override {}
