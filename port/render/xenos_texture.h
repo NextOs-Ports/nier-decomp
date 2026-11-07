@@ -43,7 +43,7 @@ inline TextureFetch DecodeFetch(const uint8_t* f) {
   t.height = ((w2 >> 13) & 0x1FFF) + 1;
   t.dimension = (w5 >> 9) & 3;
   t.swizzle = (w3 >> 1) & 0xFFF;
-  t.packedMips = (w5 >> 11) & 1;  // a confirmar contra a captura
+  t.packedMips = (w5 >> 11) & 1;
   t.mipBase = w5 & 0xFFFFF000;
   return t;
 }
@@ -140,6 +140,18 @@ inline void DecodeAlpha5(const uint8_t* b, uint8_t out[16][4]) {
   for (int i = 0; i < 16; ++i) out[i][3] = a[(bits >> (3 * i)) & 7];
 }
 
+// Level zero is itself in the packed tail when either logical dimension is <=16.
+// The first packed level starts 16 texels into the shorter axis, even without
+// sampling any smaller mip. Xenos GetPackedMipOffset, mip=0 (Xenia BSD-3-Clause).
+inline void PackedBaseOffset(const TextureFetch& t, uint32_t& x, uint32_t& y) {
+  x = y = 0;
+  if (!t.packedMips || std::min(t.width, t.height) > 16) return;
+  // Compare ceil(log2(size)), as the hardware packs by power-of-two dimensions.
+  auto pow2 = [](uint32_t n) { uint32_t p = 1; while (p < n) p <<= 1; return p; };
+  if (pow2(t.width) > pow2(t.height)) y = 16; else x = 16;
+  if (Block(t.format)) { x /= 4; y /= 4; }
+}
+
 // Lê `size` bytes de memória física guest em `address`; nulo se fora da faixa.
 using Reader = const uint8_t* (*)(uint32_t address, uint32_t size);
 
@@ -149,18 +161,19 @@ inline bool DecodeLevel0(Reader read, const TextureFetch& t, std::vector<uint8_t
   const bool block = Block(t.format);
   const uint32_t bpe = BytesPerElement(t.format);
   const uint32_t bw = block ? (t.width + 3) / 4 : t.width, bh = block ? (t.height + 3) / 4 : t.height;
+  uint32_t ox, oy; PackedBaseOffset(t, ox, oy);
   const uint32_t pitchE = std::max((block ? t.pitch / 4 : t.pitch), bw);
   const uint32_t alignedW = (pitchE + 31) & ~31u, alignedH = (bh + 31) & ~31u;
-  const uint32_t span = alignedW * alignedH * bpe;
+  const uint32_t span = t.tiled ? std::max(4096u, alignedW * alignedH * bpe) : alignedW * alignedH * bpe;
   const uint8_t* src = read(t.base, span);
   if (!src) return false;
   uint32_t log2Bpp = bpe == 1 ? 0 : bpe == 2 ? 1 : bpe == 4 ? 2 : bpe == 8 ? 3 : 4;
   out.assign(size_t(t.width) * t.height * 4, 0);
   uint8_t e[16];
   for (uint32_t y = 0; y < bh; ++y) {
-    int32_t rowBase = t.tiled ? TiledOuter(int32_t(y), int32_t(alignedW), log2Bpp) : 0;
+    int32_t rowBase = t.tiled ? TiledOuter(int32_t(y + oy), int32_t(alignedW), log2Bpp) : 0;
     for (uint32_t x = 0; x < bw; ++x) {
-      uint32_t off = t.tiled ? uint32_t(TiledInner(int32_t(x), int32_t(y), log2Bpp, rowBase)) : (y * pitchE + x) * bpe;
+      uint32_t off = t.tiled ? uint32_t(TiledInner(int32_t(x + ox), int32_t(y + oy), log2Bpp, rowBase)) : ((y + oy) * pitchE + x + ox) * bpe;
       if (off + bpe > span) continue;
       std::memcpy(e, src + off, bpe);
       Swap(e, bpe, t.endian);
@@ -230,9 +243,10 @@ inline bool DecodeLevel0(Reader read, const TextureFetch& t, std::vector<uint8_t
 // Caminho rápido para k8 (planos de vídeo): destila direto para LUMINANCE_ALPHA (L = A = valor).
 inline bool DecodeK8LumAlpha(Reader read, const TextureFetch& t, std::vector<uint8_t>& out) {
   if (t.format != k8 || t.dimension != 1) return false;
+  uint32_t ox, oy; PackedBaseOffset(t, ox, oy);
   const uint32_t pitchE = std::max(t.pitch, t.width);
   const uint32_t alignedW = (pitchE + 31) & ~31u, alignedH = (t.height + 31) & ~31u;
-  const uint32_t span = alignedW * alignedH;
+  const uint32_t span = t.tiled ? std::max(4096u, alignedW * alignedH) : alignedW * alignedH;
   const uint8_t* src = read(t.base, span);
   if (!src) return false;
   const uint32_t flip = t.endian == 1 ? 1 : t.endian == 2 ? 3 : t.endian == 3 ? 2 : 0;  // troca de bytes = XOR
@@ -240,21 +254,21 @@ inline bool DecodeK8LumAlpha(Reader read, const TextureFetch& t, std::vector<uin
   uint8_t* o = out.data();
   for (uint32_t y = 0; y < t.height; ++y) {
     if (!t.tiled) {
-      const uint8_t* row = src + size_t(y) * pitchE;
+      const uint8_t* row = src + size_t(y + oy) * pitchE + ox;
       for (uint32_t x = 0; x < t.width; ++x) { uint8_t v = row[x ^ flip]; *o++ = v; *o++ = v; }
       continue;
     }
-    const int32_t base = TiledOuter(int32_t(y), int32_t(alignedW), 0);
+    const int32_t base = TiledOuter(int32_t(y + oy), int32_t(alignedW), 0);
     // 1 byte/elemento: x..x+7 (x múltiplo de 8) ocupam 8 bytes contíguos; troca de bytes = XOR dentro deles.
     uint32_t x = 0;
     for (; x + 8 <= t.width; x += 8) {
-      uint32_t off = uint32_t(TiledInner(int32_t(x), int32_t(y), 0, base));
+      uint32_t off = uint32_t(TiledInner(int32_t(x + ox), int32_t(y + oy), 0, base));
       if (off + 8 > span) { for (int k = 0; k < 8; ++k) { *o++ = 0; *o++ = 0; } continue; }
       const uint8_t* run = src + off;
       for (uint32_t k = 0; k < 8; ++k) { uint8_t v = run[k ^ flip]; *o++ = v; *o++ = v; }
     }
     for (; x < t.width; ++x) {
-      uint32_t off = uint32_t(TiledInner(int32_t(x), int32_t(y), 0, base)) ^ flip;
+      uint32_t off = uint32_t(TiledInner(int32_t(x + ox), int32_t(y + oy), 0, base)) ^ flip;
       uint8_t v = off < span ? src[off] : 0;
       *o++ = v; *o++ = v;
     }
@@ -265,9 +279,10 @@ inline bool DecodeK8LumAlpha(Reader read, const TextureFetch& t, std::vector<uin
 // k8 com swizzle (x,x,x,1) (planos de vídeo SFD): 1 byte por texel para GL_LUMINANCE.
 inline bool DecodeK8Luminance(Reader read, const TextureFetch& t, std::vector<uint8_t>& out) {
   if (t.format != k8 || t.dimension != 1) return false;
+  uint32_t ox, oy; PackedBaseOffset(t, ox, oy);
   const uint32_t pitchE = std::max(t.pitch, t.width);
   const uint32_t alignedW = (pitchE + 31) & ~31u, alignedH = (t.height + 31) & ~31u;
-  const uint32_t span = t.tiled ? alignedW * alignedH : pitchE * t.height;
+  const uint32_t span = t.tiled ? std::max(4096u, alignedW * alignedH) : pitchE * (t.height + oy);
   const uint8_t* src = read(t.base, span);
   if (!src) return false;
   const uint32_t flip = t.endian == 1 ? 1 : t.endian == 2 ? 3 : t.endian == 3 ? 2 : 0;
@@ -275,14 +290,14 @@ inline bool DecodeK8Luminance(Reader read, const TextureFetch& t, std::vector<ui
   for (uint32_t y = 0; y < t.height; ++y) {
     uint8_t* o = out.data() + size_t(y) * t.width;
     if (!t.tiled) {
-      const uint8_t* row = src + size_t(y) * pitchE;
+      const uint8_t* row = src + size_t(y + oy) * pitchE + ox;
       if (!flip) std::memcpy(o, row, t.width);
       else for (uint32_t x = 0; x < t.width; ++x) o[x] = row[x ^ flip];
       continue;
     }
-    const int32_t base = TiledOuter(int32_t(y), int32_t(alignedW), 0);
+    const int32_t base = TiledOuter(int32_t(y + oy), int32_t(alignedW), 0);
     for (uint32_t x = 0; x < t.width; x += 8) {
-      uint32_t off = uint32_t(TiledInner(int32_t(x), int32_t(y), 0, base));
+      uint32_t off = uint32_t(TiledInner(int32_t(x + ox), int32_t(y + oy), 0, base));
       for (uint32_t k = 0; k < 8 && x + k < t.width; ++k) { uint32_t a = (off + k) ^ flip; o[x + k] = a < span ? src[a] : 0; }
     }
   }

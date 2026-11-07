@@ -55,3 +55,11 @@
 - frontend_sdl: 4.417 s de CPU, 4.44% do processo.
 - Não atribuído: 2.194 s (2.21%). Grupos inferidos por nome e funções; clocks de threads cobrem 97,8% da CPU.
 - Top guest ARM: 824F5E40, 824F5EF0, 824E0038, 825D3010, 824FF5C0. Captura/triangulação: TID59442,18,382s; replay/driver:TID59459,10,025s; DSP:TID59452,18,701s; TimerQueue:TID59420,8,564s. Lista completa em X1-H-hot-arm.json compartilhado. Volto a X1-I.
+
+## F18 versus F15 — CPU física
+- audio: 34.062→32.065 s CPU (-5.9%).
+- render: 35.188→43.551 s CPU (+23.8%).
+- game_workers: 15.064→17.464 s CPU (+15.9%).
+- timers: 8.564→2.476 s CPU (-71.1%).
+- frontend_sdl: 4.417→4.586 s CPU (+3.8%).
+- 824F5E40:284→191 amostras (-32,7%); 824F5EF0:163→129 (-20,9%); par -28,4%. São estimativas amostrais, sem custo por chamada. Total99,488→101,821s: render/captura e jogo absorveram a redução de áudio/timers. Build IDs exatos conferidos; F18-vs-F15.json entregue. Retoma X1-I/mips.
