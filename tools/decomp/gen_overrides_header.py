@@ -39,9 +39,11 @@ out = ['// GERADO por tools/decomp/gen_overrides_header.py — não editar.',
        f'// {len(names)} reconstruções verificadas substituem o código recompilado.',
        '#pragma once']
 out += [f'#define NIER_OVERRIDE_{n} {n}' for n in sorted(names)]
+out += [f'#define NIER_OVERRIDE_{n} nier_native_{n}' for n in sorted(reserved)]
 def write_if_changed(path, content):
     if not path.exists() or path.read_text() != content:
         path.write_text(content)
 write_if_changed(pathlib.Path(a.output), '\n'.join(out) + '\n')
 write_if_changed(pathlib.Path(a.output).with_suffix('.txt'), '\n'.join(sorted(names)) + '\n')
+write_if_changed(pathlib.Path(a.output).with_suffix('.backends.txt'), '\n'.join('nier_native_' + n for n in sorted(reserved)) + '\n')
 print(f'{len(names)} overrides em {a.output}', file=sys.stderr)
