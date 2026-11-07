@@ -83,11 +83,82 @@ def make_pair_result(a, w):
             f'{s16(w[12])}, {s16(w[14])}, {sym(bl_target(a + 60, w[15]))}, {s16(w[17])})')
     return body, 'r3=ptr r4=ptr'
 
+def sub_virtual_then_set(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    body = (f'sub_virtual_then_set(ctx, base, {-s16(w[3])}, {s16(w[7])}, 0x{hi_lo(5, 9):08X}, {s16(w[8])}, '
+            f'{s16(w[10]) // 4}, {s16(w[14])}, {s16(w[13])})')
+    return body, f'r3=ptr @r3.{s16(w[7])}=const:0x40001000'
+
+def ctor_base_vt_byte_float(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    body = (f'ctor_base_vt_byte_float(ctx, base, {-s16(w[3])}, {sym(bl_target(a + 24, w[6]))}, {s16(w[4])}, '
+            f'{s16(w[11])}, {s16(w[9])}, 0x{hi_lo(8, 10):08X}, {s16(w[14])}, 0x{hi_lo(7, 13):08X}, {s16(w[15])})')
+    return body, 'r3=ptr'
+
+def singleton_register(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    if s16(w[6]) != 0: return None
+    body = (f'singleton_register(ctx, base, {-s16(w[2])}, 0x{hi_lo(3, 5):08X}, 0x{hi_lo(4, 7):08X}, '
+            f'{sym(bl_target(a + 48, w[12]))}, 0x{hi_lo(10, 11):08X}, 0x{hi_lo(14, 17):08X}, {s16(w[15])})')
+    return body, f'r3=ptr @r3.0=ptr'
+
+def angle_wrap(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    p = (f'{{0x{hi_lo(0, 4):08X}, 0x{hi_lo(2, 5):08X}, 0x{hi_lo(12, 13):08X}, 0x{hi_lo(21, 23):08X}, 0x{hi_lo(22, 25):08X}, '
+         f'0x{hi_lo(28, 31):08X}, {s16(w[3])}}}')
+    if hi_lo(21, 23) != hi_lo(29, 32) or hi_lo(22, 25) != hi_lo(30, 34): return None
+    return f'static constexpr AngleWrap p = {p}; angle_wrap(ctx, base, p)', 'f1=f32:0..800'
+
+def ctor_vt2_link(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    if bl_target(a + 56, w[14]) != bl_target(a + 88, w[22]): return None
+    body = (f'ctor_vt2_link(ctx, base, {-s16(w[4])}, 0x{hi_lo(6, 8):08X}, {s16(w[10])}, 0x{hi_lo(7, 9):08X}, {s16(w[12])}, '
+            f'{s16(w[11])}, {sym(bl_target(a + 56, w[14]))}, {s16(w[15])}, {s16(w[19])}, {s16(w[25])}, {s16(w[27]) // 4})')
+    return body, 'r3=ptr r4=range:0..1 callargs=2'
+
+def five_flag_calls(a, w):
+    p = (f'{{{sym(bl_target(a + 40, w[10]))}, {sym(bl_target(a + 64, w[16]))}, {sym(bl_target(a + 100, w[25]))}, '
+         f'{sym(bl_target(a + 124, w[31]))}, {sym(bl_target(a + 148, w[37]))}, {s16(w[8])}, {s16(w[11])}, {s16(w[17])}, '
+         f'{s16(w[19])}, {s16(w[26])}, {s16(w[32])}}}')
+    return f'static constexpr FiveFlags p = {p}; five_flag_calls(ctx, base, {-s16(w[4])}, p)', 'r3=ptr r4=range:0..6'
+
+def effect_init(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    p = (f'{{{sym(bl_target(a + 84, w[21]))}, {sym(bl_target(a + 116, w[29]))}, 0x{hi_lo(9, 11):08X}, 0x{hi_lo(6, 12):08X}, '
+         f'0x{hi_lo(7, 13):08X}, 0x{hi_lo(8, 16):08X}, {s16(w[19])}, {s16(w[17])}, {s16(w[15])}, {s16(w[14])}, {s16(w[22])}, '
+         f'{s16(w[23])}, {s16(w[25])}, {s16(w[26])}, {s16(w[28])}, {s16(w[34])}, {s16(w[33])}, {s16(w[37]) // 4}, {s16(w[40])}, {s16(w[41])}}}')
+    return f'static constexpr EffectInit p = {p}; effect_init(ctx, base, {-s16(w[5])}, p)', f'r3=ptr @r3.{s16(w[22])}=ptr callret=ptr'
+
+def clone_if_type(a, w):
+    ref = words(0x822D8268, 184)
+    for i in (20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 33, 34, 35, 36):
+        if (w[i] & 0xFFFF) != (ref[i] & 0xFFFF): return None
+    if bl_target(a + 36, w[9]) != bl_target(a + 44, w[11]): return None
+    p = (f'{{{sym(bl_target(a + 36, w[9]))}, {sym(bl_target(a + 56, w[14]))}, {s16(w[5])}, {s16(w[7])}, {s16(w[12])}, '
+         f'{s16(w[13])}, {s16(w[16])}, {s16(w[17])}, {s16(w[21])}, {s16(w[39])}, {s16(w[37])}, {s16(w[38])}}}')
+    return f'static constexpr CloneIf p = {p}; clone_if_type(ctx, base, {-s16(w[4])}, p)', f'r3=ptr:16 r5=ptr @r5.{s16(w[5])}=range:{s16(w[7]) - 1}..{s16(w[7]) + 1} @r3.{s16(w[12])}=ptr callret=ptr'
+
+def bounded_string_copy(a, w):
+    body = (f'bounded_string_copy(ctx, base, {-s16(w[3])}, {s16(w[8])}, {s16(w[23])}, {sym(bl_target(a + 148, w[37]))}, {s16(w[39])})')
+    return body, 'r3=ptr r4=bptr'
+
+def make_node2(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    body = (f'make_node(ctx, base, {-s16(w[4])}, {s16(w[6])}, {s16(w[8])}, {s16(w[7])}, {s16(w[10]) // 4}, '
+            f'0x{hi_lo(16, 21):08X}, 0x{hi_lo(17, 26):08X}, {sym(bl_target(a + 144, w[36]))})')
+    return body, f'r3=ptr @r3.{s16(w[6])}=obj callret=ptr'
+
 KINDS = {'alloc_then_init': (0x821F4C50, 116, alloc_then_init), 'ctor_vec_rand': (0x8226BCB8, 268, ctor_vec_rand),
          'fir16': (0x825047C0, 276, fir16), 'dtor_body_free2': (0x82102F88, 80, dtor_body_free2),
          'ctor_base_vt_fields': (0x82289650, 84, ctor_base_vt_fields), 'chain2x_global': (0x82386F00, 104, chain2x_global),
          'bitset_find_resolve': (0x82175C10, 136, bitset_find_resolve), 'collect_sort_apply': (0x8214C190, 128, collect_sort_apply),
-         'make_pair_result': (0x82550860, 96, make_pair_result)}
+         'make_pair_result': (0x82550860, 96, make_pair_result),
+         'sub_virtual_then_set': (0x823F6318, 80, sub_virtual_then_set), 'ctor_base_vt_byte_float': (0x8228FB70, 84, ctor_base_vt_byte_float),
+         'singleton_register': (0x82594690, 88, singleton_register), 'angle_wrap': (0x821B2C40, 148, angle_wrap),
+         'ctor_vt2_link': (0x8227A730, 148, ctor_vt2_link), 'five_flag_calls': (0x82207AB0, 176, five_flag_calls),
+         'effect_init': (0x82351228, 196, effect_init),
+         # clone_if_type (0x822D8268, 184): a chamada base traduzida dispara SIGFPE com o comparador desarmado; fora até entender.
+         'bounded_string_copy': (0x82100540, 180, bounded_string_copy), 'make_node2': (0x825A7690, 176, make_node2)}
 refs = {k: shape(words(a, n)) for k, (a, n, _) in KINDS.items()}
 done = set()
 for f in (root / 'src/decomp').rglob('*.cpp'):
