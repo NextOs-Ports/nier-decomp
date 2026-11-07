@@ -72,6 +72,48 @@ inline void build_used(uint8_t* base, uint32_t pool, uint32_t arr, int32_t n, ui
   st32(base, pool + f.head, last);
   st32(base, pool + f.count, static_cast<uint32_t>(n));
 }
+
+// Devolve o nó *pnode à lista livre: tira da lista em uso (atualizando cabeça/cauda),
+// avança *pnode para o anterior, limpa "em uso", empilha na lista livre e decrementa.
+inline void pool_release(uint8_t* base, uint32_t pool, uint32_t pnode, const Link& l, const PoolFields& f = {}) {
+  const uint32_t node = ld32(base, pnode);
+  if (node == 0 || ld8(base, node + l.used) == 0) return;
+  const uint32_t prev = ld32(base, node + l.prev);
+  st32(base, pnode, prev);
+  const uint32_t next = ld32(base, node + l.next);
+  bool fix_head;
+  if (next != 0) {
+    st32(base, next + l.prev, prev);
+    fix_head = prev == 0;
+    if (!fix_head) st32(base, prev + l.next, next);
+  } else {
+    st32(base, pool + f.tail, prev);
+    if (prev == 0) {
+      fix_head = true;
+    } else {
+      st32(base, prev + l.next, 0);
+      st32(base, prev + l.next, next);
+      fix_head = false;
+    }
+  }
+  if (fix_head) {
+    st32(base, pool + f.head, next);
+    if (next != 0) st32(base, next + l.prev, 0);
+  }
+  if (ld8(base, node + l.used) != 0) {
+    st8(base, node + l.used, 0);
+    const uint32_t free_head = ld32(base, pool + f.free);
+    if (free_head == 0) {
+      st32(base, node + l.next, 0);
+    } else {
+      st32(base, free_head + l.prev, node);
+      st32(base, node + l.next, ld32(base, pool + f.free));
+    }
+    st32(base, pool + f.free, node);
+    st32(base, node + l.prev, 0);
+  }
+  st32(base, pool + f.count, ld32(base, pool + f.count) - 1);
+}
 }  // namespace nier::pools
 using namespace nier::pools;
 using namespace nier::guest;

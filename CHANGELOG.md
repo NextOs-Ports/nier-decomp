@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 12: o template de devolução ao pool (tira da lista em uso e empilha na lista livre) e suas 42 instâncias, cada uma provada pelo comparador. 239 funções verificadas.
 - Lote 11: o template de pool (lista livre + lista em uso) foi isolado num cabeçalho; um localizador por estrutura de instruções achou 33 instâncias adicionais, cada uma provada pelo comparador. 196 funções verificadas.
 - Lote 10 e lote 3 de bibliotecas: mais 5 pools de objetos (com as duas ordens de atualização do compilador), objeto estático local, e funções do XDK (último erro, timeout NT, troca atômica, filtro de exceção).
 - Lote 9: listas duplamente ligadas, inicialização de pools, checagens de vetor e outro gerador aleatório. O comparador agora injeta NaN, infinitos e zero com sinal, e a função de chance foi corrigida para a semântica exata do PowerPC com NaN.

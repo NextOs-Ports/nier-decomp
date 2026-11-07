@@ -17,7 +17,8 @@ B = 0x82000000
 def words(a, n): return struct.unpack_from('>%dI' % (n // 4), pe, a - B)
 def s16(w): w &= 0xFFFF; return w - 0x10000 if w & 0x8000 else w
 
-REF = {'take': (0x821538D0, 128), 'build': (0x82153758, 156), 'take_late': (0x82155C60, 164)}
+REF = {'take': (0x821538D0, 128), 'build': (0x82153758, 156), 'take_late': (0x82155C60, 164),
+       'release': (0x82103970, 176)}
 refw = {k: words(a, n) for k, (a, n) in REF.items()}
 def same_shape(w, r): return len(w) == len(r) and all((x & 0xFFFF0000) == (y & 0xFFFF0000) for x, y in zip(w, r))
 
@@ -49,6 +50,14 @@ for fn in inv:
             hi = max(free, head, count, tail)
             spec = f'@r3.{free:#x}=ptr @r3.{head:#x}=ptr'
             body = f'ctx.r3.u64 = {call};'
+        elif kind == 'release':
+            used, prv, nxt, tail, head, free, count = (w[3] & 0xFFFF, w[6] & 0xFFFF, w[9] & 0xFFFF, w[14] & 0xFFFF,
+                                                        w[22] & 0xFFFF, w[30] & 0xFFFF, w[40] & 0xFFFF)
+            hi = max(tail, head, free, count)
+            spec = (f'r4=ptr @r4.0=ptr @r4.0.{used}=range:0..0xFFFFFFFF @r4.0.{prv}=ptr @r4.0.{nxt}=ptr '
+                    f'@r3.{free}=ptr')
+            body = (f'pool_release(base, ctx.r3.u32, ctx.r4.u32, {{{prv}, {nxt}, {used}}}, '
+                    f'{{{tail}, {head}, {free}, {count}}});')
         else:
             tail, lb, la, head, count = w[3] & 0xFFFF, w[4] & 0xFFFF, w[7] & 0xFFFF, w[9] & 0xFFFF, w[-2] & 0xFFFF
             hi = max(tail, head, count)
