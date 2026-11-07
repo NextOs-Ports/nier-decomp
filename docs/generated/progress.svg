@@ -25,9 +25,9 @@
 <circle cx="44" cy="559" r="6" fill="#34d399"/>
 <text x="64" y="565" class="small" >Arquivo do jogo recebido e íntegro</text>
 <text x="920" y="565" class="small muted" text-anchor="end">Concluído</text>
-<circle cx="44" cy="594" r="6" fill="#475569"/>
+<circle cx="44" cy="594" r="6" fill="#34d399"/>
 <text x="64" y="600" class="small" >Executável e timing original identificados</text>
-<text x="920" y="600" class="small muted" text-anchor="end">Pendente</text>
+<text x="920" y="600" class="small muted" text-anchor="end">Concluído</text>
 <circle cx="44" cy="629" r="6" fill="#475569"/>
 <text x="64" y="635" class="small" >Inventário completo de funções</text>
 <text x="920" y="635" class="small muted" text-anchor="end">Pendente</text>
