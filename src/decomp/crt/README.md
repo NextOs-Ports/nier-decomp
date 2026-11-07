@@ -62,3 +62,25 @@ infinidades, NaNs com payload e limites inteiros.
 O teste extra inicialmente encontrou oito diferenças de zero assinado; elas
 foram corrigidas e a rodada final passou. A prova compara resultados e memória
 ABI, não certifica todos os flags de exceção floating-point do hardware Xbox.
+
+## Lote X1-7 — campos numéricos e cópia limitada
+
+Seis rotinas passaram em 2.000 casos cada no comparador da main, sem falhas
+ou divergências. `825D38F8` implementa strncpy com padding; `825DA3C8`
+substitui bits selecionados da palavra global CRT e devolve o valor anterior.
+As quatro rotinas em `numeric_bits.cpp` preservam o layout guest:
+
+- `825E4B40`: copia o sinal de f2 para f1, incluindo payloads NaN e spills.
+- `825DE390`: substitui o campo do expoente; argumentos fora da faixa têm
+  o mesmo truncamento de 16 bits do original, inclusive efeito sobre o sinal.
+- `825DE458`: separa mantissa/expoente, normaliza subnormais e preserva o
+  spill modificado. NaN/infinito seguem a transformação dos bits original,
+  não a semântica de `frexp` da biblioteca do host.
+- `825E79C0`: binary64 BE para extended80 BE de dez bytes, sem depender
+  do layout de `long double` do compilador.
+
+A prova complementar `nier_numeric_bits_probe` passou 6.720 casos: quatro
+modos de arredondamento, todos os 52 bits líderes possíveis de subnormais,
+ambos os sinais, NaNs com payload, zeros, infinito e expoentes que transbordam.
+Compara resultados, dados e spills observáveis; flags FP completos não foram
+certificados. Cópias usam RAM válida e regiões separadas.

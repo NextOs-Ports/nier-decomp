@@ -20,6 +20,16 @@ NIER_DECOMP(sub_825DABF0) {
 }
 NIER_VERIFY_SPEC(sub_825DABF0,0x825DABF0,"r3=const:0x40010000 r4=const:0x40050000");
 
+// strncpy: copy at most n bytes, padding the remainder after a source NUL.
+NIER_DECOMP(sub_825D38F8) {
+    uint32_t dst=ctx.r3.u32,src=ctx.r4.u32,n=ctx.r5.u32;
+    while(n) {
+        const uint8_t ch=ld8(base,src++);st8(base,dst++,ch);--n;
+        if(!ch) {while(n--)st8(base,dst++,0);break;}
+    }
+}
+NIER_VERIFY_SPEC(sub_825D38F8,0x825D38F8,"r3=const:0x40010000 r4=const:0x40050000 r5=range:0..128");
+
 // strcat, retaining the original destination as return value.
 NIER_DECOMP(sub_825DAC18) {
     uint32_t dst=ctx.r3.u32,src=ctx.r4.u32;
