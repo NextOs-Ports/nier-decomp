@@ -6,6 +6,9 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <map>
+#include <regex>
+#include <set>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -75,6 +78,64 @@ void BindVertexFetches(VirtualReader read, uint32_t decl, uint32_t section, cons
   }
 }
 
+// Reduz VC[256]/PC[256] ao que o shader usa. Sem índice relativo: array denso com as constantes lidas.
+// Com índice relativo (a0): mantém 0..N-1 com N = 256 - uniformes extras - folga, literais viram const.
+constexpr int kStageBudget = 256;   // GL_MAX_*_UNIFORM_VECTORS medido na Mali-450
+void CompactConstants(GuestShader& s) {
+  const std::string name = s.pixel ? "PC" : "VC";
+  const std::string decl = "uniform vec4 " + name + "[256];";
+  size_t at = s.source.find(decl);
+  if (at == std::string::npos) return;
+  static const std::regex extra(R"(uniform\s+(?:\w+\s+)?(?:float|int|bool|vec[234]|ivec[234]|bvec[234]|mat[234]|sampler2D)\s+\w+\s*;)");
+  std::string withoutDecl = s.source;
+  withoutDecl.erase(at, decl.size());
+  int extras = int(std::distance(std::sregex_iterator(withoutDecl.begin(), withoutDecl.end(), extra), std::sregex_iterator()));
+  const std::regex ref(name + R"(\[(\d+)\])");
+  std::set<int> used;
+  for (std::sregex_iterator it(withoutDecl.begin(), withoutDecl.end(), ref), e; it != e; ++it) used.insert(std::stoi((*it)[1]));
+  int literalsFrom = 256 - int(s.literals.size() / 4);
+  auto literal = [&](int reg) {
+    const float* v = &s.literals[size_t(reg - literalsFrom) * 4];
+    char b[160]; std::snprintf(b, sizeof b, "vec4(%.9g, %.9g, %.9g, %.9g)", v[0], v[1], v[2], v[3]);
+    std::string out = b;
+    for (size_t p = 0; (p = out.find("inf", p)) != std::string::npos; p += 6) out.replace(p, 3, "1e38");
+    return out;
+  };
+  std::string body = withoutDecl, out;
+  if (!s.relativeConstants) {
+    std::map<int, int> slot;
+    for (int r : used) if (r < literalsFrom) { int j = int(s.constMap.size()); slot[r] = j; s.constMap.push_back(uint16_t(r)); }
+    std::sregex_iterator it(body.begin(), body.end(), ref), e;
+    size_t last = 0;
+    for (; it != e; ++it) {
+      int r = std::stoi((*it)[1]);
+      out.append(body, last, size_t(it->position()) - last);
+      out += r >= literalsFrom ? literal(r) : name + "[" + std::to_string(slot[r]) + "]";
+      last = size_t(it->position() + it->length());
+    }
+    out.append(body, last, std::string::npos);
+    int count = std::max<int>(1, int(s.constMap.size()));
+    if (s.constMap.empty()) s.constMap.push_back(0);
+    out.insert(at, "uniform vec4 " + name + "[" + std::to_string(count) + "];");
+  } else {
+    int n = std::min(literalsFrom, kStageBudget - extras - 4);
+    for (int r : used) if (r >= n && r < literalsFrom) { s.ok = false; s.error = "constante " + std::to_string(r) + " acima do orçamento da Mali com índice relativo"; return; }
+    std::sregex_iterator it(body.begin(), body.end(), ref), e;
+    size_t last = 0;
+    for (; it != e; ++it) {
+      int r = std::stoi((*it)[1]);
+      out.append(body, last, size_t(it->position()) - last);
+      out += r >= literalsFrom ? literal(r) : it->str();
+      last = size_t(it->position() + it->length());
+    }
+    out.append(body, last, std::string::npos);
+    out = std::regex_replace(out, std::regex(R"(nx_clamp_int\(([^,]+), 0, 255\))"), "nx_clamp_int($1, 0, " + std::to_string(n - 1) + ")");
+    for (int r = 0; r < n; ++r) s.constMap.push_back(uint16_t(r));
+    out.insert(at, "uniform vec4 " + name + "[" + std::to_string(n) + "];");
+  }
+  s.source = out;
+}
+
 const GuestShader* Load(uint32_t device, VirtualReader read, bool pixel) {
 #ifndef NIER_HAVE_XENOS_TRANSLATOR
   (void)device; (void)read; (void)pixel;
@@ -127,6 +188,7 @@ const GuestShader* Load(uint32_t device, VirtualReader read, bool pixel) {
     s->source = std::string("#version 100\n") +
                 (pixel ? "precision mediump float;\nprecision mediump int;\nprecision mediump sampler2D;\n"
                        : "precision highp float;\nprecision highp int;\n") + t.body;
+    if (s->ok) CompactConstants(*s);
     if (!s->ok) std::fprintf(stderr, "[nier-shader] %s %016llX não traduzido: %s\n", pixel ? "PS" : "VS", (unsigned long long)key, s->error.c_str());
     if (!g_dumpDir.empty()) {
       char name[64];

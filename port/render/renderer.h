@@ -38,6 +38,9 @@ enum class Primitive : uint32_t { PointList = 1, LineList = 2, LineStrip = 3, Tr
 // Chamados pelos ganchos do D3D (thread do jogo). `device` é o endereço virtual do device.
 void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32_t startIndex, uint32_t count, bool indexed);
 void RecordDrawUP(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride);
+// BeginVertices (0x82571070): o D3D devolve o espaço onde o jogo escreve os vértices DEPOIS do retorno.
+// O desenho é gravado na próxima chamada ao renderizador (o jogo já fechou o bloco com EndVertices).
+void RecordBeginVertices(uint32_t device, uint32_t primitive, uint32_t vertexCount, uint32_t stride, uint32_t guestData);
 void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb);
 void RecordPresentInterval(uint32_t interval);  // render state 94: só informação (ver docs/D3D_MAP.md §4)
 void Present();

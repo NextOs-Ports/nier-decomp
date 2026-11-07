@@ -10,7 +10,7 @@ namespace nier::d3d {
 // ---- funções (guest) ----
 constexpr uint32_t kDrawVertices = 0x82571508;         // (dev, prim, startVertex, vertexCount)
 constexpr uint32_t kDrawIndexedVertices = 0x825718F8;  // (dev, prim, baseVertex, startIndex, indexCount)
-constexpr uint32_t kDrawVerticesUP = 0x82571070;       // (dev, prim, vertexCount, ?, stride=r6) — ordem a confirmar
+constexpr uint32_t kBeginVertices = 0x82571070;        // (dev, prim, vertexCount, stride) -> r3 = espaço dos vértices
 constexpr uint32_t kResolve = 0x82585888;              // (dev, flags, rect, destTex, destPoint, level, slice, color, z=f1, …)
 constexpr uint32_t kSwap = 0x8257AB38;                 // Present: único caminho até VdSwap
 constexpr uint32_t kSetVertexDeclaration = 0x825708F8; // (dev, decl): grava +0x2ED8, dirty de vfetch

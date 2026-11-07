@@ -13,6 +13,7 @@
 #include <rex/system/kernel_state.h>
 #include <rex/system/xmemory.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <mutex>
 
@@ -59,13 +60,12 @@ REX_HOOK_RAW(sub_825718F8) {
   __imp__sub_825718F8(ctx, base);
 }
 
-// DrawVerticesUP: stride em r6 (medido: grava r6>>2 em +0x31A0); dados em r7 (a confirmar pela captura).
+// BeginVertices(dev, prim, vertexCount, stride): devolve em r3 o espaço onde o jogo escreve os vértices
+// (o rastro de 07/11 mostrou r7 sem dados). Grava o desenho depois que o jogo preencher o bloco.
 REX_HOOK_RAW(sub_82571070) {
-  if (Ready() && ctx.r7.u32)
-    if (const uint8_t* data = ReadVirtual(ctx.r7.u32, ctx.r5.u32 * ctx.r6.u32))
-      nier::render::RecordDrawUP(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, data, ctx.r6.u32);
-  if (Bypass()) return;
+  uint32_t device = ctx.r3.u32, prim = ctx.r4.u32, count = ctx.r5.u32, stride = ctx.r6.u32;
   __imp__sub_82571070(ctx, base);
+  if (Ready()) nier::render::RecordBeginVertices(device, prim, count, stride, ctx.r3.u32);
 }
 
 // Resolve(dev, flags, srcRect, destTex, destPoint, level, slice, clearColor*, clearZ=f1, …)

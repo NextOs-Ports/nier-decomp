@@ -15,6 +15,7 @@
 #include <SDL3/SDL.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#include <EGL/egl.h>
 
 #include <algorithm>
 #include <atomic>
@@ -41,6 +42,25 @@ GuestMemory g_mem;
 std::atomic<bool> g_enabled{false};
 SDL_Window* g_window = nullptr;
 SDL_GLContext g_context = nullptr;
+// Alternativa sem janela (PC): quando o SDL não tem GL (SDL estático do SDK host), EGL + pbuffer 1280x720.
+EGLDisplay g_eglDisplay = EGL_NO_DISPLAY;
+EGLSurface g_eglSurface = EGL_NO_SURFACE;
+EGLContext g_eglContext = EGL_NO_CONTEXT;
+bool UsingPbuffer() { return g_eglContext != EGL_NO_CONTEXT; }
+bool CreatePbuffer() {
+  g_eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+  if (g_eglDisplay == EGL_NO_DISPLAY || !eglInitialize(g_eglDisplay, nullptr, nullptr)) return false;
+  eglBindAPI(EGL_OPENGL_ES_API);
+  const EGLint attrs[] = {EGL_SURFACE_TYPE, EGL_PBUFFER_BIT, EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+                          EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_NONE};
+  EGLConfig config; EGLint n = 0;
+  if (!eglChooseConfig(g_eglDisplay, attrs, &config, 1, &n) || n < 1) return false;
+  const EGLint size[] = {EGL_WIDTH, 1280, EGL_HEIGHT, 720, EGL_NONE};
+  g_eglSurface = eglCreatePbufferSurface(g_eglDisplay, config, size);
+  const EGLint ctx[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+  g_eglContext = eglCreateContext(g_eglDisplay, config, EGL_NO_CONTEXT, ctx);
+  return g_eglSurface != EGL_NO_SURFACE && g_eglContext != EGL_NO_CONTEXT;
+}
 constexpr uint32_t kMaxInputs = 16;
 
 // ---------------------------------------------------------------- memória guest
@@ -302,6 +322,15 @@ GLuint TextureFor(const xenos::TextureFetch& t) {
   uint64_t sig = Signature(t.base, t.width * t.height * 4);
   if (tex.id && sig == tex.signature) return tex.id;
   if (!xenos::DecodeLevel0(Physical, t, g_pixels)) { Skip("decodificação de textura (branco)"); return tex.id ? tex.id : White(); }
+  if (const char* dump = std::getenv("NIER_DUMP_TEXTURES"); dump && tex.uploads < 3) {  // diagnóstico
+    char name[160];
+    std::snprintf(name, sizeof name, "%s/tex_%08X_%ux%u_f%u_u%u.ppm", dump, t.base, t.width, t.height, t.format, tex.uploads);
+    if (FILE* f = std::fopen(name, "wb")) {
+      std::fprintf(f, "P6\n%u %u\n255\n", t.width, t.height);
+      for (size_t i = 0; i < size_t(t.width) * t.height; ++i) std::fwrite(&g_pixels[i * 4], 1, 3, f);
+      std::fclose(f);
+    }
+  }
   if (!tex.id) glGenTextures(1, &tex.id);
   glBindTexture(GL_TEXTURE_2D, tex.id);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -390,17 +419,18 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps) {
 }
 
 std::vector<float> g_constants;
+// Envia as constantes na ordem compactada (GuestShader::constMap); literais por índice original.
 void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s) {
   if (location < 0) return;
-  g_constants.resize(size_t(count) * 4);
-  for (int i = 0; i < count * 4; ++i) g_constants[size_t(i)] = BEF(bank + 4 * i);
-  // literais do shader ocupam c[256-n .. 255]
-  size_t n = s->literals.size() / 4;
-  for (size_t k = 0; k < n; ++k) {
-    size_t reg = 256 - n + k;
-    if (reg < size_t(count)) std::memcpy(&g_constants[reg * 4], &s->literals[k * 4], 16);
+  size_t n = std::min<size_t>(size_t(count), s->constMap.size());
+  g_constants.resize(n * 4);
+  size_t literals = s->literals.size() / 4;
+  for (size_t j = 0; j < n; ++j) {
+    size_t reg = s->constMap[j];
+    if (reg >= 256 - literals) std::memcpy(&g_constants[j * 4], &s->literals[(reg - (256 - literals)) * 4], 16);
+    else for (int c = 0; c < 4; ++c) g_constants[j * 4 + c] = BEF(bank + reg * 16 + 4 * c);
   }
-  glUniform4fv(location, count, g_constants.data());
+  glUniform4fv(location, GLsizei(n), g_constants.data());
 }
 
 // ---- estados fixos
@@ -513,8 +543,8 @@ void ReplayResolve(const Frame& f, const Cmd& c) {
 
 void PresentToWindow() {
   auto it = g_targets.find(g_mainTarget);
-  int ww = 0, wh = 0;
-  SDL_GetWindowSizeInPixels(g_window, &ww, &wh);
+  int ww = 1280, wh = 720;
+  if (!UsingPbuffer()) SDL_GetWindowSizeInPixels(g_window, &ww, &wh);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glViewport(0, 0, ww, wh);
   glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
@@ -541,21 +571,32 @@ void PresentToWindow() {
       std::vector<uint8_t> px(size_t(ww) * wh * 4);
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
       glReadPixels(0, 0, ww, wh, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
-      std::string tmp = std::string(capture) + ".tmp";
+      static unsigned shot = 0;
+      std::string target = capture;
+      if (target.size() < 4 || target.compare(target.size() - 4, 4, ".ppm") != 0) {  // diretório: numeradas
+        char name[48]; std::snprintf(name, sizeof name, "/quadro_%03u_%06llu.ppm", shot++, (unsigned long long)g_frames.load());
+        target += name;
+      }
+      std::string tmp = target + ".tmp";
       if (FILE* f = std::fopen(tmp.c_str(), "wb")) {
         std::fprintf(f, "P6\n%d %d\n255\n", ww, wh);
         for (int y = wh - 1; y >= 0; --y) for (int x = 0; x < ww; ++x) std::fwrite(&px[(size_t(y) * ww + x) * 4], 1, 3, f);
         std::fclose(f);
-        std::rename(tmp.c_str(), capture);
+        std::rename(tmp.c_str(), target.c_str());
       }
     }
   }
-  SDL_GL_SwapWindow(g_window);
+  if (UsingPbuffer()) eglSwapBuffers(g_eglDisplay, g_eglSurface);
+  else SDL_GL_SwapWindow(g_window);
 }
 
 void RenderThread() {
-  if (!SDL_GL_MakeCurrent(g_window, g_context)) { std::fprintf(stderr, "[nier-gl] contexto: %s\n", SDL_GetError()); return; }
-  SDL_GL_SetSwapInterval(1);
+  if (UsingPbuffer()) {
+    if (!eglMakeCurrent(g_eglDisplay, g_eglSurface, g_eglSurface, g_eglContext)) { std::fprintf(stderr, "[nier-gl] eglMakeCurrent falhou\n"); return; }
+  } else {
+    if (!SDL_GL_MakeCurrent(g_window, g_context)) { std::fprintf(stderr, "[nier-gl] contexto: %s\n", SDL_GetError()); return; }
+    SDL_GL_SetSwapInterval(1);
+  }
   CreateBlit();
   GLint vsUniforms = 0, fsUniforms = 0;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);
@@ -612,7 +653,7 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, uint32_t first, uint32_t count
     uint32_t endian;
     if (upData && in.slot == 95) {          // DrawVerticesUP: stream 0 vem da memória da CPU, 8in32
       base = upData; endian = 2;
-      if (!in.stride) in.stride = upStride / 4;
+      in.stride = upStride / 4;
     } else {
       const uint8_t* vf = Field(state, kFetchConstants + in.slot * 8);
       uint32_t address = BE32(vf) & 0x1FFFFFFC, size = ((BE32(vf + 4) >> 2) & 0xFFFFFF) * 4;
@@ -629,6 +670,44 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, uint32_t first, uint32_t count
     }
   }
   return true;
+}
+
+// NIER_RENDER_TRACE=N: descreve os N primeiros desenhos (diagnóstico).
+int TraceBudget() { static int n = std::getenv("NIER_RENDER_TRACE") ? std::atoi(std::getenv("NIER_RENDER_TRACE")) : 0; return n; }
+std::atomic<int> g_traced{0};
+void TraceDraw(const Cmd& c, const uint8_t* state, uint32_t primitive, uint32_t count, bool indexed) {
+  if (g_traced.fetch_add(1) >= TraceBudget()) return;
+  float vp[6]; for (int i = 0; i < 6; ++i) vp[i] = BEF(Field(state, kViewport + 4 * i));
+  std::fprintf(stderr, "[nier-trace] draw prim %u n %u idx %d vs %016llX ps %016llX surf %08X color %08X vport %.1f %.1f %.1f %.1f %.3f %.3f blend %08X depth %08X mode %08X vte %08X cc %08X mask %08X\n",
+               primitive, count, int(indexed), (unsigned long long)c.vs->key, (unsigned long long)c.ps->key,
+               BE32(Field(state, kSurfaceInfo)), BE32(Field(state, kColorInfo)), vp[0], vp[1], vp[2], vp[3], vp[4], vp[5],
+               BE32(Field(state, kBlendControl)), BE32(Field(state, kDepthControl)), BE32(Field(state, kModeControl)),
+               BE32(Field(state, 0x294C)), BE32(Field(state, kColorControl)), BE32(Field(state, 0x28DC)));
+  for (uint32_t i = 0; i < c.inputCount; ++i) {
+    const auto& in = c.vs->inputs[i];
+    const float* v = reinterpret_cast<const float*>(g_building.blob.data() + c.inputs[i]);
+    std::fprintf(stderr, "[nier-trace]   a%u slot %u fmt %u off %u stride %u v0 (%g %g %g %g) v1 (%g %g %g %g)\n", i, in.slot, in.format, in.offset, in.stride,
+                 v[0], v[1], v[2], v[3], c.vertexCount > 1 ? v[4] : 0, c.vertexCount > 1 ? v[5] : 0, c.vertexCount > 1 ? v[6] : 0, c.vertexCount > 1 ? v[7] : 0);
+  }
+  for (int r = 0; r < 4; ++r) {
+    const uint8_t* k = Field(state, kVertexConstants + 16 * r);
+    std::fprintf(stderr, "[nier-trace]   VC%d %g %g %g %g\n", r, BEF(k), BEF(k + 4), BEF(k + 8), BEF(k + 12));
+  }
+  for (int t = 0; t < 32; ++t) if (c.ps->textureMask & (1u << t)) {
+    const uint8_t* f = Field(state, kFetchConstants + 24 * t);
+    auto tf = xenos::DecodeFetch(f);
+    std::fprintf(stderr, "[nier-trace]   T%d words %08X %08X %08X %08X %08X %08X fmt %u %ux%u base %08X tiled %d endian %u dim %u pitch %u\n", t,
+                 BE32(f), BE32(f + 4), BE32(f + 8), BE32(f + 12), BE32(f + 16), BE32(f + 20), tf.format, tf.width, tf.height, tf.base, int(tf.tiled), tf.endian, tf.dimension, tf.pitch);
+  }
+}
+
+struct PendingUP { uint32_t device = 0, primitive = 0, count = 0, stride = 0, data = 0; } g_pendingUP;
+void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride);
+void FlushPendingUP() {
+  if (!g_pendingUP.data) return;
+  PendingUP p = g_pendingUP;
+  g_pendingUP = {};
+  if (const uint8_t* data = Virtual(p.data, p.count * p.stride)) RecordDrawUPImpl(p.device, p.primitive, p.count, data, p.stride);
 }
 
 bool PrepareShaders(Cmd& c, uint32_t device) {
@@ -652,12 +731,14 @@ bool Init(const Config& config, const GuestMemory& memory) {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);  // profundidade fica nos FBOs internos
-  g_window = SDL_CreateWindow("NieR", 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+  g_window = std::getenv("NIER_RENDER_PBUFFER") ? nullptr : SDL_CreateWindow("NieR", 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
   if (!g_window || !(g_context = SDL_GL_CreateContext(g_window))) {
-    std::fprintf(stderr, "[nier-gl] janela/contexto: %s\n", SDL_GetError());
-    return false;
+    if (g_window) { std::fprintf(stderr, "[nier-gl] janela/contexto SDL: %s; tentando EGL pbuffer\n", SDL_GetError()); SDL_DestroyWindow(g_window); g_window = nullptr; }
+    if (!CreatePbuffer()) { std::fprintf(stderr, "[nier-gl] EGL pbuffer falhou (0x%x)\n", eglGetError()); return false; }
+    std::fprintf(stderr, "[nier-gl] sem janela: EGL pbuffer 1280x720\n");
+  } else {
+    SDL_GL_MakeCurrent(g_window, nullptr);  // a thread de render assume o contexto
   }
-  SDL_GL_MakeCurrent(g_window, nullptr);  // a thread de render assume o contexto
   g_quit = false;
   g_thread = std::thread(RenderThread);
   g_enabled = true;
@@ -679,6 +760,7 @@ bool Enabled() { return g_enabled.load(std::memory_order_relaxed); }
 const Config& Settings() { return g_config; }
 
 void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32_t startIndex, uint32_t count, bool indexed) {
+  FlushPendingUP();
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
   if (!state || !count) return;
   Cmd c{Kind::Draw};
@@ -715,13 +797,25 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
   if (g_triIndices.empty()) return;
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
+  TraceDraw(c, copy, primitive, count, indexed);
   c.indexCount = uint32_t(g_triIndices.size());
   c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   g_recordedBytes = g_building.blob.size();
   g_building.cmds.push_back(c);
 }
 
+void RecordBeginVertices(uint32_t device, uint32_t primitive, uint32_t vertexCount, uint32_t stride, uint32_t guestData) {
+  FlushPendingUP();
+  if (guestData && stride && vertexCount && vertexCount <= 65535) g_pendingUP = {device, primitive, vertexCount, stride, guestData};
+}
+
 void RecordDrawUP(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride) {
+  FlushPendingUP();
+  RecordDrawUPImpl(device, primitive, vertexCount, data, stride);
+}
+
+namespace {
+void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride) {
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
   if (!state || !data || !stride || !vertexCount || vertexCount > 65535) return;
   Cmd c{Kind::Draw};
@@ -732,12 +826,16 @@ void RecordDrawUP(uint32_t device, uint32_t primitive, uint32_t vertexCount, con
   if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado (UP)"); return; }
   if (g_triIndices.empty()) return;
   if (!SnapshotInputs(c, g_building.blob.data() + c.state, 0, vertexCount, data, stride)) return;
+  TraceDraw(c, g_building.blob.data() + c.state, primitive, vertexCount, false);
   c.indexCount = uint32_t(g_triIndices.size());
   c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
   g_building.cmds.push_back(c);
 }
 
+}  // namespace
+
 void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb) {
+  FlushPendingUP();
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
   if (!state || (flags & 0x70)) return;  // só cor; resolve de profundidade não é copiado
   Cmd c{Kind::Resolve};
@@ -753,8 +851,13 @@ void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_
 
 void RecordPresentInterval(uint32_t interval) { g_interval = interval; }
 
+void DriveTestInput(uint64_t frame);  // test_input.cpp
+
 void Present() {
   if (!g_enabled) return;
+  FlushPendingUP();
+  static uint64_t presented = 0;
+  DriveTestInput(++presented);
   std::unique_lock lock(g_queueMutex);
   g_queueCv.wait(lock, [] { return !g_hasInflight || g_quit; });
   g_inflight.blob.swap(g_building.blob);

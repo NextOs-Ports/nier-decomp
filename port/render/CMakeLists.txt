@@ -13,14 +13,15 @@ endif()
 
 find_package(SDL3 REQUIRED CONFIG)
 find_library(NIER_GLESV2 GLESv2 REQUIRED)
+find_library(NIER_EGL EGL REQUIRED)
 
 set(NIER_XENOS_TRANSLATOR_DIR "" CACHE PATH "Tradutor Xenos->ESSL privado (dmc3-hd-nextos c76b074 runtime/)")
 set(NIER_XENOS_TRANSLATOR_PATCHED OFF CACHE BOOL "Aceitar xenos_shader.cpp com patch privado (hash registrado no diário)")
 
 add_library(nier_render_deps INTERFACE)
-target_link_libraries(nier_render_deps INTERFACE SDL3::SDL3 ${NIER_GLESV2})
+target_link_libraries(nier_render_deps INTERFACE SDL3::SDL3 ${NIER_GLESV2} ${NIER_EGL})
 
-set(NIER_RENDER_CORE ${CMAKE_CURRENT_SOURCE_DIR}/renderer.cpp ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp)
+set(NIER_RENDER_CORE ${CMAKE_CURRENT_SOURCE_DIR}/renderer.cpp ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test_input.cpp)
 if(NIER_XENOS_TRANSLATOR_DIR)
   set(_pins
     "xenos_shader.h=d822eb324c1b69ceaf047a47e6ff3b773d541d19df9da2848eb70e468f82ba4d"
