@@ -41,7 +41,9 @@ void RecordDrawUP(uint32_t device, uint32_t primitive, uint32_t vertexCount, con
 // BeginVertices (0x82571070): o D3D devolve o espaço onde o jogo escreve os vértices DEPOIS do retorno.
 // O desenho é gravado na próxima chamada ao renderizador (o jogo já fechou o bloco com EndVertices).
 void RecordBeginVertices(uint32_t device, uint32_t primitive, uint32_t vertexCount, uint32_t stride, uint32_t guestData);
-void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb);
+// level = nível de mip do destino (r8 do D3DDevice_Resolve). Sem render-to-mip no GLES2 da Mali, nível > 0 vira alvo
+// próprio do tamanho do nível; nunca grava por cima do nível 0 (era a cópia da cena num quarto da tela).
+void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb, uint32_t level = 0);
 void RecordPresentInterval(uint32_t interval);  // render state 94: só informação (ver docs/D3D_MAP.md §4)
 void Present();
 

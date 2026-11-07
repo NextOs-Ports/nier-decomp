@@ -79,7 +79,7 @@ REX_HOOK_RAW(sub_82585888) {
       auto c = [&](int i) { float v = nier::d3d::BEF(cc + 4 * i); return uint32_t(v <= 0 ? 0 : v >= 1 ? 255 : v * 255 + 0.5f); };
       argb = c(3) << 24 | c(0) << 16 | c(1) << 8 | c(2);
     }
-    nier::render::RecordResolve(ctx.r3.u32, ctx.r4.u32, r ? rect : nullptr, ctx.r6.u32, argb);
+    nier::render::RecordResolve(ctx.r3.u32, ctx.r4.u32, r ? rect : nullptr, ctx.r6.u32, argb, ctx.r8.u32);
   }
   __imp__sub_82585888(ctx, base);
 }

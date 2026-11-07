@@ -2151,7 +2151,7 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
 
 }  // namespace
 
-void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb) {
+void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb, uint32_t level) {
   FlushPendingUP();
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
   if (!state) return;
@@ -2164,6 +2164,18 @@ void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_
     // Textura D3D do 9328: fetch constant em +0x1C (o 20871 usa +0x18). Conferido no rastro de 07/11:
     // objeto+0x1C = 8A000002 (tipo textura), +0x24 = 0059E4FF (1280x720).
     if (const uint8_t* fetch = Virtual(destTexture + 0x1C, 24)) c.fetch = Append(g_building, fetch, 24);
+    // Nível de mip > 0: o destino é o subrecurso daquele nível. A cópia do fetch passa a ter largura/altura do
+    // nível, e a chave (endereço, largura, altura) separa o alvo do nível 0. Antes o nível 1/2 da cadeia de bloom
+    // era gravado no canto da textura do nível 0 e aparecia como uma cópia da cena num quarto da tela.
+    if (level > 0 && level < 13 && c.fetch != SIZE_MAX) {
+      uint8_t* w = g_building.blob.data() + c.fetch + 8;
+      uint32_t w2 = BE32(w), width = (w2 & 0x1FFF) + 1, height = ((w2 >> 13) & 0x1FFF) + 1;
+      width = std::max(1u, width >> level); height = std::max(1u, height >> level);
+      w2 = (w2 & ~0x3FFFFFFu) | (width - 1) | (height - 1) << 13;
+      w[0] = uint8_t(w2 >> 24); w[1] = uint8_t(w2 >> 16); w[2] = uint8_t(w2 >> 8); w[3] = uint8_t(w2);
+      static uint32_t logged = 0;
+      if (logged++ < 4) std::fprintf(stderr, "[nier-gl] Resolve no nível de mip %u: destino %ux%u próprio\n", level, width, height);
+    }
     if (TraceThisFrame()) {
       const uint8_t* obj = Virtual(destTexture, 0x40);
       if (obj) {
