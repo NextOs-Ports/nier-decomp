@@ -92,11 +92,15 @@
    "address": 2182088000,
    "size": 180,
    "name": "sub_82100540",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182088184,
@@ -14826,11 +14830,15 @@
    "address": 2182357296,
    "size": 772,
    "name": "sub_82142130",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 772,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/glyph_layout.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182358072,
@@ -21034,11 +21042,15 @@
    "address": 2182572632,
    "size": 136,
    "name": "sub_82176A58",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 136,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182572768,
@@ -21178,11 +21190,15 @@
    "address": 2182575280,
    "size": 136,
    "name": "sub_821774B0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 136,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182575416,
@@ -25042,11 +25058,15 @@
    "address": 2182678840,
    "size": 180,
    "name": "sub_82190938",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182679024,
@@ -30056,11 +30076,15 @@
    "address": 2182818880,
    "size": 148,
    "name": "sub_821B2C40",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182819032,
@@ -31564,21 +31588,29 @@
    "address": 2182850672,
    "size": 148,
    "name": "sub_821BA870",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182850824,
    "size": 148,
    "name": "sub_821BA908",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182850976,
@@ -32958,11 +32990,15 @@
    "address": 2182899336,
    "size": 148,
    "name": "sub_821C6688",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182899488,
@@ -33936,21 +33972,29 @@
    "address": 2182927408,
    "size": 148,
    "name": "sub_821CD430",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182927560,
    "size": 148,
    "name": "sub_821CD4C8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182927712,
@@ -34466,21 +34510,29 @@
    "address": 2182976528,
    "size": 148,
    "name": "sub_821D9410",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182976680,
    "size": 148,
    "name": "sub_821D94A8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2182976832,
@@ -38754,11 +38806,15 @@
    "address": 2183134144,
    "size": 136,
    "name": "sub_821FFBC0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 136,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183134280,
@@ -38882,11 +38938,15 @@
    "address": 2183136264,
    "size": 136,
    "name": "sub_82200408",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 136,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183136400,
@@ -39984,61 +40044,85 @@
    "address": 2183166640,
    "size": 176,
    "name": "sub_82207AB0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183166816,
    "size": 176,
    "name": "sub_82207B60",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183166992,
    "size": 176,
    "name": "sub_82207C10",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183167168,
    "size": 176,
    "name": "sub_82207CC0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183167344,
    "size": 176,
    "name": "sub_82207D70",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183167520,
    "size": 176,
    "name": "sub_82207E20",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183167696,
@@ -47658,21 +47742,29 @@
    "address": 2183512448,
    "size": 148,
    "name": "sub_8225C180",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183512600,
    "size": 148,
    "name": "sub_8225C218",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183512752,
@@ -53218,11 +53310,15 @@
    "address": 2183636784,
    "size": 148,
    "name": "sub_8227A730",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183636936,
@@ -54016,11 +54112,15 @@
    "address": 2183662800,
    "size": 148,
    "name": "sub_82280CD0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183662952,
@@ -55042,11 +55142,15 @@
    "address": 2183698000,
    "size": 84,
    "name": "sub_82289650",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183698088,
@@ -55916,11 +56020,15 @@
    "address": 2183723888,
    "size": 84,
    "name": "sub_8228FB70",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183723976,
@@ -56920,11 +57028,15 @@
    "address": 2183754336,
    "size": 84,
    "name": "sub_82297260",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183754424,
@@ -57938,11 +58050,15 @@
    "address": 2183787704,
    "size": 84,
    "name": "sub_8229F4B8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183787792,
@@ -58222,11 +58338,15 @@
    "address": 2183798416,
    "size": 84,
    "name": "sub_822A1E90",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183798504,
@@ -58748,11 +58868,15 @@
    "address": 2183816352,
    "size": 84,
    "name": "sub_822A64A0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183816440,
@@ -59220,11 +59344,15 @@
    "address": 2183836400,
    "size": 84,
    "name": "sub_822AB2F0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183836488,
@@ -60264,11 +60392,15 @@
    "address": 2183870688,
    "size": 84,
    "name": "sub_822B38E0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183870776,
@@ -61278,11 +61410,15 @@
    "address": 2183903176,
    "size": 84,
    "name": "sub_822BB7C8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183903264,
@@ -61920,11 +62056,15 @@
    "address": 2183926376,
    "size": 84,
    "name": "sub_822C1268",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183926464,
@@ -62516,11 +62656,15 @@
    "address": 2183945648,
    "size": 84,
    "name": "sub_822C5DB0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183945736,
@@ -62628,11 +62772,15 @@
    "address": 2183949048,
    "size": 148,
    "name": "sub_822C6AF8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183949200,
@@ -63078,11 +63226,15 @@
    "address": 2183966992,
    "size": 84,
    "name": "sub_822CB110",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183967080,
@@ -64352,11 +64504,15 @@
    "address": 2183996392,
    "size": 84,
    "name": "sub_822D23E8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2183996480,
@@ -67582,11 +67738,15 @@
    "address": 2184098384,
    "size": 84,
    "name": "sub_822EB250",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184098472,
@@ -67730,11 +67890,15 @@
    "address": 2184101464,
    "size": 268,
    "name": "sub_822EBE58",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 268,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184101736,
@@ -69100,11 +69264,15 @@
    "address": 2184143976,
    "size": 148,
    "name": "sub_822F6468",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184144128,
@@ -72170,11 +72338,15 @@
    "address": 2184245352,
    "size": 84,
    "name": "sub_8230F068",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184245440,
@@ -76156,21 +76328,29 @@
    "address": 2184356672,
    "size": 180,
    "name": "sub_8232A340",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184356856,
    "size": 180,
    "name": "sub_8232A3F8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184357040,
@@ -78288,11 +78468,15 @@
    "address": 2184426864,
    "size": 136,
    "name": "sub_8233B570",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 136,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184427000,
@@ -78322,11 +78506,15 @@
    "address": 2184427224,
    "size": 136,
    "name": "sub_8233B6D8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 136,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184427360,
@@ -85822,21 +86010,29 @@
    "address": 2184633696,
    "size": 148,
    "name": "sub_8236DD60",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184633848,
    "size": 148,
    "name": "sub_8236DDF8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184634000,
@@ -89432,11 +89628,15 @@
    "address": 2184730704,
    "size": 60,
    "name": "sub_82385850",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184730768,
@@ -89490,11 +89690,15 @@
    "address": 2184731048,
    "size": 60,
    "name": "sub_823859A8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184731112,
@@ -91834,11 +92038,15 @@
    "address": 2184755240,
    "size": 60,
    "name": "sub_8238B828",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184755304,
@@ -91992,11 +92200,15 @@
    "address": 2184756688,
    "size": 60,
    "name": "sub_8238BDD0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184756752,
@@ -92282,11 +92494,15 @@
    "address": 2184760864,
    "size": 60,
    "name": "sub_8238CE20",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184760928,
@@ -93026,11 +93242,15 @@
    "address": 2184767200,
    "size": 60,
    "name": "sub_8238E6E0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 60,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184767264,
@@ -108660,11 +108880,15 @@
    "address": 2184985528,
    "size": 180,
    "name": "sub_823C3BB8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2184985712,
@@ -110230,11 +110454,15 @@
    "address": 2185015568,
    "size": 180,
    "name": "sub_823CB110",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185015752,
@@ -111890,11 +112118,15 @@
    "address": 2185046952,
    "size": 180,
    "name": "sub_823D2BA8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185047136,
@@ -115212,11 +115444,15 @@
    "address": 2185110424,
    "size": 180,
    "name": "sub_823E2398",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 180,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185110608,
@@ -118940,21 +119176,29 @@
    "address": 2185192216,
    "size": 80,
    "name": "sub_823F6318",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185192296,
    "size": 80,
    "name": "sub_823F6368",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185192376,
@@ -118970,41 +119214,57 @@
    "address": 2185192472,
    "size": 80,
    "name": "sub_823F6418",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185192552,
    "size": 80,
    "name": "sub_823F6468",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185192632,
    "size": 80,
    "name": "sub_823F64B8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185192712,
    "size": 80,
    "name": "sub_823F6508",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185192792,
@@ -119020,11 +119280,15 @@
    "address": 2185192872,
    "size": 80,
    "name": "sub_823F65A8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185192952,
@@ -119060,41 +119324,57 @@
    "address": 2185193208,
    "size": 80,
    "name": "sub_823F66F8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185193288,
    "size": 80,
    "name": "sub_823F6748",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185193368,
    "size": 80,
    "name": "sub_823F6798",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185193448,
    "size": 80,
    "name": "sub_823F67E8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185193528,
@@ -120400,41 +120680,57 @@
    "address": 2185220800,
    "size": 80,
    "name": "sub_823FD2C0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185220880,
    "size": 80,
    "name": "sub_823FD310",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185220960,
    "size": 80,
    "name": "sub_823FD360",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185221040,
    "size": 80,
    "name": "sub_823FD3B0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 80,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185221120,
@@ -133522,11 +133818,15 @@
    "address": 2185588784,
    "size": 148,
    "name": "sub_82457030",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185588936,
@@ -134738,11 +135038,15 @@
    "address": 2185633064,
    "size": 84,
    "name": "sub_82461D28",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185633152,
@@ -134956,11 +135260,15 @@
    "address": 2185640608,
    "size": 148,
    "name": "sub_82463AA0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185640760,
@@ -136234,11 +136542,15 @@
    "address": 2185688264,
    "size": 148,
    "name": "sub_8246F4C8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185688416,
@@ -136814,11 +137126,15 @@
    "address": 2185704464,
    "size": 148,
    "name": "sub_82473410",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185704616,
@@ -140264,11 +140580,15 @@
    "address": 2185797472,
    "size": 84,
    "name": "sub_82489F60",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 84,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185797560,
@@ -140404,11 +140724,15 @@
    "address": 2185799944,
    "size": 148,
    "name": "sub_8248A908",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185800096,
@@ -140424,11 +140748,15 @@
    "address": 2185800392,
    "size": 148,
    "name": "sub_8248AAC8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 148,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2185800544,
@@ -149620,12 +149948,15 @@
    "address": 2186015904,
    "size": 400,
    "name": "sub_824BF4A0",
-   "status": "decompiled",
+   "status": "verified",
    "original_extent_before_partition": 400,
    "boundary_origin": "translated-instruction-addresses",
    "library": null,
    "library_evidence": null,
-   "source": "src/decomp/xdk/audio_output.cpp"
+   "source": "src/decomp/xdk/audio_output.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186016304,
@@ -198760,11 +199091,15 @@
    "address": 2186888848,
    "size": 88,
    "name": "sub_82594690",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186888936,
@@ -199324,11 +199659,15 @@
    "address": 2186896984,
    "size": 88,
    "name": "sub_82596658",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186897072,
@@ -199524,11 +199863,15 @@
    "address": 2186900176,
    "size": 88,
    "name": "sub_825972D0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186900264,
@@ -200762,11 +201105,15 @@
    "address": 2186927352,
    "size": 88,
    "name": "sub_8259DCF8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186927440,
@@ -201112,11 +201459,15 @@
    "address": 2186932968,
    "size": 88,
    "name": "sub_8259F2E8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186933056,
@@ -201182,11 +201533,15 @@
    "address": 2186933496,
    "size": 88,
    "name": "sub_8259F4F8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186933584,
@@ -201422,11 +201777,15 @@
    "address": 2186939088,
    "size": 88,
    "name": "sub_825A0AD0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186939176,
@@ -201840,11 +202199,15 @@
    "address": 2186945056,
    "size": 88,
    "name": "sub_825A2220",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186945144,
@@ -201910,11 +202273,15 @@
    "address": 2186945704,
    "size": 88,
    "name": "sub_825A24A8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186945792,
@@ -202624,11 +202991,15 @@
    "address": 2186954128,
    "size": 88,
    "name": "sub_825A4590",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186954216,
@@ -202792,11 +203163,15 @@
    "address": 2186955856,
    "size": 88,
    "name": "sub_825A4C50",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186955944,
@@ -202972,11 +203347,15 @@
    "address": 2186957568,
    "size": 88,
    "name": "sub_825A5300",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186957656,
@@ -203612,71 +203991,99 @@
    "address": 2186966672,
    "size": 176,
    "name": "sub_825A7690",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186966848,
    "size": 176,
    "name": "sub_825A7740",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186967024,
    "size": 176,
    "name": "sub_825A77F0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186967200,
    "size": 176,
    "name": "sub_825A78A0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186967376,
    "size": 176,
    "name": "sub_825A7950",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186967552,
    "size": 176,
    "name": "sub_825A7A00",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186967728,
    "size": 176,
    "name": "sub_825A7AB0",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 176,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186967904,
@@ -203712,11 +204119,15 @@
    "address": 2186968280,
    "size": 88,
    "name": "sub_825A7CD8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186968368,
@@ -204032,11 +204443,15 @@
    "address": 2186976864,
    "size": 88,
    "name": "sub_825A9E60",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 88,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/game/pattern_instances.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186976952,

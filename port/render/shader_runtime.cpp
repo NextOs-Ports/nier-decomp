@@ -178,6 +178,8 @@ const GuestShader* Load(uint32_t device, VirtualReader read, bool pixel) {
     s->error = t.error;
     s->textureMask = t.textureMask;
     std::memcpy(s->booleanMask, t.booleanMask, sizeof s->booleanMask);
+    s->inputMask = t.inputMask;
+    s->outputMask = t.outputMask;
     s->relativeConstants = t.relativeConstants;
     for (const auto& f : t.fetches)
       s->inputs.push_back({f.slot, f.offset, f.stride, f.format, f.isSigned, f.isInteger, f.expAdjust});

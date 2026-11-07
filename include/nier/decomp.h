@@ -101,7 +101,15 @@ inline void spin_pause() {
 #ifdef NIER_VERIFY
 #define NIER_DECOMP(name) extern "C" void decomp_##name([[maybe_unused]] PPCContext& __restrict ctx, [[maybe_unused]] uint8_t* base)
 #else
-#define NIER_DECOMP(name) extern "C" void name([[maybe_unused]] PPCContext& __restrict ctx, [[maybe_unused]] uint8_t* base)
+// No jogo, só as reconstruções VERIFICADAS viram o símbolo forte `sub_X`: o cabeçalho gerado
+// por tools/decomp/gen_overrides_header.py define `NIER_OVERRIDE_sub_X` como `sub_X`; sem a
+// definição o nome fica inerte (`NIER_OVERRIDE_sub_X`) e a tradução continua valendo.
+#if __has_include("nier_decomp_overrides.h")
+#include "nier_decomp_overrides.h"
+#endif
+#define NIER_DECOMP_CAT2(a, b) a##b
+#define NIER_DECOMP_SYMBOL(name) NIER_DECOMP_CAT2(NIER_OVERRIDE_, name)
+#define NIER_DECOMP(name) extern "C" void NIER_DECOMP_SYMBOL(name)([[maybe_unused]] PPCContext& __restrict ctx, [[maybe_unused]] uint8_t* base)
 #endif
 
 // Registro no comparador. Fora do NIER_VERIFY não gera nada.

@@ -30,6 +30,8 @@ struct GuestShader {
   std::vector<float> literals;      // vec4 que ocupam c[256-n .. 255]
   uint32_t textureMask = 0;
   uint32_t booleanMask[8] = {};
+  uint8_t inputMask = 0xFF;   // PS: interpoladores v0..v7 lidos; VS: outputMask = exportados
+  uint8_t outputMask = 0xFF;
   bool relativeConstants = false;
   // Compactação para a Mali-450 (256 vec4 por estágio, contando os uniformes extras): o array VC/PC
   // declarado tem constMap.size() posições; posição j recebe a constante original constMap[j].

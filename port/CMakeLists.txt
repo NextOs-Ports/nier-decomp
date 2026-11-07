@@ -38,6 +38,51 @@ if(NIER_RENDER_GLES2)
     rexglue_apply_target_settings(nier_render)
 endif()
 
+# Reconstruções verificadas (src/decomp, D1) como definição forte de sub_XXXXXXXX: o
+# recompilado é alias fraco de __imp__sub_X, então o símbolo nativo vence no link e na
+# tabela de funções (PPCFuncMappings usa sub_X). Lista = `verified` em progress/functions.json
+# (+ rodadas do nierverify em NIER_DECOMP_RUNS, subconjunto em NIER_DECOMP_OVERRIDES_LIST (bisseção)). Ver
+# tools/decomp/gen_overrides_header.py; o pós-build prova com check_overrides.py quem venceu.
+option(NIER_DECOMP_OVERRIDES "Reconstruções verificadas de src/decomp substituem o código recompilado" ON)
+set(NIER_DECOMP_RUNS "" CACHE STRING "Rodadas do nierverify (JSON; separar com ;) que somam às verificadas")
+set(NIER_DECOMP_OVERRIDES_LIST "" CACHE FILEPATH "Arquivo com um sub_X por linha: só esses substituem (A/B)")
+set(NIER_DECOMP_EXCLUDE "" CACHE FILEPATH "Arquivo com um sub_X por linha a NÃO substituir")
+if(NIER_DECOMP_OVERRIDES)
+    set(NIER_DECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
+    set(NIER_DECOMP_HEADER "${CMAKE_CURRENT_BINARY_DIR}/nier_decomp_overrides.h")
+    set(NIER_DECOMP_GEN_ARGS "${NIER_DECOMP_ROOT}/progress/functions.json" "${NIER_DECOMP_HEADER}")
+    foreach(run IN LISTS NIER_DECOMP_RUNS)
+        list(APPEND NIER_DECOMP_GEN_ARGS --run "${run}")
+    endforeach()
+    if(NIER_DECOMP_OVERRIDES_LIST)
+        list(APPEND NIER_DECOMP_GEN_ARGS --only "${NIER_DECOMP_OVERRIDES_LIST}")
+    endif()
+    if(NIER_DECOMP_EXCLUDE)
+        list(APPEND NIER_DECOMP_GEN_ARGS --exclude "${NIER_DECOMP_EXCLUDE}")
+    endif()
+    execute_process(COMMAND python3 "${NIER_DECOMP_ROOT}/tools/decomp/gen_overrides_header.py" ${NIER_DECOMP_GEN_ARGS}
+        RESULT_VARIABLE NIER_DECOMP_GEN_RESULT)
+    if(NOT NIER_DECOMP_GEN_RESULT EQUAL 0)
+        message(FATAL_ERROR "gen_overrides_header.py falhou")
+    endif()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${NIER_DECOMP_ROOT}/progress/functions.json" ${NIER_DECOMP_RUNS} ${NIER_DECOMP_OVERRIDES_LIST} ${NIER_DECOMP_EXCLUDE})
+    file(GLOB_RECURSE NIER_DECOMP_SOURCES CONFIGURE_DEPENDS "${NIER_DECOMP_ROOT}/src/decomp/*.cpp")
+    add_library(nier_decomp OBJECT ${NIER_DECOMP_SOURCES})
+    target_include_directories(nier_decomp PRIVATE
+        "${NIER_DECOMP_ROOT}/include" "${REXGLUE_ENTRYPOINT_INCLUDE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+    target_link_libraries(nier_decomp PRIVATE rex::runtime)
+    rexglue_apply_target_settings(nier_decomp)
+    add_dependencies(nier_decomp nier_codegen)
+    target_sources(nier PRIVATE $<TARGET_OBJECTS:nier_decomp>)
+    find_program(NIER_LLVM_NM NAMES llvm-nm nm)
+    add_custom_command(TARGET nier POST_BUILD
+        COMMAND python3 "${NIER_DECOMP_ROOT}/tools/decomp/check_overrides.py" $<TARGET_FILE:nier>
+            "${CMAKE_CURRENT_BINARY_DIR}/nier_decomp_overrides.txt" --nm "${NIER_LLVM_NM}"
+            --json "${CMAKE_CURRENT_BINARY_DIR}/nier_decomp_overrides.json"
+        COMMENT "Prova de link: reconstruções que venceram o recompilado")
+endif()
+
 # Optional protocol-only backend for CPU boot diagnostics. It produces no image.
 set(REXGLUE_PLUGIN_SOURCE "" CACHE PATH "Private ReXGlue source matching the SDK")
 if(REXGLUE_PLUGIN_SOURCE)
