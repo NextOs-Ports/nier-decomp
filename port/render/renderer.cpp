@@ -484,6 +484,23 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   auto tu = Clock::now();
   g_decodeMs += std::chrono::duration<double, std::milli>(tu - td).count();
   bool fresh = !tex.id;
+  if (GlProfile()) {  // o que foi decodificado na janela: 1ª vez x redecodificação, por formato/tamanho
+    static std::map<std::string, std::pair<uint32_t, double>> hist; static uint64_t lastFrame = 0; static uint32_t nFirst = 0, nRe = 0;
+    static Clock::time_point lastTime = Clock::now();
+    char k[48]; std::snprintf(k, sizeof k, "f%u %ux%u%s", t.format, t.width, t.height, fresh ? "" : " re");
+    auto& e = hist[k]; ++e.first; e.second += std::chrono::duration<double, std::milli>(tu - td).count();
+    if (fresh) ++nFirst; else ++nRe;
+    if (frame >= lastFrame + 120 || Clock::now() - lastTime >= std::chrono::seconds(5)) {
+      lastFrame = frame; lastTime = Clock::now();
+      std::string line;
+      std::vector<std::pair<double, std::string>> top;
+      for (auto& [n, v] : hist) top.push_back({v.second, n + " x" + std::to_string(v.first)});
+      std::sort(top.rbegin(), top.rend());
+      for (size_t i = 0; i < top.size() && i < 6; ++i) { char b[96]; std::snprintf(b, sizeof b, " | %s %.1fms", top[i].second.c_str(), top[i].first); line += b; }
+      std::fprintf(stderr, "[nier-perfil] decod. na janela: %u primeiras, %u redecod.%s\n", nFirst, nRe, line.c_str());
+      hist.clear(); nFirst = nRe = 0;
+    }
+  }
   if (!tex.id) glGenTextures(1, &tex.id);
   ActiveUnit(std::max(g_gl.unit, 0));
   glBindTexture(GL_TEXTURE_2D, tex.id);
@@ -527,16 +544,25 @@ struct Program {
 };
 std::unordered_map<uint64_t, Program> g_programs;
 
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false) {
-  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0);
+// Variante sem alpha test (alphaTest = false): o bloco "bool pass … if (!pass) discard;" sai do PS. Na Mali-450 um
+// `discard` presente no shader desliga o early-Z/descarte de fragmentos escondidos mesmo que nunca execute.
+std::string StripAlphaTest(const std::string& src) {
+  size_t a = src.find("    bool pass = alphaFunc == 7");
+  size_t b = src.find("    if (!pass) discard;\n");
+  if (a == std::string::npos || b == std::string::npos || b < a) return src;
+  return src.substr(0, a) + src.substr(b + std::strlen("    if (!pass) discard;\n"));
+}
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true) {
+  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2);
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
   char vn[40], pn[40];
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
-  std::snprintf(pn, sizeof pn, "%016llX_ps", (unsigned long long)ps->key);
+  std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
-  GLuint v = CompileShader(GL_VERTEX_SHADER, vs->source.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : ps->source.c_str(), pn);
+  std::string psSource = alphaTest ? ps->source : StripAlphaTest(ps->source);
+  GLuint v = CompileShader(GL_VERTEX_SHADER, vs->source.c_str(), vn), f = CompileShader(GL_FRAGMENT_SHADER, flat ? flatPs : psSource.c_str(), pn);
   if (!v || !f) { if (v) glDeleteShader(v); if (f) glDeleteShader(f); return nullptr; }
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
@@ -715,7 +741,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   g_pTarget += Ms(t0, t1);
   ApplyFixedState(state);
   static bool flat3d = std::getenv("NIER_FLAT_3D") != nullptr;  // diagnóstico: 3D em vermelho sólido
-  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up);
+  static bool keepAlphaTest = std::getenv("NIER_ALPHA_TEST_SEMPRE") != nullptr;  // diagnóstico: variante única
+  uint32_t colorControl = BE32(Field(state, kColorControl));
+  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up, keepAlphaTest || (colorControl & 8));
   if (!p) { Skip("programa não compilou/linkou"); return; }
   UseProgram(p->id);
   UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc, p->vcSeq);
@@ -726,7 +754,6 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
     int8_t v = int8_t((BE32(Field(state, kBoolConstants + 4 * (b >> 5))) >> (b & 31)) & 1);
     if (p->lastBools[i] != v) { p->lastBools[i] = v; glUniform1i(loc, v); }
   }
-  uint32_t colorControl = BE32(Field(state, kColorControl));
   if (p->alphaFunc >= 0) { int af = (colorControl & 8) ? int(colorControl & 7) : 7; if (af != p->lastAlphaFunc) { p->lastAlphaFunc = af; glUniform1i(p->alphaFunc, af); } }
   if (p->alphaRef >= 0) { float ar = BEF(Field(state, 0x2904)); if (ar != p->lastAlphaRef) { p->lastAlphaRef = ar; glUniform1f(p->alphaRef, ar); } }
   if (p->lastSizes.size() != p->samplers.size()) p->lastSizes.assign(p->samplers.size(), {-1.f, -1.f});
@@ -1113,11 +1140,15 @@ void RenderThread() {
     g_lastFrameMs = std::chrono::duration<double, std::milli>(now - last).count();
     last = now;
     uint64_t n = ++g_frames;
-    if (n % 120 == 0)
+    // Janela de log: 120 quadros ou 5 s, o que vier primeiro (a 1 fps no 3D, 120 quadros misturavam tudo);
+    // médias divididas pelo número real de quadros da janela.
+    static Clock::time_point windowStart = Clock::now(); static uint64_t windowFirst = 0;
+    const uint64_t W = n - windowFirst;
+    if (W >= 120 || (now - windowStart >= std::chrono::seconds(5) && W > 0))
     {
-      std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
-                   (unsigned long long)n, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
-                   g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, GlProfile() ? glGetError() : 0u);  // LEVE_OK: glGetError só no perfil opt-in
+      std::fprintf(stderr, "[nier-gl] %llu quadros (janela %llu), %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
+                   (unsigned long long)n, (unsigned long long)W, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
+                   g_programs.size(), g_textures.size(), g_textureMs / double(W), g_sigMs / double(W), g_decodeMs / double(W), g_uploadMs / double(W), g_replayMs / double(W), g_swapMs / double(W), g_gameWaitNs.exchange(0) / (W * 1e6), GlProfile() ? glGetError() : 0u);  // LEVE_OK: glGetError só no perfil opt-in
       if (!g_skipReasons.empty()) {
         std::string line;
         for (auto& [r, n] : g_skipReasons) line += " | " + r + ": " + std::to_string(n);
@@ -1125,7 +1156,7 @@ void RenderThread() {
       }
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos) glFinish(GPU) %.2f\n",
-                     g_pTarget / 120, g_pState / 120, g_pBuffers / 120, g_pDraw / 120, g_pResolve / 120, g_resolves / 120.0, g_resolveCopies / 120.0, g_copiesDone / 120.0, g_copiesSkipped / 120.0, g_aliases / 120.0, g_directPasses / 120.0, g_directDraws / 120.0, g_pFinish / 120);
+                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_pFinish / double(W));
       g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
@@ -1133,6 +1164,7 @@ void RenderThread() {
                    (unsigned long long)g_bufferUploads, (unsigned long long)g_bufferUploadBytes, g_bufferObjectBytes);
       g_pTarget = g_pState = g_pBuffers = g_pDraw = g_pFinish = g_pResolve = 0; g_resolves = g_resolveCopies = 0;
       g_textureMs = g_sigMs = g_decodeMs = g_uploadMs = g_replayMs = g_swapMs = 0;
+      windowStart = now; windowFirst = n;
     }
     {
       std::lock_guard lock(g_queueMutex);
