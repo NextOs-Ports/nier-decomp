@@ -647,8 +647,10 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
       std::string stub = "vec4 nx_sample" + n + "(vec2 uv) { return vec4(0.0); }\n";
       size_t at = out.find(stub);
       if (at == std::string::npos) continue;
+      // índices de osso e pesos viram constantes no programa (ver SkinConst em ProgramFor): uv é dobrado pelo
+      // compilador e o acesso vira VT<n>[const] — sem índice dinâmico de uniforme (GP da Mali, não software).
       std::string repl = "uniform vec4 VT" + n + "[4];\nuniform vec2 VT" + n + "_p;\n"
-        "vec4 nx_sample" + n + "(vec2 uv) { return VT" + n + "[int(mod(uv.x * VT" + n + "_p.x + 0.001, 4.0))]; }\n";
+        "vec4 nx_sample" + n + "(vec2 uv) { return VT" + n + "[int(uv.x * 1024.0 + 0.5)]; }\n";
       out.replace(at, stub.size(), repl);
       slots.push_back({t, 4});
     }
@@ -750,8 +752,8 @@ CullInfo ParseCull(const std::string& src) {
   ci.ok = true;
   return ci;
 }
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true) {
-  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2);
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0) {
+  uint64_t key = (vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3);
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
@@ -763,6 +765,17 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::vector<std::pair<int, int>> vtfSlots;
   static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
   std::string vsSource = ScalarizeRegisters(StripUnusedVaryings((vs->textureMask && !noVtf) ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source, flat ? 0xFF : ps->inputMask));
+  if (skinConst > 0) {
+    // skinning na CPU: atributo de índices de osso = 0, pesos = (1,0,0,0); o resto do VS fica igual (paleta identidade)
+    int idxIn = (skinConst - 1) >> 8, wIn = (skinConst - 1) & 0xFF;
+    auto constify = [&](int i, const char* value) {
+      std::string decl = "attribute vec4 a" + std::to_string(i) + ";\n";
+      size_t at = vsSource.find(decl);
+      if (at != std::string::npos) vsSource.replace(at, decl.size(), "const vec4 a" + std::to_string(i) + " = " + value + ";\n");
+    };
+    constify(idxIn, "vec4(0.0)");
+    constify(wIn, "vec4(1.0, 0.0, 0.0, 0.0)");
+  }
   p.cull = ParseCull(vs->source);
   for (size_t at = 0; (at = vsSource.find(" vr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
   for (size_t at = 0; (at = vsSource.find(" sr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
@@ -1042,19 +1055,27 @@ std::vector<float> g_skinOut[kMaxInputs];
 bool g_transientUsed[kMaxInputs] = {};
 uint64_t g_skinnedVertices = 0, g_skinnedDraws = 0;
 double g_skinMs = 0;
-bool CpuSkinDraw(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
-  if (p.vtf.size() != 1) return false;
-  const auto& vt = p.vtf[0];
-  int idxIn = -1, wIn = -1; std::vector<int> posIn, dirIn;
+// Entradas do skinning: índices (fmt 6 inteiro), pesos (fmt 6 normalizado com soma ≈ 1), posições (57/38), direções
+// (16/7/17). Devolve skinConst = (idx<<8 | w) + 1 para a variante do programa, ou 0.
+int SkinInputs(const Cmd& c, int& idxIn, int& wIn, std::vector<int>* posIn, std::vector<int>* dirIn) {
+  idxIn = -1; wIn = -1;
+  if (!c.vs || !c.vs->textureMask || !CpuSkin()) return 0;
   for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
     const auto& in = c.vs->inputs[i];
     if (in.format == 6 && in.isInteger) { if (idxIn < 0) idxIn = int(i); }
     else if (in.format == 6 && !in.isInteger) {
       if (wIn < 0) { const auto* v = FloatsFor(c.vertexData[i], c.vertexCount); if (v && c.vertexCount) { float sum = (*v)[0] + (*v)[1] + (*v)[2] + (*v)[3]; if (std::fabs(sum - 1.0f) < 0.03f) wIn = int(i); } }
-    } else if (in.format == 57 || in.format == 38) posIn.push_back(int(i));
-    else if (in.format == 16 || in.format == 7 || in.format == 17) dirIn.push_back(int(i));
+    } else if (in.format == 57 || in.format == 38) { if (posIn) posIn->push_back(int(i)); }
+    else if (in.format == 16 || in.format == 7 || in.format == 17) { if (dirIn) dirIn->push_back(int(i)); }
   }
-  if (idxIn < 0 || wIn < 0 || posIn.empty()) return false;
+  if (idxIn < 0 || wIn < 0) return 0;
+  return ((idxIn << 8) | wIn) + 1;
+}
+bool CpuSkinDraw(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
+  if (p.vtf.size() != 1) return false;
+  const auto& vt = p.vtf[0];
+  int idxIn = -1, wIn = -1; std::vector<int> posIn, dirIn;
+  if (!SkinInputs(c, idxIn, wIn, &posIn, &dirIn) || posIn.empty()) return false;
   const uint8_t* fetch = Field(state, kFetchConstants + 24 * vt.slot);
   auto t = xenos::DecodeFetch(fetch);
   if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) return false;
@@ -1264,7 +1285,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   static bool flat3d = std::getenv("NIER_FLAT_3D") != nullptr;  // diagnóstico: 3D em vermelho sólido
   static bool keepAlphaTest = std::getenv("NIER_ALPHA_TEST_SEMPRE") != nullptr;  // diagnóstico: variante única
   uint32_t colorControl = BE32(Field(state, kColorControl));
-  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up, keepAlphaTest || (colorControl & 8));
+  int skinIdx = -1, skinW = -1;
+  int skinConst = SkinInputs(c, skinIdx, skinW, nullptr, nullptr);
+  Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up, keepAlphaTest || (colorControl & 8), skinConst);
   if (!p) { Skip("programa não compilou/linkou"); return; }
   UseProgram(p->id);
   UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc, p->vcSeq);
