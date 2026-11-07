@@ -98,3 +98,40 @@ SELECT+START usa eventos SDL do mesmo controle e solicita saída imediata.
 O teste sintético passou: botões isolados e controles diferentes não fecham;
 a segunda pressão do combo enfileira saída sem tempo mínimo. Controles físicos
 e saída no aparelho ainda dependem da rodada do coordenador.
+
+## Build ARM64 NextOS
+
+Fonte do runtime: ReXGlue `f5337cdc947ff6d4c4196737e2c807a48f2a1fc2`,
+com a cópia privada cumulativa do SDK Rayman e seu patch NextOS
+SHA-256 `ffa82da46855d46707a99bed3fe9798b68a3003a7e41ceeb3a31d394ce879b13`.
+A biblioteca reutilizada tem SHA-256
+`457f9948741dfb2745b118e545c69e264d4aa5df7a6af2f0a1cb92dd6e70d611`.
+As fontes e o SDK foram copiados para o build X1; a referência ficou intacta.
+
+Clang 23.1.4/LLD, sysroot NextOS corrente, `-O3 -DNDEBUG -march=armv8-a`.
+ThinLTO **desativado**, igual ao cache ARM64 da referência consultada.
+A receita está em `tools/recomp/build_nextos.sh`, com caminhos por argumentos
+ou ambiente; usa quatro jobs por padrão. SDL3 é a do firmware.
+
+| Artefato | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `nier` | 60.035.984 | `1770d5870baf795ce8bef4f404303cad5ee89a9a74f4b1bf1a00ff3b436e6372` |
+| `librexruntime.so` | 9.732.016 | `457f9948741dfb2745b118e545c69e264d4aa5df7a6af2f0a1cb92dd6e70d611` |
+| `librexgpu-null.so` | 979.656 | `81abe15d964513491c0f53269fcbb70cca58d9bc81eee5e1f86185bd6e995ad7` |
+
+O ELF é AArch64 PIE com RUNPATH `$ORIGIN`, conservando debug_info privado.
+Não houve erro/aviso de compilação no build. Esses binários correspondem à
+fonte `07ee122`; a documentação posterior não muda os bytes.
+
+A reserva guest mantém mapeamentos virtuais esparsos; a arena usa backing
+compartilhado sem nome para preservar aliases virtual/físico e as páginas são
+comprometidas sob demanda. Outras reservas usam `MAP_PRIVATE|MAP_ANONYMOUS`
+e `PROT_NONE` antes do commit. O tamanho virtual não é a RAM residente e não
+se deve substituí-lo por uma alocação/zeragem antecipada de vários GiB.
+
+Para planejamento, o boot null host mediu aproximadamente 391 MiB de pico.
+Isso não certifica residência ARM64 ou aparelhos de 1 GB: ainda faltam assets
+do gameplay, renderer, texturas, buffers e custos da GPU. O coordenador fará
+a medição física. `run_device_probe.sh`, colocado junto aos três artefatos,
+impõe 55 s + 5 s para morte forçada do teste inteiro. Não é launcher de jogo
+normal nem prepara frontend, dispositivo ou trava de uso.
