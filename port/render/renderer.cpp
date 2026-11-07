@@ -523,6 +523,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   uint32_t bw = block ? (t.width + 3) / 4 : t.width, bh = block ? (t.height + 3) / 4 : t.height;
   uint32_t pitchE = std::max(block ? t.pitch / 4 : t.pitch, bw);
   uint32_t span = ((pitchE + 31) & ~31u) * ((bh + 31) & ~31u) * bpe;
+  if (t.tiled) span = std::max(4096u, span);  // tiled tail may use another bank in the same 4 KiB page
   auto ts = Clock::now();
   // Planos de vídeo (k8 reenviado): o quadro novo muda tudo, 64 amostras bastam e poupam ~1,4 MB de leitura.
   uint64_t sig = Signature(t.base, span, t.format == xenos::k8 && tex.uploads >= 2);

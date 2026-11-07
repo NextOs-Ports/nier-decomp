@@ -1,0 +1,355 @@
+{
+  "source": "F18 vs F15, .164, exact ELF/DLL Build IDs checked",
+  "F15_elf_sha256": "b52329128ae3d348d8e1f09458358c1e4b964ebcb31cba56fe1d972f8f383317",
+  "F18_elf_sha256": "a4c0075f35319f92a72c48e0eb591734f094d271d7aa9cf8790e0abe96e02609",
+  "F18_runtime_sha256": "fc24bbed7fac76abc1840c6df1b5ac5b3207e7b007df15a667f311d3b97a4543",
+  "F15_wall_seconds": 45.0999,
+  "F18_wall_seconds": 45.0548,
+  "F15_process_cpu_seconds": 99.4882,
+  "F18_process_cpu_seconds": 101.821,
+  "roles": [
+    {
+      "role": "audio",
+      "F15_cpu_seconds": 34.06169,
+      "F18_cpu_seconds": 32.065116,
+      "delta_seconds": -1.9965739999999954,
+      "delta_percent": -5.861641040124532,
+      "F18_percent_process_cpu": 31.491652998890213
+    },
+    {
+      "role": "render",
+      "F15_cpu_seconds": 35.187670000000004,
+      "F18_cpu_seconds": 43.55143,
+      "delta_seconds": 8.36376,
+      "delta_percent": 23.769007723444034,
+      "F18_percent_process_cpu": 42.77254200999794
+    },
+    {
+      "role": "game_workers",
+      "F15_cpu_seconds": 15.063798900000002,
+      "F18_cpu_seconds": 17.463667700000002,
+      "delta_seconds": 2.3998688,
+      "delta_percent": 15.931365095427562,
+      "F18_percent_process_cpu": 17.15134176643325
+    },
+    {
+      "role": "timers",
+      "F15_cpu_seconds": 8.56385,
+      "F18_cpu_seconds": 2.47556,
+      "delta_seconds": -6.088290000000001,
+      "delta_percent": -71.09290797947185,
+      "F18_percent_process_cpu": 2.4312862768976933
+    },
+    {
+      "role": "frontend_sdl",
+      "F15_cpu_seconds": 4.41723,
+      "F18_cpu_seconds": 4.58633,
+      "delta_seconds": 0.16910000000000025,
+      "delta_percent": 3.8281909703592687,
+      "F18_percent_process_cpu": 4.504306577228666
+    }
+  ],
+  "functions": [
+    {
+      "function": "sub_824F5E40",
+      "F15_samples": 284,
+      "F18_samples": 191,
+      "F15_sample_equivalent_cpu_seconds": 2.84,
+      "F18_sample_equivalent_cpu_seconds": 1.91,
+      "delta_percent": -32.74647887323944
+    },
+    {
+      "function": "sub_824F5EF0",
+      "F15_samples": 163,
+      "F18_samples": 129,
+      "F15_sample_equivalent_cpu_seconds": 1.63,
+      "F18_sample_equivalent_cpu_seconds": 1.29,
+      "delta_percent": -20.858895705521473
+    }
+  ],
+  "pair_delta_percent": -28.411633109619682,
+  "F15_pc_coverage_percent": 65.5957188892753,
+  "F18_pc_coverage_percent": 67.50081024543071,
+  "F18_unattributed_cpu_seconds": 1.678896299999991,
+  "F18_threads": [
+    {
+      "tid": 59895,
+      "name": "nier",
+      "cpu_seconds_observed": 4.58633,
+      "sigprof_blocked_last_scan": false,
+      "group": "frontend_sdl"
+    },
+    {
+      "tid": 59896,
+      "name": "nier",
+      "cpu_seconds_observed": 2.47556,
+      "sigprof_blocked_last_scan": false,
+      "group": "timers"
+    },
+    {
+      "tid": 59897,
+      "name": "XMA Decoder (F8",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59898,
+      "name": "Audio Worker (F",
+      "cpu_seconds_observed": 4.5028,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59899,
+      "name": "GPU Commands (F",
+      "cpu_seconds_observed": 3.62631,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59900,
+      "name": "GPU VSync (F800",
+      "cpu_seconds_observed": 1.44714,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59902,
+      "name": "Kernel Dispatch",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59904,
+      "name": "Main XThread (F",
+      "cpu_seconds_observed": 0.968434,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59905,
+      "name": "nier",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "frontend_sdl"
+    },
+    {
+      "tid": 59906,
+      "name": "XThread6FFFF0A0",
+      "cpu_seconds_observed": 1.07312,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59907,
+      "name": "XThread6EFEF0A0",
+      "cpu_seconds_observed": 0.735572,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59908,
+      "name": "XThread6DFDF0A0",
+      "cpu_seconds_observed": 0.584283,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59909,
+      "name": "XThread6CFCF0A0",
+      "cpu_seconds_observed": 0.508166,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59910,
+      "name": "XThread6BFBF0A0",
+      "cpu_seconds_observed": 0.48525,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59911,
+      "name": "XThread6AFAF0A0",
+      "cpu_seconds_observed": 0.472587,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59912,
+      "name": "XThread69F9F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59913,
+      "name": "XThread68F8F0A0",
+      "cpu_seconds_observed": 1.75812,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59914,
+      "name": "XThread67F7F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59915,
+      "name": "XThread66F6F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59916,
+      "name": "XThread65F5F0A0",
+      "cpu_seconds_observed": 0.192825,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59917,
+      "name": "XThread64F4F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59918,
+      "name": "XThread63F3F0A0",
+      "cpu_seconds_observed": 0.272283,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59919,
+      "name": "XThread62F2F0A0",
+      "cpu_seconds_observed": 24.6319,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59920,
+      "name": "XThread61F1F0A0",
+      "cpu_seconds_observed": 0.26671,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59921,
+      "name": "XThread60F0F0A0",
+      "cpu_seconds_observed": 0.274789,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59922,
+      "name": "XThread5FEFF0A0",
+      "cpu_seconds_observed": 0.801877,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59923,
+      "name": "XThread5EEEF0A0",
+      "cpu_seconds_observed": 0.264569,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59924,
+      "name": "XThread5DEDF0A0",
+      "cpu_seconds_observed": 4.07357,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59925,
+      "name": "PulseMainloop",
+      "cpu_seconds_observed": 3.26911,
+      "sigprof_blocked_last_scan": true,
+      "group": "audio"
+    },
+    {
+      "tid": 59926,
+      "name": "PulseHotplug",
+      "cpu_seconds_observed": 0.699546,
+      "sigprof_blocked_last_scan": true,
+      "group": "audio"
+    },
+    {
+      "tid": 59928,
+      "name": "SDLAudioP15",
+      "cpu_seconds_observed": 2.27079,
+      "sigprof_blocked_last_scan": true,
+      "group": "audio"
+    },
+    {
+      "tid": 59929,
+      "name": "XThread5769F0A0",
+      "cpu_seconds_observed": 17.2493,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59930,
+      "name": "XThread5668F0A0",
+      "cpu_seconds_observed": 0.0767187,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59931,
+      "name": "XThread5567F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59932,
+      "name": "XThread5466F0A0",
+      "cpu_seconds_observed": 8.623,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59933,
+      "name": "XThread62F2F0A0",
+      "cpu_seconds_observed": 0.105364,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59934,
+      "name": "XThread62F2F0A0",
+      "cpu_seconds_observed": 2.18818,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59935,
+      "name": "XThread62F2F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": true,
+      "group": "render"
+    },
+    {
+      "tid": 59936,
+      "name": "XThread62F2F0A0",
+      "cpu_seconds_observed": 11.6579,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    }
+  ],
+  "limits": [
+    "Roles inferred from thread names and sampled functions; CPU seconds come from thread clocks.",
+    "Function seconds are sample-equivalent estimates, not exact time or per-call cost. Overruns: F15=2501, F18=2463.",
+    "Different builds/work progression; no fixed-workload or FPS conclusion from this profile alone.",
+    "Audio/DSP and timers fell, while render/capture and game CPU rose; savings did not reduce total process CPU over the window."
+  ]
+}
