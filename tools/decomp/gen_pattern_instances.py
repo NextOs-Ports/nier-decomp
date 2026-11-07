@@ -148,6 +148,49 @@ def make_node2(a, w):
             f'0x{hi_lo(16, 21):08X}, 0x{hi_lo(17, 26):08X}, {sym(bl_target(a + 144, w[36]))})')
     return body, f'r3=ptr @r3.{s16(w[6])}=obj callret=ptr'
 
+def vcall_tail(a, w):
+    return f'vcall_tail(ctx, base, {s16(w[1]) // 4})', 'r3=obj'
+
+def bitset_probe(a, w):
+    p = f'{{{sym(bl_target(a + 68, w[17]))}, {s16(w[5])}, {s16(w[12])}, {s16(w[20])}, {rlw(w[3])}, {rlw(w[4])}, {rlw(w[6])}}}'
+    return f'static constexpr BitsetProbe p = {p}; bitset_probe(ctx, base, {-s16(w[2])}, p)', 'r3=ptr:8 r4=range:0..0x3FFF'
+
+def ctor_vt_init_opt(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    body = (f'ctor_vt_init_opt(ctx, base, {-s16(w[4])}, 0x{hi_lo(5, 7):08X}, {s16(w[9])}, {sym(bl_target(a + 40, w[10]))}, '
+            f'{s16(w[15])}, {sym(bl_target(a + 64, w[16]))})')
+    return body, 'r3=ptr r4=range:0..1'
+
+def make_pair_result2(a, w):
+    body = (f'make_pair_result2(ctx, base, {-s16(w[4])}, {sym(bl_target(a + 36, w[9]))}, {s16(w[15])}, {s16(w[14])}, '
+            f'{sym(bl_target(a + 64, w[16]))}, {s16(w[18])}, {sym(bl_target(a + 76, w[19]))}, {s16(w[21])})')
+    return body, 'r3=ptr r4=int r5=ptr'
+
+def chain_flag_global(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    body = (f'chain_flag_global(ctx, base, {-s16(w[2])}, {s16(w[4])}, {s16(w[3])}, {sym(bl_target(a + 20, w[5]))}, '
+            f'{sym(bl_target(a + 24, w[6]))}, 0x{(hi_lo(7, 9) + s16(w[11])) & 0xFFFFFFFF:08X})')
+    return body, 'r3=ptr'
+
+def ctor_base_vt_byte_word(a, w):
+    hi_lo = lambda i, j: ((s16(w[i]) << 16) + s16(w[j])) & 0xFFFFFFFF
+    body = (f'ctor_base_vt_byte_word(ctx, base, {-s16(w[3])}, {sym(bl_target(a + 24, w[6]))}, {s16(w[4])}, {s16(w[10])}, '
+            f'{s16(w[8])}, 0x{hi_lo(7, 9):08X}, {s16(w[12])}, {s16(w[13])})')
+    return body, 'r3=ptr'
+
+def list_unlink(a, w):
+    if s16(w[5]) != s16(w[13]) or s16(w[7]) != s16(w[15]): return None
+    return (f'list_unlink(ctx, base, {s16(w[5])}, {s16(w[7])}, {s16(w[10])}, {s16(w[18])}, {s16(w[26])})',
+            f'r3=ptr r4=ptr @r4.{s16(w[5])}=ptr @r4.{s16(w[7])}=ptr')
+
+def seh_thunk(a, w):
+    return f'seh_thunk(ctx, base, {-s16(w[5])}, {s16(w[1])}, {sym(bl_target(a + 28, w[7]))})', 'r3=ptr'
+
+def list_push_back(a, w):
+    p = (f'{{{sym(bl_target(a + 28, w[7]))}, {s16(w[11])}, {s16(w[12])}, {s16(w[13])}, {s16(w[14])}, {s16(w[18])}, '
+         f'{s16(w[20])}, {s16(w[21])}}}')
+    return f'static constexpr ListPush p = {p}; list_push_back(ctx, base, {-s16(w[4])}, p)', 'r3=ptr r4=int'
+
 KINDS = {'alloc_then_init': (0x821F4C50, 116, alloc_then_init), 'ctor_vec_rand': (0x8226BCB8, 268, ctor_vec_rand),
          'fir16': (0x825047C0, 276, fir16), 'dtor_body_free2': (0x82102F88, 80, dtor_body_free2),
          'ctor_base_vt_fields': (0x82289650, 84, ctor_base_vt_fields), 'chain2x_global': (0x82386F00, 104, chain2x_global),
@@ -158,7 +201,12 @@ KINDS = {'alloc_then_init': (0x821F4C50, 116, alloc_then_init), 'ctor_vec_rand':
          'ctor_vt2_link': (0x8227A730, 148, ctor_vt2_link), 'five_flag_calls': (0x82207AB0, 176, five_flag_calls),
          'effect_init': (0x82351228, 196, effect_init),
          # clone_if_type (0x822D8268, 184): a chamada base traduzida dispara SIGFPE com o comparador desarmado; fora até entender.
-         'bounded_string_copy': (0x82100540, 180, bounded_string_copy), 'make_node2': (0x825A7690, 176, make_node2)}
+         'bounded_string_copy': (0x82100540, 180, bounded_string_copy), 'make_node2': (0x825A7690, 176, make_node2),
+         'vcall_tail': (0x8213FFB8, 16, vcall_tail), 'bitset_probe': (0x82174710, 100, bitset_probe),
+         'ctor_vt_init_opt': (0x824E02C8, 96, ctor_vt_init_opt), 'make_pair_result2': (0x82551108, 112, make_pair_result2),
+         'chain_flag_global': (0x82383F08, 64, chain_flag_global), 'ctor_base_vt_byte_word': (0x8226B1B8, 76, ctor_base_vt_byte_word),
+         'list_unlink': (0x821AE3F0, 120, list_unlink), 'seh_thunk': (0x825D19E0, 56, seh_thunk),
+         'list_push_back': (0x82498B80, 124, list_push_back)}
 refs = {k: shape(words(a, n)) for k, (a, n, _) in KINDS.items()}
 done = set()
 for f in (root / 'src/decomp').rglob('*.cpp'):

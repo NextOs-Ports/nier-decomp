@@ -38,8 +38,12 @@ DECLARE_REX_FUNC(sub_8216B530);
 DECLARE_REX_FUNC(sub_8216B688);
 DECLARE_REX_FUNC(sub_82171D70);
 DECLARE_REX_FUNC(sub_82173E98);
+DECLARE_REX_FUNC(sub_82174498);
+DECLARE_REX_FUNC(sub_82174710);
+DECLARE_REX_FUNC(sub_82175078);
 DECLARE_REX_FUNC(sub_82175360);
 DECLARE_REX_FUNC(sub_821753D8);
+DECLARE_REX_FUNC(sub_821758B0);
 DECLARE_REX_FUNC(sub_82175B98);
 DECLARE_REX_FUNC(sub_82175C10);
 DECLARE_REX_FUNC(sub_821769E0);
@@ -53,6 +57,9 @@ DECLARE_REX_FUNC(sub_821F47F0);
 DECLARE_REX_FUNC(sub_821F4B88);
 DECLARE_REX_FUNC(sub_821FA908);
 DECLARE_REX_FUNC(sub_821FA990);
+DECLARE_REX_FUNC(sub_821FEBE0);
+DECLARE_REX_FUNC(sub_821FEF00);
+DECLARE_REX_FUNC(sub_821FF110);
 DECLARE_REX_FUNC(sub_821FF790);
 DECLARE_REX_FUNC(sub_821FF808);
 DECLARE_REX_FUNC(sub_821FFB48);
@@ -69,6 +76,7 @@ DECLARE_REX_FUNC(sub_82207958);
 DECLARE_REX_FUNC(sub_822079C8);
 DECLARE_REX_FUNC(sub_82256310);
 DECLARE_REX_FUNC(sub_8226B8C8);
+DECLARE_REX_FUNC(sub_8226C070);
 DECLARE_REX_FUNC(sub_82270490);
 DECLARE_REX_FUNC(sub_822753A8);
 DECLARE_REX_FUNC(sub_82278018);
@@ -110,8 +118,13 @@ DECLARE_REX_FUNC(sub_823192E8);
 DECLARE_REX_FUNC(sub_8231A230);
 DECLARE_REX_FUNC(sub_8231B800);
 DECLARE_REX_FUNC(sub_82320A28);
+DECLARE_REX_FUNC(sub_8233B128);
+DECLARE_REX_FUNC(sub_8233B1A8);
+DECLARE_REX_FUNC(sub_8233B210);
+DECLARE_REX_FUNC(sub_8233B2F0);
 DECLARE_REX_FUNC(sub_8233B358);
 DECLARE_REX_FUNC(sub_8233B3D0);
+DECLARE_REX_FUNC(sub_8233B490);
 DECLARE_REX_FUNC(sub_8233B4F8);
 DECLARE_REX_FUNC(sub_8233B570);
 DECLARE_REX_FUNC(sub_8233B660);
@@ -142,6 +155,18 @@ DECLARE_REX_FUNC(sub_823E8650);
 DECLARE_REX_FUNC(sub_82428600);
 DECLARE_REX_FUNC(sub_8243F5C8);
 DECLARE_REX_FUNC(sub_824461D8);
+DECLARE_REX_FUNC(sub_824984B8);
+DECLARE_REX_FUNC(sub_8249A428);
+DECLARE_REX_FUNC(sub_8249D790);
+DECLARE_REX_FUNC(sub_824A2550);
+DECLARE_REX_FUNC(sub_824B2EB8);
+DECLARE_REX_FUNC(sub_824B5500);
+DECLARE_REX_FUNC(sub_824D1438);
+DECLARE_REX_FUNC(sub_824F0A50);
+DECLARE_REX_FUNC(sub_824FC9F8);
+DECLARE_REX_FUNC(sub_82508AE0);
+DECLARE_REX_FUNC(sub_82550C98);
+DECLARE_REX_FUNC(sub_825522D0);
 DECLARE_REX_FUNC(sub_82556320);
 DECLARE_REX_FUNC(sub_82556350);
 DECLARE_REX_FUNC(sub_825563B0);
@@ -150,6 +175,8 @@ DECLARE_REX_FUNC(sub_8258C360);
 DECLARE_REX_FUNC(sub_8258CD38);
 DECLARE_REX_FUNC(sub_825C5360);
 DECLARE_REX_FUNC(sub_825D1240);
+DECLARE_REX_FUNC(sub_825D2C38);
+DECLARE_REX_FUNC(sub_825E8CA8);
 DECLARE_REX_FUNC(sub_82608730);
 DECLARE_REX_FUNC(sub_826099E0);
 DECLARE_REX_FUNC(sub_82609F70);
@@ -189,6 +216,10 @@ NIER_VERIFY_SPEC(sub_82121C40, 0x82121C40, "r3=ptr r4=range:0..1");
 // sub_8213B9C8 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_8213B9C8) { dtor_body_free(ctx, base, 112, sub_8213B5D8, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_8213B9C8, 0x8213B9C8, "r3=ptr r4=range:0..1");
+
+// sub_8213FFB8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8213FFB8) { vcall_tail(ctx, base, 11); }
+NIER_VERIFY_SPEC(sub_8213FFB8, 0x8213FFB8, "r3=obj");
 
 // sub_8214C190 (128 bytes) — collect_sort_apply
 NIER_DECOMP(sub_8214C190) { collect_sort_apply(ctx, base, 112, 4304, 4288, 76, 4, 80, 2, sub_821532B0, sub_8214B350); }
@@ -262,9 +293,25 @@ NIER_VERIFY_SPEC(sub_82171F08, 0x82171F08, "r3=ptr r4=range:0..1");
 NIER_DECOMP(sub_82173F30) { dtor_body_free(ctx, base, 112, sub_82173E98, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_82173F30, 0x82173F30, "r3=ptr r4=range:0..1");
 
+// sub_82174710 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_82174710) { static constexpr BitsetProbe p = {sub_82174498, 400, 0, 4, 23, 9, 31, 29, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_82174710, 0x82174710, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_82175078 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_82175078) { static constexpr BitsetProbe p = {sub_82174710, 448, 0, 5, 22, 10, 31, 28, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_82175078, 0x82175078, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_821758B0 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_821758B0) { static constexpr BitsetProbe p = {sub_82175078, 476, 0, 6, 21, 11, 31, 27, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_821758B0, 0x821758B0, "r3=ptr:8 r4=range:0..0x3FFF");
+
 // sub_82175C10 (136 bytes) — bitset_find_resolve
 NIER_DECOMP(sub_82175C10) { static constexpr BitsetFind p = {sub_821753D8, sub_82175360, 320, 1, 1, 24, 8, 31, 30, 26, 31, 3, 0, 28, 30, 2, 31, 31, 1, 31, 1, 0, 30}; bitset_find_resolve(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_82175C10, 0x82175C10, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_821766F8 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_821766F8) { static constexpr BitsetProbe p = {sub_821758B0, 492, 0, 7, 20, 12, 31, 26, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_821766F8, 0x821766F8, "r3=ptr:8 r4=range:0..0x3FFF");
 
 // sub_82176A58 (136 bytes) — bitset_find_resolve
 NIER_DECOMP(sub_82176A58) { static constexpr BitsetFind p = {sub_82175C10, sub_82175B98, 400, 1, 1, 23, 9, 31, 29, 26, 31, 3, 0, 28, 29, 3, 31, 31, 1, 31, 1, 0, 30}; bitset_find_resolve(ctx, base, 112, p); }
@@ -282,6 +329,10 @@ NIER_VERIFY_SPEC(sub_821781B8, 0x821781B8, "r3=ptr:8 r4=range:0..0x3FFF");
 NIER_DECOMP(sub_82178E18) { dtor_body_free(ctx, base, 112, sub_82178D80, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_82178E18, 0x82178E18, "r3=ptr r4=range:0..1");
 
+// sub_82183400 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_82183400) { vcall_tail(ctx, base, 5); }
+NIER_VERIFY_SPEC(sub_82183400, 0x82183400, "r3=obj");
+
 // sub_82190938 (180 bytes) — bounded_string_copy
 NIER_DECOMP(sub_82190938) { bounded_string_copy(ctx, base, 96, 0, 31, sub_825D1240, 31); }
 NIER_VERIFY_SPEC(sub_82190938, 0x82190938, "r3=ptr r4=bptr");
@@ -290,9 +341,29 @@ NIER_VERIFY_SPEC(sub_82190938, 0x82190938, "r3=ptr r4=bptr");
 NIER_DECOMP(sub_8219D980) { dtor_body_free(ctx, base, 112, sub_8219D8C8, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_8219D980, 0x8219D980, "r3=ptr r4=range:0..1");
 
+// sub_821AE060 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_821AE060) { vcall_tail(ctx, base, 126); }
+NIER_VERIFY_SPEC(sub_821AE060, 0x821AE060, "r3=obj");
+
+// sub_821AE3F0 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821AE3F0) { list_unlink(ctx, base, 36, 40, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821AE3F0, 0x821AE3F0, "r3=ptr r4=ptr @r4.36=ptr @r4.40=ptr");
+
+// sub_821AE468 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821AE468) { list_unlink(ctx, base, 68, 72, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821AE468, 0x821AE468, "r3=ptr r4=ptr @r4.68=ptr @r4.72=ptr");
+
+// sub_821B2C30 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_821B2C30) { vcall_tail(ctx, base, 65); }
+NIER_VERIFY_SPEC(sub_821B2C30, 0x821B2C30, "r3=obj");
+
 // sub_821B2C40 (148 bytes) — angle_wrap
 NIER_DECOMP(sub_821B2C40) { static constexpr AngleWrap p = {0x82019FE4, 0x820198A4, 0x820198A8, 0x82019FE0, 0x82019FD0, 0x820454E0, 20}; angle_wrap(ctx, base, p); }
 NIER_VERIFY_SPEC(sub_821B2C40, 0x821B2C40, "f1=f32:0..800");
+
+// sub_821B9158 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821B9158) { list_unlink(ctx, base, 60, 64, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821B9158, 0x821B9158, "r3=ptr r4=ptr @r4.60=ptr @r4.64=ptr");
 
 // sub_821BA870 (148 bytes) — angle_wrap
 NIER_DECOMP(sub_821BA870) { static constexpr AngleWrap p = {0x82019FE4, 0x820198A4, 0x820198A8, 0x82019FE0, 0x8201A860, 0x820454E0, 20}; angle_wrap(ctx, base, p); }
@@ -305,6 +376,10 @@ NIER_VERIFY_SPEC(sub_821BA908, 0x821BA908, "f1=f32:0..800");
 // sub_821BC7A8 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_821BC7A8) { dtor_body_free(ctx, base, 112, sub_821BC720, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_821BC7A8, 0x821BC7A8, "r3=ptr r4=range:0..1");
+
+// sub_821C5FA0 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_821C5FA0) { vcall_tail(ctx, base, 124); }
+NIER_VERIFY_SPEC(sub_821C5FA0, 0x821C5FA0, "r3=obj");
 
 // sub_821C6688 (148 bytes) — angle_wrap
 NIER_DECOMP(sub_821C6688) { static constexpr AngleWrap p = {0x8200BE70, 0x8200BE78, 0x8201AFA0, 0x8201A740, 0x820198A8, 0x820454E0, 20}; angle_wrap(ctx, base, p); }
@@ -494,6 +569,38 @@ NIER_VERIFY_SPEC(sub_821F5F10, 0x821F5F10, "r3=obj callret=ptr");
 NIER_DECOMP(sub_821F5F88) { alloc_then_init(ctx, base, 112, 80, sub_82149BE0, 13680, 4, 1, sub_821F47F0); }
 NIER_VERIFY_SPEC(sub_821F5F88, 0x821F5F88, "r3=obj callret=ptr");
 
+// sub_821F9E70 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821F9E70) { list_unlink(ctx, base, 20, 24, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821F9E70, 0x821F9E70, "r3=ptr r4=ptr @r4.20=ptr @r4.24=ptr");
+
+// sub_821F9F48 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821F9F48) { list_unlink(ctx, base, 28, 32, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821F9F48, 0x821F9F48, "r3=ptr r4=ptr @r4.28=ptr @r4.32=ptr");
+
+// sub_821F9FC0 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821F9FC0) { list_unlink(ctx, base, 44, 48, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821F9FC0, 0x821F9FC0, "r3=ptr r4=ptr @r4.44=ptr @r4.48=ptr");
+
+// sub_821FA098 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821FA098) { list_unlink(ctx, base, 52, 56, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821FA098, 0x821FA098, "r3=ptr r4=ptr @r4.52=ptr @r4.56=ptr");
+
+// sub_821FA170 (120 bytes) — list_unlink
+NIER_DECOMP(sub_821FA170) { list_unlink(ctx, base, 76, 80, 0, 4, 8); }
+NIER_VERIFY_SPEC(sub_821FA170, 0x821FA170, "r3=ptr r4=ptr @r4.76=ptr @r4.80=ptr");
+
+// sub_821FEF00 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_821FEF00) { static constexpr BitsetProbe p = {sub_821FEBE0, 200, 0, 4, 23, 9, 31, 29, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_821FEF00, 0x821FEF00, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_821FF110 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_821FF110) { static constexpr BitsetProbe p = {sub_821FEF00, 224, 0, 5, 22, 10, 31, 28, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_821FF110, 0x821FF110, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_821FF4A8 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_821FF4A8) { static constexpr BitsetProbe p = {sub_821FF110, 238, 0, 6, 21, 11, 31, 27, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_821FF4A8, 0x821FF4A8, "r3=ptr:8 r4=range:0..0x3FFF");
+
 // sub_821FFBC0 (136 bytes) — bitset_find_resolve
 NIER_DECOMP(sub_821FFBC0) { static constexpr BitsetFind p = {sub_821FF808, sub_821FF790, 160, 1, 1, 24, 8, 31, 30, 26, 31, 3, 0, 28, 30, 2, 31, 31, 1, 31, 1, 0, 30}; bitset_find_resolve(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_821FFBC0, 0x821FFBC0, "r3=ptr:8 r4=range:0..0x3FFF");
@@ -509,6 +616,10 @@ NIER_VERIFY_SPEC(sub_82200408, 0x82200408, "r3=ptr:8 r4=range:0..0x3FFF");
 // sub_82200838 (136 bytes) — bitset_find_resolve
 NIER_DECOMP(sub_82200838) { static constexpr BitsetFind p = {sub_82200408, sub_82200390, 238, 1, 1, 21, 11, 31, 27, 26, 31, 3, 0, 28, 27, 5, 31, 31, 1, 31, 1, 0, 30}; bitset_find_resolve(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_82200838, 0x82200838, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_822074F8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_822074F8) { vcall_tail(ctx, base, 150); }
+NIER_VERIFY_SPEC(sub_822074F8, 0x822074F8, "r3=obj");
 
 // sub_82207AB0 (176 bytes) — five_flag_calls
 NIER_DECOMP(sub_82207AB0) { static constexpr FiveFlags p = {sub_82207808, sub_82207878, sub_822078E8, sub_82207958, sub_822079C8, 0, -1, 2, 3, -3, -4}; five_flag_calls(ctx, base, 112, p); }
@@ -558,9 +669,117 @@ NIER_VERIFY_SPEC(sub_8225C180, 0x8225C180, "f1=f32:0..800");
 NIER_DECOMP(sub_8225C218) { static constexpr AngleWrap p = {0x8200BE70, 0x8200BE78, 0x82022C50, 0x8201A740, 0x820198A8, 0x820454E0, 20}; angle_wrap(ctx, base, p); }
 NIER_VERIFY_SPEC(sub_8225C218, 0x8225C218, "f1=f32:0..800");
 
+// sub_8225C328 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C328) { vcall_tail(ctx, base, 37); }
+NIER_VERIFY_SPEC(sub_8225C328, 0x8225C328, "r3=obj");
+
+// sub_8225C338 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C338) { vcall_tail(ctx, base, 54); }
+NIER_VERIFY_SPEC(sub_8225C338, 0x8225C338, "r3=obj");
+
+// sub_8225C348 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C348) { vcall_tail(ctx, base, 71); }
+NIER_VERIFY_SPEC(sub_8225C348, 0x8225C348, "r3=obj");
+
+// sub_8225C358 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C358) { vcall_tail(ctx, base, 88); }
+NIER_VERIFY_SPEC(sub_8225C358, 0x8225C358, "r3=obj");
+
+// sub_8225C368 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C368) { vcall_tail(ctx, base, 105); }
+NIER_VERIFY_SPEC(sub_8225C368, 0x8225C368, "r3=obj");
+
+// sub_8225C378 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C378) { vcall_tail(ctx, base, 19); }
+NIER_VERIFY_SPEC(sub_8225C378, 0x8225C378, "r3=obj");
+
+// sub_8225C388 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C388) { vcall_tail(ctx, base, 35); }
+NIER_VERIFY_SPEC(sub_8225C388, 0x8225C388, "r3=obj");
+
+// sub_8225C398 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C398) { vcall_tail(ctx, base, 52); }
+NIER_VERIFY_SPEC(sub_8225C398, 0x8225C398, "r3=obj");
+
+// sub_8225C3A8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C3A8) { vcall_tail(ctx, base, 86); }
+NIER_VERIFY_SPEC(sub_8225C3A8, 0x8225C3A8, "r3=obj");
+
+// sub_8225C3B8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C3B8) { vcall_tail(ctx, base, 103); }
+NIER_VERIFY_SPEC(sub_8225C3B8, 0x8225C3B8, "r3=obj");
+
+// sub_8225C3C8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C3C8) { vcall_tail(ctx, base, 34); }
+NIER_VERIFY_SPEC(sub_8225C3C8, 0x8225C3C8, "r3=obj");
+
+// sub_8225C3D8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C3D8) { vcall_tail(ctx, base, 51); }
+NIER_VERIFY_SPEC(sub_8225C3D8, 0x8225C3D8, "r3=obj");
+
+// sub_8225C3E8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C3E8) { vcall_tail(ctx, base, 68); }
+NIER_VERIFY_SPEC(sub_8225C3E8, 0x8225C3E8, "r3=obj");
+
+// sub_8225C3F8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C3F8) { vcall_tail(ctx, base, 85); }
+NIER_VERIFY_SPEC(sub_8225C3F8, 0x8225C3F8, "r3=obj");
+
+// sub_8225C408 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C408) { vcall_tail(ctx, base, 102); }
+NIER_VERIFY_SPEC(sub_8225C408, 0x8225C408, "r3=obj");
+
+// sub_8225C418 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C418) { vcall_tail(ctx, base, 16); }
+NIER_VERIFY_SPEC(sub_8225C418, 0x8225C418, "r3=obj");
+
+// sub_8225C428 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C428) { vcall_tail(ctx, base, 96); }
+NIER_VERIFY_SPEC(sub_8225C428, 0x8225C428, "r3=obj");
+
+// sub_8225C438 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C438) { vcall_tail(ctx, base, 10); }
+NIER_VERIFY_SPEC(sub_8225C438, 0x8225C438, "r3=obj");
+
+// sub_8225C448 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C448) { vcall_tail(ctx, base, 28); }
+NIER_VERIFY_SPEC(sub_8225C448, 0x8225C448, "r3=obj");
+
+// sub_8225C458 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C458) { vcall_tail(ctx, base, 45); }
+NIER_VERIFY_SPEC(sub_8225C458, 0x8225C458, "r3=obj");
+
+// sub_8225C468 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C468) { vcall_tail(ctx, base, 62); }
+NIER_VERIFY_SPEC(sub_8225C468, 0x8225C468, "r3=obj");
+
+// sub_8225C478 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8225C478) { vcall_tail(ctx, base, 79); }
+NIER_VERIFY_SPEC(sub_8225C478, 0x8225C478, "r3=obj");
+
+// sub_82269E98 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_82269E98) { vcall_tail(ctx, base, 244); }
+NIER_VERIFY_SPEC(sub_82269E98, 0x82269E98, "r3=obj");
+
+// sub_8226AFC8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8226AFC8) { vcall_tail(ctx, base, 8); }
+NIER_VERIFY_SPEC(sub_8226AFC8, 0x8226AFC8, "r3=obj");
+
+// sub_8226B1B8 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_8226B1B8) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82027D94, 0, 32); }
+NIER_VERIFY_SPEC(sub_8226B1B8, 0x8226B1B8, "r3=ptr");
+
+// sub_8226B440 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_8226B440) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82027DB4, 0, 32); }
+NIER_VERIFY_SPEC(sub_8226B440, 0x8226B440, "r3=ptr");
+
 // sub_8226BCB8 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_8226BCB8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202857C, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_8226BCB8, 0x8226BCB8, "r3=ptr:16");
+
+// sub_8226FE10 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_8226FE10) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202877C, 0, 32); }
+NIER_VERIFY_SPEC(sub_8226FE10, 0x8226FE10, "r3=ptr");
 
 // sub_822706E0 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822706E0) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82028C1C, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
@@ -606,6 +825,10 @@ NIER_VERIFY_SPEC(sub_822978F8, 0x822978F8, "r3=ptr:16");
 NIER_DECOMP(sub_8229F4B8) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202CD3C, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_8229F4B8, 0x8229F4B8, "r3=ptr");
 
+// sub_8229F9B0 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_8229F9B0) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202CD7C, 0, 32); }
+NIER_VERIFY_SPEC(sub_8229F9B0, 0x8229F9B0, "r3=ptr");
+
 // sub_822A1E90 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822A1E90) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202CED8, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822A1E90, 0x822A1E90, "r3=ptr");
@@ -629,6 +852,10 @@ NIER_VERIFY_SPEC(sub_822AB2F0, 0x822AB2F0, "r3=ptr");
 // sub_822AC340 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822AC340) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202DCE0, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822AC340, 0x822AC340, "r3=ptr:16");
+
+// sub_822B1BA0 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_822B1BA0) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202E744, 0, 32); }
+NIER_VERIFY_SPEC(sub_822B1BA0, 0x822B1BA0, "r3=ptr");
 
 // sub_822B38E0 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822B38E0) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202E85C, 0, 0x8200EEA8, 32); }
@@ -662,6 +889,10 @@ NIER_VERIFY_SPEC(sub_822C1268, 0x822C1268, "r3=ptr");
 NIER_DECOMP(sub_822C1AF8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x8202F7D8, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822C1AF8, 0x822C1AF8, "r3=ptr:16");
 
+// sub_822C5A58 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_822C5A58) { vcall_tail(ctx, base, 6); }
+NIER_VERIFY_SPEC(sub_822C5A58, 0x822C5A58, "r3=obj");
+
 // sub_822C5DB0 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822C5DB0) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8202FD98, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822C5DB0, 0x822C5DB0, "r3=ptr");
@@ -678,6 +909,10 @@ NIER_VERIFY_SPEC(sub_822C6AF8, 0x822C6AF8, "r3=ptr r4=range:0..1 callargs=2");
 NIER_DECOMP(sub_822CB110) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82030410, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822CB110, 0x822CB110, "r3=ptr");
 
+// sub_822D22B8 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_822D22B8) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82032354, 0, 32); }
+NIER_VERIFY_SPEC(sub_822D22B8, 0x822D22B8, "r3=ptr");
+
 // sub_822D23E8 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822D23E8) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82032374, 0, 0x8200EEA8, 32); }
 NIER_VERIFY_SPEC(sub_822D23E8, 0x822D23E8, "r3=ptr");
@@ -690,9 +925,21 @@ NIER_VERIFY_SPEC(sub_822D29F8, 0x822D29F8, "r3=ptr:16");
 NIER_DECOMP(sub_822D9E78) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82032BF0, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822D9E78, 0x822D9E78, "r3=ptr:16");
 
+// sub_822E2B48 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_822E2B48) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82033330, 0, 32); }
+NIER_VERIFY_SPEC(sub_822E2B48, 0x822E2B48, "r3=ptr");
+
+// sub_822E2CE8 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_822E2CE8) { ctor_base_vt_byte_word(ctx, base, 96, sub_8226C070, 4, 160, 0, 0x8203345C, 0, 164); }
+NIER_VERIFY_SPEC(sub_822E2CE8, 0x822E2CE8, "r3=ptr");
+
 // sub_822E4158 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822E4158) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82033944, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822E4158, 0x822E4158, "r3=ptr:16");
+
+// sub_822EAEB0 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_822EAEB0) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x8203407C, 0, 32); }
+NIER_VERIFY_SPEC(sub_822EAEB0, 0x822EAEB0, "r3=ptr");
 
 // sub_822EB250 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_822EB250) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x820340E0, 0, 0x8200EEA8, 32); }
@@ -706,13 +953,25 @@ NIER_VERIFY_SPEC(sub_822EBE58, 0x822EBE58, "r3=ptr:16");
 NIER_DECOMP(sub_822F47A0) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x82034894, 0, 0x8200BC54, 28, 0, 32); }
 NIER_VERIFY_SPEC(sub_822F47A0, 0x822F47A0, "r3=ptr");
 
+// sub_822F6120 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_822F6120) { ctor_base_vt_byte_word(ctx, base, 96, sub_8226C070, 4, 160, 0, 0x82034940, 0, 164); }
+NIER_VERIFY_SPEC(sub_822F6120, 0x822F6120, "r3=ptr");
+
 // sub_822F6468 (148 bytes) — ctor_vt2_link
 NIER_DECOMP(sub_822F6468) { ctor_vt2_link(ctx, base, 112, 0x8200BC54, 128, 0x8202DBEC, 0, 80, sub_82149BE0, 4, 4, 4, 2); }
 NIER_VERIFY_SPEC(sub_822F6468, 0x822F6468, "r3=ptr r4=range:0..1 callargs=2");
 
+// sub_822F85F0 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_822F85F0) { ctor_base_vt_byte_word(ctx, base, 96, sub_8226C070, 4, 160, 0, 0x82034EBC, 0, 164); }
+NIER_VERIFY_SPEC(sub_822F85F0, 0x822F85F0, "r3=ptr");
+
 // sub_822FCF68 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_822FCF68) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x820354BC, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_822FCF68, 0x822FCF68, "r3=ptr:16");
+
+// sub_82301CB8 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_82301CB8) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82035740, 0, 32); }
+NIER_VERIFY_SPEC(sub_82301CB8, 0x82301CB8, "r3=ptr");
 
 // sub_823038C8 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_823038C8) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82035D34, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
@@ -721,6 +980,10 @@ NIER_VERIFY_SPEC(sub_823038C8, 0x823038C8, "r3=ptr:16");
 // sub_8230C8B0 (268 bytes) — ctor_vec_rand
 NIER_DECOMP(sub_8230C8B0) { static constexpr CtorVecRand p = {sub_822D1130, 0x820454E0, 0x8200F1AC, 0x8201C920, 0x8200EE98, 0x82036018, 0x8200BC54, 0x826303A0, 214013u, 2531011u, 64, {32, 36, 40, 44, 48, 96, 116}, 80, 84, 0, 112, {100, 156, 157}, 158, 104, 108}; ctor_vec_rand(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_8230C8B0, 0x8230C8B0, "r3=ptr:16");
+
+// sub_8230EEA8 (76 bytes) — ctor_base_vt_byte_word
+NIER_DECOMP(sub_8230EEA8) { ctor_base_vt_byte_word(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82036A34, 0, 32); }
+NIER_VERIFY_SPEC(sub_8230EEA8, 0x8230EEA8, "r3=ptr");
 
 // sub_8230F068 (84 bytes) — ctor_base_vt_byte_float
 NIER_DECOMP(sub_8230F068) { ctor_base_vt_byte_float(ctx, base, 96, sub_822D1130, 0, 28, 0, 0x82036A78, 0, 0x8200EEA8, 32); }
@@ -750,9 +1013,29 @@ NIER_VERIFY_SPEC(sub_8232A340, 0x8232A340, "r3=ptr r4=bptr");
 NIER_DECOMP(sub_8232A3F8) { bounded_string_copy(ctx, base, 96, 0, 63, sub_825D1240, 63); }
 NIER_VERIFY_SPEC(sub_8232A3F8, 0x8232A3F8, "r3=ptr r4=bptr");
 
+// sub_8233B1A8 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_8233B1A8) { static constexpr BitsetProbe p = {sub_8233B128, 800, 0, 4, 23, 9, 31, 29, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8233B1A8, 0x8233B1A8, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_8233B210 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_8233B210) { static constexpr BitsetProbe p = {sub_8233B1A8, 896, 0, 5, 22, 10, 31, 28, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8233B210, 0x8233B210, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_8233B2F0 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_8233B2F0) { static constexpr BitsetProbe p = {sub_8233B210, 952, 0, 6, 21, 11, 31, 27, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8233B2F0, 0x8233B2F0, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_8233B490 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_8233B490) { static constexpr BitsetProbe p = {sub_8233B2F0, 984, 0, 7, 20, 12, 31, 26, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8233B490, 0x8233B490, "r3=ptr:8 r4=range:0..0x3FFF");
+
 // sub_8233B570 (136 bytes) — bitset_find_resolve
 NIER_DECOMP(sub_8233B570) { static constexpr BitsetFind p = {sub_8233B3D0, sub_8233B358, 640, 1, 1, 24, 8, 31, 30, 26, 31, 3, 0, 28, 30, 2, 31, 31, 1, 31, 1, 0, 30}; bitset_find_resolve(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_8233B570, 0x8233B570, "r3=ptr:8 r4=range:0..0x3FFF");
+
+// sub_8233B5F8 (100 bytes) — bitset_probe
+NIER_DECOMP(sub_8233B5F8) { static constexpr BitsetProbe p = {sub_8233B490, 1002, 0, 8, 19, 13, 31, 25, 26, 31, 3, 0, 28}; bitset_probe(ctx, base, 96, p); }
+NIER_VERIFY_SPEC(sub_8233B5F8, 0x8233B5F8, "r3=ptr:8 r4=range:0..0x3FFF");
 
 // sub_8233B6D8 (136 bytes) — bitset_find_resolve
 NIER_DECOMP(sub_8233B6D8) { static constexpr BitsetFind p = {sub_8233B570, sub_8233B4F8, 800, 1, 1, 23, 9, 31, 29, 26, 31, 3, 0, 28, 29, 3, 31, 31, 1, 31, 1, 0, 30}; bitset_find_resolve(ctx, base, 112, p); }
@@ -806,6 +1089,70 @@ NIER_VERIFY_SPEC(sub_823516D8, 0x823516D8, "r3=ptr @r3.160=ptr callret=ptr");
 NIER_DECOMP(sub_823517A0) { static constexpr EffectInit p = {sub_822041B0, sub_82145B50, 0x848BE4B0, 0x820454E0, 0x820007A4, 0x820007E0, 0, 283, 0, 2, 160, 2, 168, 164, -1, 2, 0, 0, -1, 164}; effect_init(ctx, base, 112, p); }
 NIER_VERIFY_SPEC(sub_823517A0, 0x823517A0, "r3=ptr @r3.160=ptr callret=ptr");
 
+// sub_8235F288 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F288) { vcall_tail(ctx, base, 22); }
+NIER_VERIFY_SPEC(sub_8235F288, 0x8235F288, "r3=obj");
+
+// sub_8235F298 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F298) { vcall_tail(ctx, base, 33); }
+NIER_VERIFY_SPEC(sub_8235F298, 0x8235F298, "r3=obj");
+
+// sub_8235F2A8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F2A8) { vcall_tail(ctx, base, 44); }
+NIER_VERIFY_SPEC(sub_8235F2A8, 0x8235F2A8, "r3=obj");
+
+// sub_8235F2B8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F2B8) { vcall_tail(ctx, base, 55); }
+NIER_VERIFY_SPEC(sub_8235F2B8, 0x8235F2B8, "r3=obj");
+
+// sub_8235F2C8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F2C8) { vcall_tail(ctx, base, 66); }
+NIER_VERIFY_SPEC(sub_8235F2C8, 0x8235F2C8, "r3=obj");
+
+// sub_8235F2D8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F2D8) { vcall_tail(ctx, base, 20); }
+NIER_VERIFY_SPEC(sub_8235F2D8, 0x8235F2D8, "r3=obj");
+
+// sub_8235F2E8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F2E8) { vcall_tail(ctx, base, 31); }
+NIER_VERIFY_SPEC(sub_8235F2E8, 0x8235F2E8, "r3=obj");
+
+// sub_8235F2F8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F2F8) { vcall_tail(ctx, base, 42); }
+NIER_VERIFY_SPEC(sub_8235F2F8, 0x8235F2F8, "r3=obj");
+
+// sub_8235F308 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F308) { vcall_tail(ctx, base, 53); }
+NIER_VERIFY_SPEC(sub_8235F308, 0x8235F308, "r3=obj");
+
+// sub_8235F318 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F318) { vcall_tail(ctx, base, 64); }
+NIER_VERIFY_SPEC(sub_8235F318, 0x8235F318, "r3=obj");
+
+// sub_8235F328 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F328) { vcall_tail(ctx, base, 25); }
+NIER_VERIFY_SPEC(sub_8235F328, 0x8235F328, "r3=obj");
+
+// sub_8235F338 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F338) { vcall_tail(ctx, base, 36); }
+NIER_VERIFY_SPEC(sub_8235F338, 0x8235F338, "r3=obj");
+
+// sub_8235F348 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F348) { vcall_tail(ctx, base, 47); }
+NIER_VERIFY_SPEC(sub_8235F348, 0x8235F348, "r3=obj");
+
+// sub_8235F358 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F358) { vcall_tail(ctx, base, 58); }
+NIER_VERIFY_SPEC(sub_8235F358, 0x8235F358, "r3=obj");
+
+// sub_8235F368 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F368) { vcall_tail(ctx, base, 69); }
+NIER_VERIFY_SPEC(sub_8235F368, 0x8235F368, "r3=obj");
+
+// sub_8235F378 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8235F378) { vcall_tail(ctx, base, 13); }
+NIER_VERIFY_SPEC(sub_8235F378, 0x8235F378, "r3=obj");
+
 // sub_8236DD60 (148 bytes) — angle_wrap
 NIER_DECOMP(sub_8236DD60) { static constexpr AngleWrap p = {0x82019FE4, 0x820198A4, 0x820198A8, 0x82019FE0, 0x8203C000, 0x820454E0, 20}; angle_wrap(ctx, base, p); }
 NIER_VERIFY_SPEC(sub_8236DD60, 0x8236DD60, "f1=f32:0..800");
@@ -813,6 +1160,70 @@ NIER_VERIFY_SPEC(sub_8236DD60, 0x8236DD60, "f1=f32:0..800");
 // sub_8236DDF8 (148 bytes) — angle_wrap
 NIER_DECOMP(sub_8236DDF8) { static constexpr AngleWrap p = {0x8200BE70, 0x8200BE78, 0x8203C000, 0x8201A740, 0x820198A8, 0x820454E0, 20}; angle_wrap(ctx, base, p); }
 NIER_VERIFY_SPEC(sub_8236DDF8, 0x8236DDF8, "f1=f32:0..800");
+
+// sub_82383F08 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82383F08) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x826DDC78); }
+NIER_VERIFY_SPEC(sub_82383F08, 0x82383F08, "r3=ptr");
+
+// sub_823855F8 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_823855F8) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x84CC76A0); }
+NIER_VERIFY_SPEC(sub_823855F8, 0x823855F8, "r3=ptr");
+
+// sub_82385810 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82385810) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848BF828); }
+NIER_VERIFY_SPEC(sub_82385810, 0x82385810, "r3=ptr");
+
+// sub_82385E10 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82385E10) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C2BA0); }
+NIER_VERIFY_SPEC(sub_82385E10, 0x82385E10, "r3=ptr");
+
+// sub_82386110 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386110) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848BEBF9); }
+NIER_VERIFY_SPEC(sub_82386110, 0x82386110, "r3=ptr");
+
+// sub_82386470 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386470) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848BF9A1); }
+NIER_VERIFY_SPEC(sub_82386470, 0x82386470, "r3=ptr");
+
+// sub_823864B0 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_823864B0) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C31AC); }
+NIER_VERIFY_SPEC(sub_823864B0, 0x823864B0, "r3=ptr");
+
+// sub_823867D0 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_823867D0) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C31A6); }
+NIER_VERIFY_SPEC(sub_823867D0, 0x823867D0, "r3=ptr");
+
+// sub_82386810 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386810) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C0A39); }
+NIER_VERIFY_SPEC(sub_82386810, 0x82386810, "r3=ptr");
+
+// sub_82386850 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386850) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848BF9A0); }
+NIER_VERIFY_SPEC(sub_82386850, 0x82386850, "r3=ptr");
+
+// sub_82386890 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386890) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C0B0D); }
+NIER_VERIFY_SPEC(sub_82386890, 0x82386890, "r3=ptr");
+
+// sub_82386918 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386918) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848BF81D); }
+NIER_VERIFY_SPEC(sub_82386918, 0x82386918, "r3=ptr");
+
+// sub_82386A38 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386A38) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C31A5); }
+NIER_VERIFY_SPEC(sub_82386A38, 0x82386A38, "r3=ptr");
+
+// sub_82386A78 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386A78) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848BF81C); }
+NIER_VERIFY_SPEC(sub_82386A78, 0x82386A78, "r3=ptr");
+
+// sub_82386AB8 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386AB8) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C0A38); }
+NIER_VERIFY_SPEC(sub_82386AB8, 0x82386AB8, "r3=ptr");
+
+// sub_82386AF8 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_82386AF8) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x848C2C60); }
+NIER_VERIFY_SPEC(sub_82386AF8, 0x82386AF8, "r3=ptr");
 
 // sub_82386F00 (104 bytes) — chain2x_global
 NIER_DECOMP(sub_82386F00) { chain2x_global(ctx, base, 112, 16, 0, sub_821211A0, sub_82120D38, 1, sub_821211A0, sub_82120D38, 0x84886050, sub_821FA908); }
@@ -862,6 +1273,10 @@ NIER_VERIFY_SPEC(sub_8238B158, 0x8238B158, "r3=ptr");
 NIER_DECOMP(sub_8238B228) { chain2x_global(ctx, base, 112, 16, 0, sub_821211A0, sub_82120D38, 1, sub_821211A0, sub_82120D38, 0x85A08240, sub_823E8650); }
 NIER_VERIFY_SPEC(sub_8238B228, 0x8238B228, "r3=ptr");
 
+// sub_8238CD08 (64 bytes) — chain_flag_global
+NIER_DECOMP(sub_8238CD08) { chain_flag_global(ctx, base, 96, 16, 0, sub_821211A0, sub_82120D38, 0x826B4284); }
+NIER_VERIFY_SPEC(sub_8238CD08, 0x8238CD08, "r3=ptr");
+
 // sub_8238CEB0 (104 bytes) — chain2x_global
 NIER_DECOMP(sub_8238CEB0) { chain2x_global(ctx, base, 112, 16, 0, sub_821211A0, sub_82120D38, 1, sub_821211A0, sub_82120D38, 0x84DFD610, sub_8239ABC8); }
 NIER_VERIFY_SPEC(sub_8238CEB0, 0x8238CEB0, "r3=ptr");
@@ -901,6 +1316,10 @@ NIER_VERIFY_SPEC(sub_823E2398, 0x823E2398, "r3=ptr r4=bptr");
 // sub_823E8468 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_823E8468) { dtor_body_free(ctx, base, 112, sub_823E83B8, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_823E8468, 0x823E8468, "r3=ptr r4=range:0..1");
+
+// sub_823EDA98 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_823EDA98) { vcall_tail(ctx, base, 1); }
+NIER_VERIFY_SPEC(sub_823EDA98, 0x823EDA98, "r3=obj");
 
 // sub_823F6318 (80 bytes) — sub_virtual_then_set
 NIER_DECOMP(sub_823F6318) { sub_virtual_then_set(ctx, base, 96, 16, 0x82045AFC, 0, 8, 2784, 16); }
@@ -949,6 +1368,10 @@ NIER_VERIFY_SPEC(sub_823F6798, 0x823F6798, "r3=ptr @r3.16=const:0x40001000");
 // sub_823F67E8 (80 bytes) — sub_virtual_then_set
 NIER_DECOMP(sub_823F67E8) { sub_virtual_then_set(ctx, base, 96, 16, 0x82045BC4, 0, 8, 2784, 38); }
 NIER_VERIFY_SPEC(sub_823F67E8, 0x823F67E8, "r3=ptr @r3.16=const:0x40001000");
+
+// sub_823FA1D8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_823FA1D8) { vcall_tail(ctx, base, 3); }
+NIER_VERIFY_SPEC(sub_823FA1D8, 0x823FA1D8, "r3=obj");
 
 // sub_823FD2C0 (80 bytes) — sub_virtual_then_set
 NIER_DECOMP(sub_823FD2C0) { sub_virtual_then_set(ctx, base, 96, 16, 0x82046400, 0, 8, 2784, 5); }
@@ -1038,6 +1461,10 @@ NIER_VERIFY_SPEC(sub_82480A80, 0x82480A80, "r3=ptr:16");
 NIER_DECOMP(sub_82483AD8) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x82064D08, 0, 0x8200BC54, 28, 0, 32); }
 NIER_VERIFY_SPEC(sub_82483AD8, 0x82483AD8, "r3=ptr");
 
+// sub_824865C8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_824865C8) { vcall_tail(ctx, base, 15); }
+NIER_VERIFY_SPEC(sub_824865C8, 0x824865C8, "r3=obj");
+
 // sub_82489F08 (84 bytes) — ctor_base_vt_fields
 NIER_DECOMP(sub_82489F08) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x82064FD8, 0, 0x8200BC54, 28, 0, 32); }
 NIER_VERIFY_SPEC(sub_82489F08, 0x82489F08, "r3=ptr");
@@ -1057,6 +1484,90 @@ NIER_VERIFY_SPEC(sub_8248AAC8, 0x8248AAC8, "r3=ptr r4=range:0..1 callargs=2");
 // sub_8248AB60 (84 bytes) — ctor_base_vt_fields
 NIER_DECOMP(sub_8248AB60) { ctor_base_vt_fields(ctx, base, 96, sub_822D1130, 0, 0x820650A0, 0, 0x8200BC54, 28, 0, 32); }
 NIER_VERIFY_SPEC(sub_8248AB60, 0x8248AB60, "r3=ptr");
+
+// sub_8248B578 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8248B578) { vcall_tail(ctx, base, 9); }
+NIER_VERIFY_SPEC(sub_8248B578, 0x8248B578, "r3=obj");
+
+// sub_82491EC8 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_82491EC8) { vcall_tail(ctx, base, 17); }
+NIER_VERIFY_SPEC(sub_82491EC8, 0x82491EC8, "r3=obj");
+
+// sub_82498B80 (124 bytes) — list_push_back
+NIER_DECOMP(sub_82498B80) { static constexpr ListPush p = {sub_824984B8, 0, 4, 28, 8, 4, 24, 32}; list_push_back(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_82498B80, 0x82498B80, "r3=ptr r4=int");
+
+// sub_8249DB80 (124 bytes) — list_push_back
+NIER_DECOMP(sub_8249DB80) { static constexpr ListPush p = {sub_8249D790, 0, 4, 28, 8, 4, 24, 32}; list_push_back(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_8249DB80, 0x8249DB80, "r3=ptr r4=int");
+
+// sub_8249FB58 (124 bytes) — list_push_back
+NIER_DECOMP(sub_8249FB58) { static constexpr ListPush p = {sub_8249A428, 0, 4, 208, 8, 4, 204, 212}; list_push_back(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_8249FB58, 0x8249FB58, "r3=ptr r4=int");
+
+// sub_824A2E78 (124 bytes) — list_push_back
+NIER_DECOMP(sub_824A2E78) { static constexpr ListPush p = {sub_824A2550, 0, 4, 28, 8, 4, 24, 32}; list_push_back(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_824A2E78, 0x824A2E78, "r3=ptr r4=int");
+
+// sub_824B3620 (124 bytes) — list_push_back
+NIER_DECOMP(sub_824B3620) { static constexpr ListPush p = {sub_824B2EB8, 0, 4, 208, 8, 4, 204, 212}; list_push_back(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_824B3620, 0x824B3620, "r3=ptr r4=int");
+
+// sub_824B5610 (124 bytes) — list_push_back
+NIER_DECOMP(sub_824B5610) { static constexpr ListPush p = {sub_824B5500, 0, 4, 208, 8, 4, 204, 212}; list_push_back(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_824B5610, 0x824B5610, "r3=ptr r4=int");
+
+// sub_824D1E40 (124 bytes) — list_push_back
+NIER_DECOMP(sub_824D1E40) { static constexpr ListPush p = {sub_824D1438, 0, 4, 40, 8, 4, 36, 44}; list_push_back(ctx, base, 112, p); }
+NIER_VERIFY_SPEC(sub_824D1E40, 0x824D1E40, "r3=ptr r4=int");
+
+// sub_824E02C8 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824E02C8) { ctor_vt_init_opt(ctx, base, 112, 0x8208729C, 0, sub_824F0A50, 32, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824E02C8, 0x824E02C8, "r3=ptr r4=range:0..1");
+
+// sub_824EB888 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824EB888) { ctor_vt_init_opt(ctx, base, 112, 0x82088B48, 0, sub_824FC9F8, 84, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824EB888, 0x824EB888, "r3=ptr r4=range:0..1");
+
+// sub_824F1D90 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824F1D90) { ctor_vt_init_opt(ctx, base, 112, 0x82089210, 0, sub_824F0A50, 36, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824F1D90, 0x824F1D90, "r3=ptr r4=range:0..1");
+
+// sub_824F2DC0 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824F2DC0) { ctor_vt_init_opt(ctx, base, 112, 0x8208929C, 0, sub_824FC9F8, 112, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824F2DC0, 0x824F2DC0, "r3=ptr r4=range:0..1");
+
+// sub_824F4920 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824F4920) { ctor_vt_init_opt(ctx, base, 112, 0x8208947C, 0, sub_824F0A50, 48, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824F4920, 0x824F4920, "r3=ptr r4=range:0..1");
+
+// sub_824F58E0 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824F58E0) { ctor_vt_init_opt(ctx, base, 112, 0x820895C0, 0, sub_824F0A50, 28, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824F58E0, 0x824F58E0, "r3=ptr r4=range:0..1");
+
+// sub_824F5C60 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824F5C60) { ctor_vt_init_opt(ctx, base, 112, 0x820895C8, 0, sub_824F0A50, 44, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824F5C60, 0x824F5C60, "r3=ptr r4=range:0..1");
+
+// sub_824FF478 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824FF478) { ctor_vt_init_opt(ctx, base, 112, 0x8208A194, 0, sub_824F0A50, 272, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824FF478, 0x824FF478, "r3=ptr r4=range:0..1");
+
+// sub_824FF970 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824FF970) { ctor_vt_init_opt(ctx, base, 112, 0x8208A19C, 0, sub_824F0A50, 108, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824FF970, 0x824FF970, "r3=ptr r4=range:0..1");
+
+// sub_824FFF38 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824FFF38) { ctor_vt_init_opt(ctx, base, 112, 0x8208A208, 0, sub_824F0A50, 40, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824FFF38, 0x824FFF38, "r3=ptr r4=range:0..1");
+
+// sub_824FFFF0 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_824FFFF0) { ctor_vt_init_opt(ctx, base, 112, 0x8208A210, 0, sub_824F0A50, 32, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_824FFFF0, 0x824FFFF0, "r3=ptr r4=range:0..1");
+
+// sub_82500328 (96 bytes) — ctor_vt_init_opt
+NIER_DECOMP(sub_82500328) { ctor_vt_init_opt(ctx, base, 112, 0x8208A218, 0, sub_824F0A50, 88, sub_82508AE0); }
+NIER_VERIFY_SPEC(sub_82500328, 0x82500328, "r3=ptr r4=range:0..1");
 
 // sub_825047C0 (276 bytes) — fir16
 NIER_DECOMP(sub_825047C0) { static constexpr Fir16 p = {32, 0x8206A680, -4, 4, {384, 128, 384, 128, 384, 128, 384, 128, 384, 128, 384, 128, 384, 128, 384}, {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}, 4}; fir16(ctx, base, p); }
@@ -1162,6 +1673,26 @@ NIER_VERIFY_SPEC(sub_82550B60, 0x82550B60, "r3=ptr r4=ptr");
 NIER_DECOMP(sub_82550BC0) { make_pair_result(ctx, base, 112, 212, 216, sub_825563B0, 4, 212, sub_82556350, 1); }
 NIER_VERIFY_SPEC(sub_82550BC0, 0x82550BC0, "r3=ptr r4=ptr");
 
+// sub_82551108 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_82551108) { make_pair_result2(ctx, base, 112, sub_82550C98, 10, 12, sub_825563B0, 10, sub_82556350, 1); }
+NIER_VERIFY_SPEC(sub_82551108, 0x82551108, "r3=ptr r4=int r5=ptr");
+
+// sub_82551178 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_82551178) { make_pair_result2(ctx, base, 112, sub_82550C98, 33, 34, sub_825563B0, 33, sub_82556350, 1); }
+NIER_VERIFY_SPEC(sub_82551178, 0x82551178, "r3=ptr r4=int r5=ptr");
+
+// sub_825511E8 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_825511E8) { make_pair_result2(ctx, base, 112, sub_82550C98, 34, 35, sub_825563B0, 34, sub_82556350, 1); }
+NIER_VERIFY_SPEC(sub_825511E8, 0x825511E8, "r3=ptr r4=int r5=ptr");
+
+// sub_82551348 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_82551348) { make_pair_result2(ctx, base, 112, sub_82550C98, 36, 37, sub_825563B0, 36, sub_82556350, 1); }
+NIER_VERIFY_SPEC(sub_82551348, 0x82551348, "r3=ptr r4=int r5=ptr");
+
+// sub_825514B8 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_825514B8) { make_pair_result2(ctx, base, 112, sub_82550C98, 39, 40, sub_825563B0, 39, sub_82556350, 1); }
+NIER_VERIFY_SPEC(sub_825514B8, 0x825514B8, "r3=ptr r4=int r5=ptr");
+
 // sub_82551A38 (96 bytes) — make_pair_result
 NIER_DECOMP(sub_82551A38) { make_pair_result(ctx, base, 112, 128, 132, sub_825563B0, 4, 128, sub_82556320, 1); }
 NIER_VERIFY_SPEC(sub_82551A38, 0x82551A38, "r3=ptr r4=ptr");
@@ -1205,6 +1736,30 @@ NIER_VERIFY_SPEC(sub_82551E68, 0x82551E68, "r3=ptr r4=ptr");
 // sub_82551EC8 (96 bytes) — make_pair_result
 NIER_DECOMP(sub_82551EC8) { make_pair_result(ctx, base, 112, 192, 196, sub_825563B0, 4, 192, sub_82556320, 1); }
 NIER_VERIFY_SPEC(sub_82551EC8, 0x82551EC8, "r3=ptr r4=ptr");
+
+// sub_82552450 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_82552450) { make_pair_result2(ctx, base, 112, sub_825522D0, 27, 28, sub_825563B0, 27, sub_82556320, 1); }
+NIER_VERIFY_SPEC(sub_82552450, 0x82552450, "r3=ptr r4=int r5=ptr");
+
+// sub_825524C0 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_825524C0) { make_pair_result2(ctx, base, 112, sub_825522D0, 28, 32, sub_825563B0, 28, sub_82556320, 1); }
+NIER_VERIFY_SPEC(sub_825524C0, 0x825524C0, "r3=ptr r4=int r5=ptr");
+
+// sub_82552770 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_82552770) { make_pair_result2(ctx, base, 112, sub_825522D0, 33, 34, sub_825563B0, 33, sub_82556320, 1); }
+NIER_VERIFY_SPEC(sub_82552770, 0x82552770, "r3=ptr r4=int r5=ptr");
+
+// sub_825527E0 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_825527E0) { make_pair_result2(ctx, base, 112, sub_825522D0, 34, 35, sub_825563B0, 34, sub_82556320, 1); }
+NIER_VERIFY_SPEC(sub_825527E0, 0x825527E0, "r3=ptr r4=int r5=ptr");
+
+// sub_82552940 (112 bytes) — make_pair_result2
+NIER_DECOMP(sub_82552940) { make_pair_result2(ctx, base, 112, sub_825522D0, 36, 37, sub_825563B0, 36, sub_82556320, 1); }
+NIER_VERIFY_SPEC(sub_82552940, 0x82552940, "r3=ptr r4=int r5=ptr");
+
+// sub_8258BD30 (16 bytes) — vcall_tail
+NIER_DECOMP(sub_8258BD30) { vcall_tail(ctx, base, 2); }
+NIER_VERIFY_SPEC(sub_8258BD30, 0x8258BD30, "r3=obj");
 
 // sub_8258D2F8 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_8258D2F8) { dtor_body_free(ctx, base, 112, sub_8258CD38, sub_8258BC58); }
@@ -1297,6 +1852,70 @@ NIER_VERIFY_SPEC(sub_825A9E60, 0x825A9E60, "r3=ptr @r3.0=ptr");
 // sub_825C7B60 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_825C7B60) { dtor_body_free(ctx, base, 112, sub_825C5360, sub_8258BC58); }
 NIER_VERIFY_SPEC(sub_825C7B60, 0x825C7B60, "r3=ptr r4=range:0..1");
+
+// sub_825D19E0 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D19E0) { seh_thunk(ctx, base, 112, -112, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D19E0, 0x825D19E0, "r3=ptr");
+
+// sub_825D29C4 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D29C4) { seh_thunk(ctx, base, 112, -128, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D29C4, 0x825D29C4, "r3=ptr");
+
+// sub_825D2FCC (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D2FCC) { seh_thunk(ctx, base, 112, -160, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D2FCC, 0x825D2FCC, "r3=ptr");
+
+// sub_825D4E88 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D4E88) { seh_thunk(ctx, base, 112, -144, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D4E88, 0x825D4E88, "r3=ptr");
+
+// sub_825D5390 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D5390) { seh_thunk(ctx, base, 112, -128, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D5390, 0x825D5390, "r3=ptr");
+
+// sub_825D5574 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D5574) { seh_thunk(ctx, base, 112, -128, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D5574, 0x825D5574, "r3=ptr");
+
+// sub_825D6C9C (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D6C9C) { seh_thunk(ctx, base, 112, -160, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D6C9C, 0x825D6C9C, "r3=ptr");
+
+// sub_825D7080 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D7080) { seh_thunk(ctx, base, 112, -144, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D7080, 0x825D7080, "r3=ptr");
+
+// sub_825D73B0 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D73B0) { seh_thunk(ctx, base, 112, -112, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D73B0, 0x825D73B0, "r3=ptr");
+
+// sub_825D7580 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D7580) { seh_thunk(ctx, base, 112, -128, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D7580, 0x825D7580, "r3=ptr");
+
+// sub_825D796C (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825D796C) { seh_thunk(ctx, base, 112, -112, sub_825D2C38); }
+NIER_VERIFY_SPEC(sub_825D796C, 0x825D796C, "r3=ptr");
+
+// sub_825DD06C (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825DD06C) { seh_thunk(ctx, base, 112, -144, sub_825E8CA8); }
+NIER_VERIFY_SPEC(sub_825DD06C, 0x825DD06C, "r3=ptr");
+
+// sub_825E18B4 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825E18B4) { seh_thunk(ctx, base, 112, -160, sub_825E8CA8); }
+NIER_VERIFY_SPEC(sub_825E18B4, 0x825E18B4, "r3=ptr");
+
+// sub_825E3BE0 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825E3BE0) { seh_thunk(ctx, base, 112, -160, sub_825E8CA8); }
+NIER_VERIFY_SPEC(sub_825E3BE0, 0x825E3BE0, "r3=ptr");
+
+// sub_825E3E30 (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825E3E30) { seh_thunk(ctx, base, 112, -160, sub_825E8CA8); }
+NIER_VERIFY_SPEC(sub_825E3E30, 0x825E3E30, "r3=ptr");
+
+// sub_825E917C (56 bytes) — seh_thunk
+NIER_DECOMP(sub_825E917C) { seh_thunk(ctx, base, 112, -160, sub_825E8CA8); }
+NIER_VERIFY_SPEC(sub_825E917C, 0x825E917C, "r3=ptr");
 
 // sub_826089F0 (80 bytes) — dtor_body_free2
 NIER_DECOMP(sub_826089F0) { dtor_body_free(ctx, base, 112, sub_82608730, sub_8258BC58); }

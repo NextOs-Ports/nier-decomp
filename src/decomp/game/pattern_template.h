@@ -383,3 +383,141 @@ inline void bounded_string_copy(PPCContext& ctx, uint8_t* base, uint32_t frame, 
   st8(base, self + end_off, 0);
 }
 }  // namespace nier::pattern
+
+namespace nier::pattern {
+// Encaminhador: salta para o método `slot` do objeto em r3 (bctr, sem quadro).
+inline void vcall_tail(PPCContext& ctx, uint8_t* base, uint32_t slot) { call_virtual(ctx, base, ctx.r3.u32, slot); }
+
+// Testa o bit `key` numa tabela de palavras de 64 bits (linha = rlwinm(key) + row_base,
+// bit = rlwinm(key)); sem o bit devolve `miss`; com ele chama probe(this, key) e troca 0 por `fallback`.
+struct BitsetProbe { PPCFunc* probe; int32_t row_base, miss, fallback; uint8_t row_sh, row_mb, row_me, bit_sh, bit_mb, bit_me, addr_sh, addr_mb, addr_me; };
+inline void bitset_probe(PPCContext& ctx, uint8_t* base, uint32_t frame, const BitsetProbe& p) {
+  const uint32_t self = ctx.r3.u32, key = ctx.r4.u32;
+  const uint32_t row = rlwinm(key, p.row_sh, p.row_mb, p.row_me) + static_cast<uint32_t>(p.row_base);
+  const uint32_t bit = rlwinm(key, p.bit_sh, p.bit_mb, p.bit_me);
+  const uint64_t word = ld64(base, self + rlwinm(row, p.addr_sh, p.addr_mb, p.addr_me));
+  if ((srd(word, bit) & 1) == 0) { ctx.r3.s64 = p.miss; return; }
+  GuestFrame f(ctx, base, frame);
+  p.probe(ctx, base);
+  if (ctx.r3.u32 == 0) ctx.r3.s64 = p.fallback;
+}
+
+// Construtor: vtable, init(this) e, com flags & 1, delete(this, size). Devolve this.
+inline void ctor_vt_init_opt(PPCContext& ctx, uint8_t* base, uint32_t frame, uint32_t vt, int32_t vt_off, PPCFunc* init,
+                             int32_t size, PPCFunc* op_delete) {
+  const uint32_t self = ctx.r3.u32, flags = ctx.r4.u32;
+  GuestFrame f(ctx, base, frame);
+  st32(base, self + vt_off, vt);
+  init(ctx, base);
+  ctx.r3.u64 = self;
+  if (flags & 1) { ctx.r4.s64 = size; op_delete(ctx, base); ctx.r3.u64 = self; }
+}
+
+// *out = 0; x = lookup(this, r4 & 0xFF); sem x devolve 0; senão t = f(a, b); *out = g(x + add, t); devolve `ret`.
+inline void make_pair_result2(PPCContext& ctx, uint8_t* base, uint32_t frame, PPCFunc* lookup, int32_t a, int32_t b,
+                              PPCFunc* f, int32_t add, PPCFunc* g, int32_t ret) {
+  const uint32_t out = ctx.r5.u32;
+  GuestFrame fr(ctx, base, frame);
+  ctx.r4.u64 = ctx.r4.u32 & 0xFF;
+  st32(base, out, 0);
+  lookup(ctx, base);
+  const uint32_t x = ctx.r3.u32;
+  if (x == 0) { ctx.r3.u64 = 0; return; }
+  ctx.r4.s64 = b; ctx.r3.s64 = a;
+  f(ctx, base);
+  ctx.r4.u64 = ctx.r3.u64;
+  ctx.r3.u64 = static_cast<uint64_t>(x) + static_cast<int64_t>(add);
+  g(ctx, base);
+  st32(base, out, ctx.r3.u32);
+  ctx.r3.s64 = ret;
+}
+
+// a(this + off, arg); flag global = (b() != 0).
+inline void chain_flag_global(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t off, int32_t arg, PPCFunc* a,
+                              PPCFunc* b, uint32_t flag_addr) {
+  GuestFrame f(ctx, base, frame);
+  ctx.r4.s64 = arg;
+  ctx.r3.u64 = ctx.r3.u64 + static_cast<int64_t>(off);
+  a(ctx, base);
+  b(ctx, base);
+  st8(base, flag_addr, ctx.r3.u32 != 0 ? 1 : 0);
+}
+
+// Construtor: base(this, arg); byte; vtable; palavra. Devolve this.
+inline void ctor_base_vt_byte_word(PPCContext& ctx, uint8_t* base, uint32_t frame, PPCFunc* base_ctor, int32_t arg,
+                                   int32_t byte_off, int32_t val, uint32_t vt, int32_t vt_off, int32_t word_off) {
+  const uint32_t self = ctx.r3.u32;
+  {
+    GuestFrame f(ctx, base, frame);
+    ctx.r4.s64 = arg;
+    base_ctor(ctx, base);
+  }
+  st8(base, self + byte_off, static_cast<uint8_t>(val));
+  st32(base, self + vt_off, vt);
+  st32(base, self + word_off, static_cast<uint32_t>(val));
+  ctx.r3.u64 = self;
+}
+
+// Tira `node` da lista duplamente encadeada (cabeça/cauda/contagem em list); devolve o seguinte.
+inline void list_unlink(PPCContext& ctx, uint8_t* base, int32_t prev_off, int32_t next_off, int32_t head_off,
+                        int32_t tail_off, int32_t count_off) {
+  const uint32_t list = ctx.r3.u32, node = ctx.r4.u32;
+  if (node == 0) { ctx.r3.u64 = 0; return; }
+  const uint32_t prev = ld32(base, node + prev_off), next = ld32(base, node + next_off);
+  if (prev == 0) {
+    st32(base, list + head_off, next);
+    if (next != 0) st32(base, next + prev_off, 0);
+  } else {
+    st32(base, prev + next_off, next);
+  }
+  if (next == 0) {
+    st32(base, list + tail_off, prev);
+    if (prev != 0) st32(base, prev + next_off, 0);
+  } else if (prev != 0) {
+    st32(base, next + prev_off, prev);
+  }
+  st32(base, node + prev_off, 0);
+  st32(base, node + next_off, 0);
+  st32(base, list + count_off, ld32(base, list + count_off) - 1);
+  ctx.r3.u64 = next;
+}
+
+// Thunk do CRT (manipulador de exceção): guarda r31/r30/lr abaixo da pilha, r31 = r12 - frame,
+// chama handler(r30) e restaura tudo pelo encadeamento da pilha.
+inline void seh_thunk(PPCContext& ctx, uint8_t* base, uint32_t frame, int32_t r31_adj, PPCFunc* handler) {
+  const uint32_t sp = ctx.r1.u32;
+  st64(base, sp - 8, ctx.r31.u64);
+  ctx.r31.u64 = ctx.r12.u64 + static_cast<int64_t>(r31_adj);
+  st64(base, sp - 16, ctx.r30.u64);
+  ctx.r12.u64 = ctx.lr;
+  st32(base, sp - 24, ctx.r12.u32);
+  ctx.r1.u64 = sp - frame;
+  st32(base, ctx.r1.u32, sp);
+  ctx.r3.u64 = ctx.r30.u64;
+  handler(ctx, base);
+  ctx.r1.u64 = ld32(base, ctx.r1.u32);
+  ctx.r31.u64 = ld64(base, ctx.r1.u32 - 8);
+  ctx.r30.u64 = ld64(base, ctx.r1.u32 - 16);
+  ctx.r12.u64 = ld32(base, ctx.r1.u32 - 24);
+}
+
+// Nó novo pelo alocador da lista: n = alloc(this, value); n = {value, next=0, prev=cauda};
+// liga à cauda (ou vira cabeça), cauda = n, contagem+1. Devolve n (ou 0).
+struct ListPush { PPCFunc* alloc; int32_t value_off, next_off, tail_off, prev_off, link_off, head_off, count_off; };
+inline void list_push_back(PPCContext& ctx, uint8_t* base, uint32_t frame, const ListPush& p) {
+  const uint32_t self = ctx.r3.u32, value = ctx.r4.u32;
+  GuestFrame f(ctx, base, frame);
+  p.alloc(ctx, base);
+  const uint32_t n = ctx.r3.u32;
+  if (n == 0) return;
+  st32(base, n + p.value_off, value);
+  st32(base, n + p.next_off, 0);
+  const uint32_t tail = ld32(base, self + p.tail_off);
+  st32(base, n + p.prev_off, tail);
+  if (ld32(base, self + p.tail_off) != 0) st32(base, tail + p.link_off, n);
+  else st32(base, self + p.head_off, n);
+  const uint32_t count = ld32(base, self + p.count_off);
+  st32(base, self + p.tail_off, n);
+  st32(base, self + p.count_off, count + 1);
+}
+}  // namespace nier::pattern
