@@ -167,6 +167,31 @@ uint64_t g_mainTarget = 0;
 GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
 GLint g_blitRect = -1, g_blitFlip = -1;
 bool GlProfile() { static bool on = std::getenv("NIER_GL_PROFILE") != nullptr; return on; }
+// Cache de estado GL na CPU (como o glCache do Rayman): nenhum glGet e nenhuma chamada redundante no quadro.
+// Quem muda estado fora deste cache (CreateTarget, blit, apresentação) chama InvalidateGl().
+struct GlCache {
+  GLuint fbo = ~0u, program = ~0u;
+  GLuint tex[16]; int unit = -1;
+  bool fixedValid = false;
+  GLint vp[4] = {}; float dr[2] = {}; uint32_t blend = 0, depth = 0, mode = 0, mask = 0;
+  uint32_t attribs = ~0u;  // bits dos atributos ligados (~0 = desconhecido)
+  GlCache() { for (auto& t : tex) t = ~0u; }
+};
+GlCache g_gl;
+void InvalidateGl() { g_gl = GlCache{}; }
+void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
+void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; glUseProgram(id); } }
+void ActiveUnit(int unit) { if (g_gl.unit != unit) { g_gl.unit = unit; glActiveTexture(GL_TEXTURE0 + unit); } }
+void BindTexture(int unit, GLuint id) { if (g_gl.tex[unit] != id) { ActiveUnit(unit); g_gl.tex[unit] = id; glBindTexture(GL_TEXTURE_2D, id); } }
+void SetAttribs(uint32_t count) {
+  uint32_t want = count >= 32 ? ~0u : (1u << count) - 1;
+  if (g_gl.attribs == want) return;
+  for (uint32_t i = 0; i < kMaxInputs; ++i) {
+    bool on = (want >> i) & 1, was = g_gl.attribs != ~0u && ((g_gl.attribs >> i) & 1);
+    if (g_gl.attribs == ~0u || on != was) { if (on) glEnableVertexAttribArray(i); else glDisableVertexAttribArray(i); }
+  }
+  g_gl.attribs = want;
+}
 struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; bool srcResolved; };
 std::vector<PendingCopy> g_pendingCopies;
 std::set<uint64_t> g_frameSampled, g_everSampled;
@@ -179,20 +204,19 @@ void DoCopy(const PendingCopy& p) {
   auto s = srcMap.find(p.src); auto d = g_resolved.find(p.dst);
   if (s == srcMap.end() || d == g_resolved.end() || !s->second.texture || !d->second.fbo) return;
   Target& src = s->second; Target& dst = d->second;
-  glBindFramebuffer(GL_FRAMEBUFFER, dst.fbo);
+  BindFbo(dst.fbo);
   glViewport(0, 0, dst.w, dst.h);
   glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE); glDisable(GL_BLEND);
   glDepthMask(GL_FALSE);
   glColorMask(1, 1, 1, 1);
-  glUseProgram(g_blitProgram);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, src.texture);
+  g_gl.fixedValid = false;
+  UseProgram(g_blitProgram);
+  BindTexture(0, src.texture);
   glUniform4f(g_blitRect, float(p.w) / src.w, float(p.h) / src.h, float(p.x0) / src.w, float(p.y0) / src.h);
   glUniform1f(g_blitFlip, 0.0f);
   glBindBuffer(GL_ARRAY_BUFFER, g_blitBuffer);
-  glEnableVertexAttribArray(0);
+  SetAttribs(1);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-  for (uint32_t i = 1; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   dst.from3D = src.drew3DFrame == g_frames.load();
   ++g_copiesDone;
@@ -263,6 +287,7 @@ void ReleaseTarget(Target& t) {
 }
 void CreateTarget(Target& t, int w, int h, bool withDepth) {
   ReleaseTarget(t);
+  InvalidateGl();  // liga textura/FBO/renderbuffer fora do cache
   t.w = w; t.h = h;
   glGenTextures(1, &t.texture);
   glBindTexture(GL_TEXTURE_2D, t.texture);
@@ -304,12 +329,13 @@ void ClearOncePerFrame(Target& t) {
   glClearDepthf(1.0f);
   glClearColor(0, 0, 0, 1);
   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+  g_gl.fixedValid = false;
 }
 // FBO próprio do destino de Resolve (passe desenhado direto, sem cópia): tamanho do destino na escala interna.
 Target& DirectTarget(uint64_t key, int w, int h) {
   Target& t = g_resolved[key];
   if (t.w != w || t.h != h || !t.depth || t.shared) CreateTarget(t, w, h, true);
-  glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
+  BindFbo(t.fbo);
   ClearOncePerFrame(t);
   return t;
 }
@@ -323,7 +349,7 @@ Target& CurrentTarget(const uint8_t* state, bool forDraw = true) {
   if (t.w != w || t.h != h) CreateTarget(t, w, h, true);
   if (forDraw) t.holder = 0;  // o conteúdo mais novo volta a ser a textura do próprio alvo
   if ((key & 0x3FFF) > (g_mainTarget & 0x3FFF)) g_mainTarget = key;
-  glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
+  BindFbo(t.fbo);
   // O ClearF do 9328 ainda não foi localizado e os Resolve do jogo não pedem limpeza (flags 0/4):
   // cor e profundidade são limpas na 1ª vez do alvo em cada quadro (sem isso, passes aditivos que
   // realimentam a tela resolvida saturam para branco).
@@ -365,6 +391,7 @@ GLuint White() {
     uint32_t px = 0xFFFFFFFF;
     glGenTextures(1, &g_white);
     glBindTexture(GL_TEXTURE_2D, g_white);
+    g_gl.tex[std::max(g_gl.unit, 0)] = g_white;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &px);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -458,7 +485,9 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   g_decodeMs += std::chrono::duration<double, std::milli>(tu - td).count();
   bool fresh = !tex.id;
   if (!tex.id) glGenTextures(1, &tex.id);
+  ActiveUnit(std::max(g_gl.unit, 0));
   glBindTexture(GL_TEXTURE_2D, tex.id);
+  g_gl.tex[g_gl.unit] = tex.id;
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   const uint8_t* upload = (la || lum) ? lumAlpha.data() : g_pixels.data();
   GLenum glFormat = lum ? GL_LUMINANCE : la ? GL_LUMINANCE_ALPHA : GL_RGBA;
@@ -490,7 +519,11 @@ struct Program {
   std::vector<std::pair<int, GLint>> bools;    // (índice, local)
   std::vector<std::pair<int, GLint>> samplers; // (fetch slot, local nx_size) — unidade = ordem
   int vcCount = 256, pcCount = 256;
-  std::vector<float> lastVc, lastPc;  // último banco enviado: glUniform4fv só quando muda (estado ≤ 3 ms na Mali)
+  std::vector<float> lastVc, lastPc;  // último banco enviado: glUniform4fv só nas faixas que mudaram
+  bool vcSeq = false, pcSeq = false;  // VC[i] está em vc + i (confirmado no link): permite enviar faixas
+  std::vector<int8_t> lastBools;      // -1 = nunca enviado
+  int lastAlphaFunc = -2; float lastAlphaRef = -1e30f;
+  std::vector<std::pair<float, float>> lastSizes;
 };
 std::unordered_map<uint64_t, Program> g_programs;
 
@@ -518,6 +551,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
     glDeleteProgram(p.id); p.id = 0; return nullptr;
   }
   glUseProgram(p.id);
+  g_gl.program = p.id;
   p.vc = glGetUniformLocation(p.id, "VC");
   p.pc = glGetUniformLocation(p.id, "PC");
   p.alphaFunc = glGetUniformLocation(p.id, "alphaFunc");
@@ -553,7 +587,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
 
 std::vector<float> g_constants;
 // Envia as constantes na ordem compactada (GuestShader::constMap); literais por índice original.
-void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s, std::vector<float>& last) {
+void UploadConstants(GLint location, int count, const uint8_t* bank, const GuestShader* s, std::vector<float>& last, bool sequential) {
   if (location < 0) return;
   size_t n = std::min<size_t>(size_t(count), s->constMap.size());
   g_constants.resize(n * 4);
@@ -563,7 +597,17 @@ void UploadConstants(GLint location, int count, const uint8_t* bank, const Guest
     if (reg >= 256 - literals) std::memcpy(&g_constants[j * 4], &s->literals[(reg - (256 - literals)) * 4], 16);
     else for (int c = 0; c < 4; ++c) g_constants[j * 4 + c] = BEF(bank + reg * 16 + 4 * c);
   }
-  if (last.size() == g_constants.size() && std::memcmp(last.data(), g_constants.data(), g_constants.size() * 4) == 0) return;
+  if (last.size() == g_constants.size()) {
+    // só a faixa [primeiro, último] vec4 que mudou (matrizes por objeto mudam; luzes/material ficam)
+    size_t first = 0, lastIdx = n;
+    while (first < n && std::memcmp(&last[first * 4], &g_constants[first * 4], 16) == 0) ++first;
+    if (first == n) return;
+    while (lastIdx > first && std::memcmp(&last[(lastIdx - 1) * 4], &g_constants[(lastIdx - 1) * 4], 16) == 0) --lastIdx;
+    std::memcpy(&last[first * 4], &g_constants[first * 4], (lastIdx - first) * 16);
+    if (sequential) { glUniform4fv(location + GLint(first), GLsizei(lastIdx - first), &g_constants[first * 4]); return; }
+    glUniform4fv(location, GLsizei(n), g_constants.data());
+    return;
+  }
   last = g_constants;
   glUniform4fv(location, GLsizei(n), g_constants.data());
 }
@@ -585,29 +629,42 @@ void ApplyFixedState(const uint8_t* state) {
   float ys = std::fabs(BEF(Field(state, kViewport + 8))), yo = BEF(Field(state, kViewport + 12));
   float zs = BEF(Field(state, kViewport + 16)), zo = BEF(Field(state, kViewport + 20));
   float s = Scale();
-  glViewport(GLint(std::lround((xo - xs) * s)), GLint(std::lround((yo - ys) * s)), GLsizei(std::lround(2 * xs * s)), GLsizei(std::lround(2 * ys * s)));
+  GLint vp[4] = {GLint(std::lround((xo - xs) * s)), GLint(std::lround((yo - ys) * s)), GLint(std::lround(2 * xs * s)), GLint(std::lround(2 * ys * s))};
   float n = zo, f = zo + zs;
   if (zs == 0 && zo == 0) { n = 0; f = 1; }
-  glDepthRangef(std::clamp(n, 0.0f, 1.0f), std::clamp(f, 0.0f, 1.0f));
+  float dr[2] = {std::clamp(n, 0.0f, 1.0f), std::clamp(f, 0.0f, 1.0f)};
   uint32_t blend = BE32(Field(state, kBlendControl));
-  if (blend == 0x00010001) glDisable(GL_BLEND);
-  else {
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(BlendFactor(blend & 31), BlendFactor((blend >> 8) & 31), BlendFactor((blend >> 16) & 31), BlendFactor((blend >> 24) & 31));
-    glBlendEquationSeparate(BlendOp((blend >> 5) & 7), BlendOp((blend >> 21) & 7));
+  uint32_t depth = BE32(Field(state, kDepthControl)) & 0x76;  // habilita (2), escreve (4), função (bits 4-6)
+  uint32_t mode = BE32(Field(state, kModeControl)) & 7;       // cull (2 bits) + frente CCW (bit 2)
+  uint32_t mask = BE32(Field(state, 0x28DC)) & 15;            // RB_COLOR_MASK do alvo 0
+  const bool v = g_gl.fixedValid;
+  if (!v || std::memcmp(vp, g_gl.vp, sizeof vp)) { std::memcpy(g_gl.vp, vp, sizeof vp); glViewport(vp[0], vp[1], vp[2], vp[3]); }
+  if (!v || dr[0] != g_gl.dr[0] || dr[1] != g_gl.dr[1]) { g_gl.dr[0] = dr[0]; g_gl.dr[1] = dr[1]; glDepthRangef(dr[0], dr[1]); }
+  if (!v || blend != g_gl.blend) {
+    g_gl.blend = blend;
+    if (blend == 0x00010001) glDisable(GL_BLEND);
+    else {
+      glEnable(GL_BLEND);
+      glBlendFuncSeparate(BlendFactor(blend & 31), BlendFactor((blend >> 8) & 31), BlendFactor((blend >> 16) & 31), BlendFactor((blend >> 24) & 31));
+      glBlendEquationSeparate(BlendOp((blend >> 5) & 7), BlendOp((blend >> 21) & 7));
+    }
   }
-  uint32_t depth = BE32(Field(state, kDepthControl));
-  if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + ((depth >> 4) & 7)); } else glDisable(GL_DEPTH_TEST);
-  glDepthMask((depth & 4) ? GL_TRUE : GL_FALSE);
-  uint32_t mode = BE32(Field(state, kModeControl));
-  uint32_t cull = mode & 3;
-  if (g_config.cull && (cull == 1 || cull == 2)) {
-    glEnable(GL_CULL_FACE);
-    glCullFace(cull == 1 ? GL_FRONT : GL_BACK);
-    glFrontFace((mode & 4) ? GL_CCW : GL_CW);  // o VS inverte y: a ordem dos vértices na tela também inverte
-  } else glDisable(GL_CULL_FACE);
-  uint32_t mask = BE32(Field(state, 0x28DC)) & 15;  // RB_COLOR_MASK do alvo 0
-  glColorMask(mask & 1, (mask >> 1) & 1, (mask >> 2) & 1, (mask >> 3) & 1);
+  if (!v || depth != g_gl.depth) {
+    g_gl.depth = depth;
+    if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + ((depth >> 4) & 7)); } else glDisable(GL_DEPTH_TEST);
+    glDepthMask((depth & 4) ? GL_TRUE : GL_FALSE);
+  }
+  if (!v || mode != g_gl.mode) {
+    g_gl.mode = mode;
+    uint32_t cull = mode & 3;
+    if (g_config.cull && (cull == 1 || cull == 2)) {
+      glEnable(GL_CULL_FACE);
+      glCullFace(cull == 1 ? GL_FRONT : GL_BACK);
+      glFrontFace((mode & 4) ? GL_CCW : GL_CW);  // o VS inverte y: a ordem dos vértices na tela também inverte
+    } else glDisable(GL_CULL_FACE);
+  }
+  if (!v || mask != g_gl.mask) { g_gl.mask = mask; glColorMask(mask & 1, (mask >> 1) & 1, (mask >> 2) & 1, (mask >> 3) & 1); }
+  g_gl.fixedValid = true;
 }
 
 // GL objects belong exclusively to the render thread. A serial identifies an
@@ -660,37 +717,45 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   static bool flat3d = std::getenv("NIER_FLAT_3D") != nullptr;  // diagnóstico: 3D em vermelho sólido
   Program* p = ProgramFor(c.vs, c.ps, flat3d && !c.up);
   if (!p) { Skip("programa não compilou/linkou"); return; }
-  glUseProgram(p->id);
-  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc);
-  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps, p->lastPc);
-  for (auto [b, loc] : p->bools) glUniform1i(loc, (BE32(Field(state, kBoolConstants + 4 * (b >> 5))) >> (b & 31)) & 1);
+  UseProgram(p->id);
+  UploadConstants(p->vc, p->vcCount, Field(state, kVertexConstants), c.vs, p->lastVc, p->vcSeq);
+  UploadConstants(p->pc, p->pcCount, Field(state, kPixelConstants), c.ps, p->lastPc, p->pcSeq);
+  if (p->lastBools.size() != p->bools.size()) p->lastBools.assign(p->bools.size(), -1);
+  for (size_t i = 0; i < p->bools.size(); ++i) {
+    auto [b, loc] = p->bools[i];
+    int8_t v = int8_t((BE32(Field(state, kBoolConstants + 4 * (b >> 5))) >> (b & 31)) & 1);
+    if (p->lastBools[i] != v) { p->lastBools[i] = v; glUniform1i(loc, v); }
+  }
   uint32_t colorControl = BE32(Field(state, kColorControl));
-  if (p->alphaFunc >= 0) glUniform1i(p->alphaFunc, (colorControl & 8) ? int(colorControl & 7) : 7);
-  if (p->alphaRef >= 0) glUniform1f(p->alphaRef, BEF(Field(state, 0x2904)));
+  if (p->alphaFunc >= 0) { int af = (colorControl & 8) ? int(colorControl & 7) : 7; if (af != p->lastAlphaFunc) { p->lastAlphaFunc = af; glUniform1i(p->alphaFunc, af); } }
+  if (p->alphaRef >= 0) { float ar = BEF(Field(state, 0x2904)); if (ar != p->lastAlphaRef) { p->lastAlphaRef = ar; glUniform1f(p->alphaRef, ar); } }
+  if (p->lastSizes.size() != p->samplers.size()) p->lastSizes.assign(p->samplers.size(), {-1.f, -1.f});
   int unit = 0;
   for (auto [slot, sizeLoc] : p->samplers) {
     const uint8_t* fetch = Field(state, kFetchConstants + 24 * slot);
     auto t = xenos::DecodeFetch(fetch);
-    glActiveTexture(GL_TEXTURE0 + unit);
     // Heurística (07/11): a tela resolvida alimenta desenhos não-UP e também UP quando a origem recebeu
     // desenho 3D no quadro (composição da cena). Tela de UI pura vem da memória do guest (menus sem faixas).
     static bool resolvedInUi = std::getenv("NIER_RESOLVED_IN_UI") != nullptr;
-    glBindTexture(GL_TEXTURE_2D, (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White());
-    if (sizeLoc >= 0) glUniform2f(sizeLoc, float(t.width), float(t.height));
+    ActiveUnit(unit);  // TextureFor pode enviar a textura: liga na unidade certa
+    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(t, !c.up || resolvedInUi) : White();
+    BindTexture(unit, id);
+    if (sizeLoc >= 0) {
+      std::pair<float, float> sz{float(t.width), float(t.height)};
+      if (p->lastSizes[unit] != sz) { p->lastSizes[unit] = sz; glUniform2f(sizeLoc, sz.first, sz.second); }
+    }
     ++unit;
   }
-  glActiveTexture(GL_TEXTURE0);
   auto t2 = Clock::now();
   g_pState += Ms(t1, t2);
   if (!ReferenceBuffers() && !g_bufferAuditReference) {
     for (uint32_t i = 0; i < c.inputCount; ++i) {
       const auto& data = c.vertexData[i];
       BindSnapshot(GL_ARRAY_BUFFER, data);
-      glEnableVertexAttribArray(i);
       glVertexAttribPointer(i, data->layout.components, data->layout.type,
                             data->layout.normalized ? GL_TRUE : GL_FALSE, data->layout.bytes, nullptr);
     }
-    for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
+    SetAttribs(c.inputCount);
     BindSnapshot(GL_ELEMENT_ARRAY_BUFFER, c.indexData);
   } else {
     glBindBuffer(GL_ARRAY_BUFFER, g_vertexBuffer);
@@ -705,10 +770,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
         source = reference.data();
       }
       glBufferSubData(GL_ARRAY_BUFFER, GLintptr(bytes * i), GLsizeiptr(bytes), source);
-      glEnableVertexAttribArray(i);
       glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, reinterpret_cast<void*>(bytes * i));
     }
-    for (uint32_t i = c.inputCount; i < kMaxInputs; ++i) glDisableVertexAttribArray(i);
+    SetAttribs(c.inputCount);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_indexBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(c.indexCount * 2), c.indexData ? c.indexData->raw.data() : f.blob.data() + c.indices, GL_STREAM_DRAW);
   }
@@ -849,7 +913,8 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
   // Resolve com limpeza (D3DRESOLVE_CLEARRENDERTARGET 0x100 / CLEARDEPTHSTENCIL 0x200, a confirmar).
   if (clears) {
     Target& src = CurrentTarget(state, false);
-    glBindFramebuffer(GL_FRAMEBUFFER, src.fbo);
+    BindFbo(src.fbo);
+    g_gl.fixedValid = false;
     glDisable(GL_SCISSOR_TEST);
     glColorMask(1, 1, 1, 1);
     glDepthMask(GL_TRUE);
@@ -1041,6 +1106,7 @@ void RenderThread() {
     auto tp = Clock::now();
     g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
     PresentToWindow();
+    InvalidateGl();  // apresentação (e auditoria opt-in) mexem no estado fora do cache
     auto now = Clock::now();
     g_swapMs += std::chrono::duration<double, std::milli>(now - tp).count();
     g_lastFrameMs = std::chrono::duration<double, std::milli>(now - last).count();
