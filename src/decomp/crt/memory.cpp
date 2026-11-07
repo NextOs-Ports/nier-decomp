@@ -11,7 +11,7 @@ NIER_DECOMP(sub_825D3010) {
 }
 // Disjoint valid regions, all byte alignments, zero through 2048 bytes.
 NIER_VERIFY_SPEC(sub_825D3010,0x825D3010,
-    "r3=range:0x40010000..0x40020000 r4=range:0x40080000..0x40090000 r5=range:0..2048");
+    "r3=range:0x40010000..0x40020000 r4=range:0x40050000..0x40060000 r5=range:0..2048");
 
 // memset, 160 original bytes. Replicated-word stores and alignment peeling
 // reduce to filling each destination byte with the low byte of the int value.
@@ -30,4 +30,4 @@ NIER_DECOMP(sub_825D3498) {
     for(uint32_t i=0;i<count;++i) st8(base,destination+i,ld8(base,source+i));
 }
 NIER_VERIFY_SPEC(sub_825D3498,0x825D3498,
-    "r3=range:0x40010000..0x40020000 r4=range:0x40080000..0x40090000 r5=range:0..2048");
+    "r3=range:0x40010000..0x40020000 r4=range:0x40050000..0x40060000 r5=range:0..2048");

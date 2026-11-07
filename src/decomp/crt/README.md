@@ -25,3 +25,20 @@ O comparador aproveitou 96 objetos de oráculo com comandos de compilação
 idênticos (Clang 23.1.4, mesmo gerado/SDK/flags); só o executável de verificação
 e as reconstruções foram recompilados. O recibo do cache é privado. O
 coordenador integra os JSONs em `progress/`; este trabalho não edita o painel.
+
+## Lote X1-2 — comparação e busca de strings
+
+Mais 19 rotinas passaram com 2.000 comparações cada e nenhuma falha de acesso:
+strlen/strcpy/strcat/strncat; strcmp/strncmp; strrchr/strstr; strcspn/strpbrk;
+três comparadores ASCII sem locale; memchr/memcmp; wcschr/wcsstr/wcscmp/wcsncmp.
+Os nomes são descrições semânticas, sem PDB. Preservamos diferenças observáveis:
+`strcmp`/`wcscmp` retornam sinal normalizado, `strncmp`/`wcsncmp` devolvem a
+subtração, e `memcmp` retorna +/-1 para grupos de oito bytes diferentes e a
+subtração exata na cauda. Um comparador ASCII preserva o atalho de RHS terminado
+antes da conversão para minúsculas. As buscas devolvem o ponteiro guest completo.
+
+A nova área de teste do coordenador tem 512 KiB. Os ponteiros de origem do
+lote 1 foram movidos para dentro dela (0x40050000–0x40060000), sem mudar os
+algoritmos. As seis funções passaram novamente em 2.000 casos sem falhas.
+Os testes do lote 2 usam somente RAM válida, strings terminadas, regiões
+separadas para cópia/concatenação e limites explícitos de comparação.

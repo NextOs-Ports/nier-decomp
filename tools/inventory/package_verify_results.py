@@ -21,7 +21,7 @@ def main():
         run=json.loads(path.read_text())
         if run.get('tool')!='nierverify' or run['failed']!=0:raise ValueError(f'Unsuccessful run: {path}')
         if trials is not None and trials!=run['trials']:raise ValueError('Mixed trial counts')
-        trials=run['trials'];table=run['functions_in_table']
+        trials=run['trials'];table=run.get('functions_in_table')
         for result in run['results']:
             address=int(result['address'],16)
             if address in seen or address not in functions:raise ValueError('Duplicate/unknown address')
