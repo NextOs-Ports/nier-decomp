@@ -1,0 +1,24 @@
+--- a/src/input/input_system.cpp
++++ b/src/input/input_system.cpp
+@@ -29,4 +29,6 @@
+ 
+ REXCVAR_DEFINE_BOOL(guide_button, false, "Input", "Enable guide button pass-through");
++REXCVAR_DEFINE_BOOL(local_profile_shared_input, true, "Input",
++                    "Route every controller to local signed-in user 0 for this single-player port");
+ namespace rex::input {
+ 
+@@ -352,5 +354,13 @@
+   uint8_t nop_index = tool_mode ? 0 : 1;
+   input->AddDriver(std::make_unique<nop::NopInputDriver>(nullptr, nop_index));
+-  input->SetDeviceAssignment(std::make_unique<SlotAssignment>());
++  // NieR has one local profile. A physical pad may enumerate before the
++  // scripted SDL pad; slot assignment would make START select unsigned user 1.
++  // Merge inputs into the same local user without fabricating extra profiles.
++  if (REXCVAR_GET(local_profile_shared_input)) {
++    input->SetDeviceAssignment(std::make_unique<SharedAssignment>());
++    REXLOG_INFO("Local profile input: all controllers use signed-in user 0");
++  } else {
++    input->SetDeviceAssignment(std::make_unique<SlotAssignment>());
++  }
+   return input;
+ }

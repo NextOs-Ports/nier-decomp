@@ -51,3 +51,36 @@ a CLI reconhece automaticamente `--default_keyboard_text=Nome` na nova DLL.
 `NIER_KEYBOARD_RUNTIME` no CMake das ferramentas liga o `nier_keyboard_probe`
 à biblioteca privada reconstruída. O teste chama o import dentro de XHostThread
 e espera a conclusão real do overlapped. Arquivos de teste ficam privados.
+
+## Perfil local e controle — X1-C5
+
+`local-profile-input.patch` habilita `local_profile_shared_input=true` na cópia
+SDK deste port single-player. A política SharedAssignment já existente une
+controles físicos, teclado e pad SDL do roteiro no usuário 0. Com SlotAssignment,
+o segundo pad acionava o usuário 1, sem perfil, reproduzindo o aviso de continuar
+sem login. O perfil 0 já estava conectado; não era ausência do arquivo de perfil.
+Não são criados usuários fictícios adicionais nem alterados XUID/gamertag.
+`--local_profile_shared_input=false` restaura a distribuição por slots.
+
+Somente `rexruntime` ARM64 foi recompilado para esta entrega. Identidade local
+mantida igual ao PC: usuário 0, state 1, XUID B13EBABEBABEBABE, gamertag User.
+O launcher mantém `user_data_root` na pasta `user-data` do port. Os settings
+do perfil ficam em `<user_data_root>/535107E8/profile/User`; os saves XContent
+continuam na árvore por XUID. Nenhum save existente é removido ou substituído.
+
+`NIER_PROFILE_RUNTIME` habilita `nier_profile_probe`: chama os imports reais
+GetSigninState/GetXUID/GetName/GetGamerTag/GetSigninInfo dentro de XHostThread,
+exercita a política real InputSystem com um/dois dispositivos sintéticos e
+confere escrita/reabertura de um setting numa pasta privada de teste. No QEMU,
+dois pads passaram de usuário ativo 1/state 0 para usuário ativo 0/state 1.
+O teste físico do menu e gameplay cabe ao C1, com a DLL entregue e o mesmo ELF.
+
+## Criação de conteúdo — X1-C6
+
+Com `NIER_PROFILE_RUNTIME`, o alvo `nier_save_create_probe` prova os imports
+reais XContent e NT I/O, incluindo a conclusão diferida e reabertura em outro
+processo: `nier_save_create_probe GAME_ROOT PRIVATE_USER_DATA create|open`.
+CREATE_NEW evita sobrescrever uma fixture existente. A raiz de testes é
+privada e o payload SYSTEM_DATA é sintético. A DLL C5 passou em ARM64/QEMU sem
+nova alteração. A correção de implantação está no launcher e no patch da receita
+C1, separados do NFS de dados e com verificação de escrita antes do jogo.

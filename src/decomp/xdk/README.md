@@ -163,3 +163,16 @@ quatro alinhamentos, saída separada ou exatamente in-place e palavra alta de
 r3 preenchida. Corrigida a seleção por CTR: os testes de zero usam a palavra
 baixa. Sobreposições parciais arbitrárias entre entrada/saída não são parte
 da prova. Os testes ARM reutilizam os objetos do C2 e não abrem o aparelho.
+
+## Lote X1-19 — filas, cursores e interpolação
+
+Sete rotinas (1.052 bytes) passaram em 2.000 comparações: pop/reciclagem de
+fila, interpolação tabelada em dois modos, ganho tabelado, teste de esgotamento,
+posição/ajuste de buffer em bits e envelope segmentado em ponto fixo Q20.
+São preservados wraps de campos de 32 bits e os retornos de 64 bits do runtime,
+inclusive produtos estendidos e quocientes de palavra com zero-extension.
+
+A prova extra passou 5.407 casos em host e ARM64/QEMU: fila vazia/um/dois nós,
+payload zero, deslocamentos 0–63, produtos/diferenças grandes, estados de buffer
+aleatórios, limites de ganho e envelopes vazios/segmentos válidos. Buffers e
+tabelas são válidos e separados; o domínio não inclui tabelas de índices inválidos.

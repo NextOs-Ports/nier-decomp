@@ -173,3 +173,15 @@ numéricos/matemáticos passaram nas duas arquiteturas.
 `nier_library_compile_check` compila os fontes CRT/XDK para o alvo escolhido
 sem ligá-los ao jogo. `NIER_VERIFY_ORACLE_DIR` permite reutilizar objetos de
 oráculo compatíveis de um build existente; conferir a identidade antes de usar.
+
+## Lote X1-20 — acumulação decimal extended96
+
+`825E9AA8` (660 bytes) acumula bytes de dígitos por multiplicação por dez e
+normaliza o significando de 80 bits num objeto BE de 12 bytes. Preserva o
+acumulador intermediário de 96 bits, a extensão dos bytes signed/unsigned e
+o temporário devolvido em r3. Passou em 2.000 comparações e em 24.000 casos
+extras em host e ARM64/QEMU, com 1–24 bytes numéricos e bytes brutos.
+
+O domínio exige acumulador não nulo: a rotina original não termina ao tentar
+normalizar zero. Não se apresenta essa entrada inválida como caso aprovado.
+Entrada e saída da prova ficam em regiões separadas.
