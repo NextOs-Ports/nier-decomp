@@ -149,3 +149,27 @@ aleatórios, todos os 16 alinhamentos e um callback instrumentado. A prova
 cobre captura/encaminhamento, não execução de um longjmp ou desenrolamento
 de pilha. Os callbacks do teste são sintéticos e não substituem funções
 comerciais para produzir equivalência artificial.
+
+## Validação cruzada ARM64 (X1-17)
+
+Treze programas de prova adicional foram compilados para Cortex-A53 em -O3
+com o sysroot NextOS e executados via QEMU no PC: 1.609.352 comparações
+passaram, além das duas provas de troca atômica concorrente. Foram reutilizados
+97 objetos do C2 para a mesma PE; as funções exercitadas não foram alteradas
+pela adição dos callbacks X1-2d. Isso não revalida a tabela inteira de funções.
+A etapa não abriu o jogo nem acessou o aparelho e não acrescenta bytes ao
+indicador de decompilação. Tempos do QEMU não são desempenho físico do A53.
+
+A prova encontrou diferenças reais entre os primitivos do SDK: no ARM,
+`simde_mm_cvtsd_si64` usa `round()`; no x86, a instrução segue MXCSR. A borda
++2^63 também produz resultados diferentes. O classificador e a redução de
+intervalo passaram a usar o primitivo do SDK, mantendo equivalência com o
+oráculo de cada alvo. A propagação de NaNs das inversas foi explicitada por
+variante (arco-seno negativo, arco-cosseno positivo), preservando o payload.
+Não foi alterado o SDK para fazer os testes passarem. As sete funções afetadas
+foram novamente aprovadas em 2.000 comparações host cada; os testes adicionais
+numéricos/matemáticos passaram nas duas arquiteturas.
+
+`nier_library_compile_check` compila os fontes CRT/XDK para o alvo escolhido
+sem ligá-los ao jogo. `NIER_VERIFY_ORACLE_DIR` permite reutilizar objetos de
+oráculo compatíveis de um build existente; conferir a identidade antes de usar.

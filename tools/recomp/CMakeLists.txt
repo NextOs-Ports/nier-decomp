@@ -34,6 +34,14 @@ set(NIER_VERIFY_GENERATED "" CACHE PATH "Private generated headers matching orac
 set(NIER_VERIFY_ORACLE_DIR "${NIER_VERIFY_BUILD}/CMakeFiles/nier_gen.dir" CACHE PATH "Compatible oracle object directory (also accepts an ARM game recomp target)")
 if(NIER_VERIFY_BUILD AND NIER_VERIFY_GENERATED)
   file(GLOB_RECURSE NIER_ORACLE_OBJECTS "${NIER_VERIFY_ORACLE_DIR}/*.o")
+  file(GLOB_RECURSE NIER_LIBRARY_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../src/decomp/crt/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../src/decomp/xdk/*.cpp")
+  add_library(nier_library_compile_check OBJECT EXCLUDE_FROM_ALL ${NIER_LIBRARY_SOURCES})
+  target_compile_definitions(nier_library_compile_check PRIVATE NIER_VERIFY=1)
+  target_include_directories(nier_library_compile_check PRIVATE ../../include "${NIER_VERIFY_GENERATED}")
+  target_link_libraries(nier_library_compile_check PRIVATE rex::runtime)
+  rexglue_apply_target_settings(nier_library_compile_check)
   add_executable(nier_atomic_probe atomic_exchange_probe.cpp
     ../../src/decomp/xdk/interlocked.cpp ${NIER_ORACLE_OBJECTS})
   target_compile_definitions(nier_atomic_probe PRIVATE NIER_VERIFY=1)

@@ -53,15 +53,20 @@ NIER_DECOMP(sub_825E4B80) {
 }
 NIER_VERIFY_SPEC(sub_825E4B80,0x825E4B80,"f1=f32");
 
-// Classify representable int64-valued doubles: 0 noninteger/out-of-range,
-// 1 odd, 2 even. Preserve the argument-home spill at incoming SP+16.
+// Classify via integer/binary64 round trips: 0 noninteger/out-of-range,
+// 1 odd, 2 even. Use the SDK conversion primitive at the +2^63 boundary:
+// its ARM saturation and x86 invalid-conversion result differ there.
 NIER_DECOMP(sub_825D93E0) {
     ctx.fpscr.disableFlushMode();
     st64(base,ctx.r1.u32+16,ctx.f1.u64);
     const double value=ctx.f1.f64;
-    if((ctx.f1.u64&0x7fffffffffffffffull)>=0x7ff0000000000000ull ||
-       value < -0x1p63 || value >= 0x1p63) {ctx.r3.u64=0;return;}
-    const int64_t integer=static_cast<int64_t>(value);
-    ctx.r3.u64=double(integer)!=value?0:(uint64_t(integer)&1)?1:2;
+    if((ctx.f1.u64&0x7fffffffffffffffull)>=0x7ff0000000000000ull) {ctx.r3.u64=0;return;}
+    auto integer_round_trip=[](double number) {
+        if(number>0x1p63)return double(INT64_MAX);
+        return double(simde_mm_cvtsd_si64(simde_mm_load_sd(&number)));
+    };
+    if(integer_round_trip(value)!=value) {ctx.r3.u64=0;return;}
+    const double half=value*0.5;
+    ctx.r3.u64=integer_round_trip(half)==half?2:1;
 }
 NIER_VERIFY_SPEC(sub_825D93E0,0x825D93E0,"f1=f32");
