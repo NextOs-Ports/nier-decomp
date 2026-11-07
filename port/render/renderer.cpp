@@ -949,10 +949,11 @@ void AuditBufferImage(const Frame& work) {
     g_bufferAuditReference = reference; g_mainTarget = 0;
     g_pendingCopies.clear();
     for (auto& [key, target] : g_targets) target.clearedFrame = ~0ull;
-    for (size_t i = 0; i < work.cmds.size(); ++i) {
+    for (size_t i = 0; i < work.cmds.size(); ++i) {  // mesmo plano de Resolve do quadro (g_redirects/g_resolveDirect)
       const Cmd& c = work.cmds[i];
-      if (c.kind == Kind::Draw) ReplayDraw(work, c, g_redirects[i]);
-      else if (c.kind == Kind::Resolve) ReplayResolve(work, c, g_resolveDirect[i] != 0);
+      bool planned = i < g_redirects.size();
+      if (c.kind == Kind::Draw) ReplayDraw(work, c, planned ? g_redirects[i] : Redirect{});
+      else if (c.kind == Kind::Resolve) ReplayResolve(work, c, planned && g_resolveDirect[i] != 0);
     }
     g_bufferAuditReference = false;
     std::vector<uint8_t> pixels;
