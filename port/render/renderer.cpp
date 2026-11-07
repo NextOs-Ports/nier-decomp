@@ -1103,7 +1103,7 @@ void PlanDirectPasses(const Frame& f) {
         int tw = std::max(1, int(t.width * s)), th = std::max(1, int(t.height * s));
         // Níveis minúsculos da cadeia de bloom (< NIER_BLOOM_MIN, padrão 32) em quadros alternados: o destino
         // guarda o conteúdo do quadro anterior (brilho largo muda devagar); poupa trocas de alvo na Mali.
-        static int bloomMin = std::getenv("NIER_BLOOM_MIN") ? std::atoi(std::getenv("NIER_BLOOM_MIN")) : 32;
+        static int bloomMin = std::getenv("NIER_BLOOM_MIN") ? std::atoi(std::getenv("NIER_BLOOM_MIN")) : 0;  // padrão desligado: deixava rastro (ghosting) de objetos brilhantes
         bool skipThisFrame = int(t.width) < bloomMin && (g_frames.load() & 1) && g_resolved.count(key) && g_resolved[key].texture;
         for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0, skipThisFrame};
         g_resolveDirect[i] = 1;
