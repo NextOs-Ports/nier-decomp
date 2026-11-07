@@ -27,7 +27,9 @@ Três terminais coordenados por D-Bus no Konsole (regras, missões e entregas fo
 ### Renderizador GLES2 (C1)
 - Código próprio MIT em `port/render`; tradutor de shaders Xenos é dependência PRIVADA fixada (port do DMC3 de outro autor, sem licença) e nunca entra neste repositório.
 - PC: logos, vídeo, título, menus, nome, NOW LOADING com modelo 3D, prólogo 3D (cidade sob neve) e **gameplay com HUD e tutorial**.
-- .164 (Mali-450): todos os shaders compilam e linkam, 0 desenhos pulados, sem erro de GL. Logos 50–100 fps, vídeo 22–35 fps, menus 28–50 fps, RAM até 511 MB. A cena 3D no aparelho ainda não foi alcançada: o roteiro de teste era por quadros e a Mali é lenta nos menus (roteiro por tempo/estado em andamento).
+- PC: o jogo é desenhado até o prólogo 3D completo (cidade, "Summer 2049", sala, livro) e a primeira tela de gameplay com HUD.
+- .164 (Mali-450), 5 rodadas com corte mecânico, todas encerradas limpas: todos os shaders compilam e linkam, 0 desenhos pulados, sem erro de GL. Logos 10–20 ms/quadro, menus 23–37 ms, vídeo 28–45 ms. **Lógica 100,0–100,1% do tempo real**. RAM 386–511 MB, até 76 °C.
+- A cena 3D no aparelho ainda não foi alcançada. A primeira rodada parou por roteiro contado em quadros, a segunda pelo perfil não conectado com dois controles (corrigido: todos os controles no perfil 0, DLL ARM `f828329c…`). A última parou em "No system data has been saved… Create a new file? Yes", que volta à mesma tela: a criação do save não conclui no ARM. A primeira hipótese (save dentro do NFS só leitura) **não se confirmou**: a receita já gravava fora dele. O lançador agora fixa `/storage/roms/ports/nier-dev/user-data` e exige escrita real antes de abrir o jogo; no QEMU, `XamContentCreateEx`, criar, gravar, ler e reabrir em outro processo funcionam. A causa da tela no aparelho continua sem prova.
 - Pendências visíveis: texturas de cenário brancas (formatos), shaders 3D restantes (CUBE/op.18, fetch 24, textura no VS).
 
 ### Decompilação verificada
@@ -37,7 +39,7 @@ Três terminais coordenados por D-Bus no Konsole (regras, missões e entregas fo
 
 ## Próximos passos
 
-1. **Cena 3D no .164** com roteiro guiado por tempo/estado e medição de FPS e velocidade no prólogo e na gameplay; depois corrigir texturas brancas e shaders 3D restantes.
+1. **Save no ARM**: aplicar a receita do X1 (`messages/X1-C6-C1-recipe.patch` na pasta da equipe), registrar o status real de cada chamada XContent durante a tela "Create a new file" no .164 e corrigir o que falhar; então chegar à cena 3D no .164 com o mesmo roteiro por relógio, medindo FPS e velocidade no prólogo e na gameplay. Depois corrigir texturas brancas e shaders 3D restantes (CUBE/op.18, fetch 24, textura no VS).
 2. **Integrar `src/decomp` ao build do jogo** (`port/CMakeLists.txt`): hoje as reconstruções estão provadas, mas o ELF ainda roda as traduções. Fazer isso por grupos, com A/B no aparelho.
 3. **Decomp**: seguir os grupos de templates restantes (`tools/decomp` lista ~380 grupos de mesma estrutura, ~280 KB) e os quentes do perfil de gameplay quando houver gameplay no aparelho.
 4. **Espaço no .164**: `/storage/roms` tem ~1,4 GB livres e o jogo tem 6 GB; testes usaram NFS só leitura. Para entrega, reduzir dados (texturas convertidas) e decidir o aparelho/espaço.
