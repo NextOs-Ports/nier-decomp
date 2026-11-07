@@ -188,6 +188,8 @@ struct GlCache {
 GlCache g_gl;
 GLint g_vsUniformVectors = 256;  // medido no init (Mali-450: 256)
 void InvalidateGl() { g_gl = GlCache{}; }
+// Medição do "desenho" (CPU dentro de glDrawElements no driver Mali): o que cada janela enviou
+uint64_t g_vec4Sent = 0, g_vtVec4Sent = 0, g_indicesDrawn = 0, g_programsLinked = 0, g_programSwitches = 0;
 uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
 void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; ++g_fboBinds; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
 // GL_EXT_discard_framebuffer: ao fechar um passe, a profundidade/estêncil não precisa voltar para a memória.
@@ -201,7 +203,7 @@ void DiscardDepth(GLuint fbo, GLuint depth) {
   g_discard(GL_FRAMEBUFFER, 2, att);
   ++g_discards;
 }
-void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; glUseProgram(id); } }
+void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; ++g_programSwitches; glUseProgram(id); } }
 void ActiveUnit(int unit) { if (g_gl.unit != unit) { g_gl.unit = unit; glActiveTexture(GL_TEXTURE0 + unit); } }
 void BindTexture(int unit, GLuint id) { if (g_gl.tex[unit] != id) { ActiveUnit(unit); g_gl.tex[unit] = id; glBindTexture(GL_TEXTURE_2D, id); } }
 void SetAttribs(uint32_t count) {
@@ -662,6 +664,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
   for (uint32_t i = 0; i < vs->inputs.size() && i < kMaxInputs; ++i) glBindAttribLocation(p.id, i, ("a" + std::to_string(i)).c_str());
+  ++g_programsLinked;
   glLinkProgram(p.id);  // LEVE_OK: ligar só na 1ª vez do programa (cache g_programs)
   glDeleteShader(v); glDeleteShader(f);
   GLint ok = 0;
@@ -732,11 +735,13 @@ void UploadConstants(GLint location, int count, const uint8_t* bank, const Guest
     if (first == n) return;
     while (lastIdx > first && std::memcmp(&last[(lastIdx - 1) * 4], &g_constants[(lastIdx - 1) * 4], 16) == 0) --lastIdx;
     std::memcpy(&last[first * 4], &g_constants[first * 4], (lastIdx - first) * 16);
-    if (sequential) { glUniform4fv(location + GLint(first), GLsizei(lastIdx - first), &g_constants[first * 4]); return; }
+    if (sequential) { g_vec4Sent += lastIdx - first; glUniform4fv(location + GLint(first), GLsizei(lastIdx - first), &g_constants[first * 4]); return; }
+    g_vec4Sent += n;
     glUniform4fv(location, GLsizei(n), g_constants.data());
     return;
   }
   last = g_constants;
+  g_vec4Sent += n;
   glUniform4fv(location, GLsizei(n), g_constants.data());
 }
 
@@ -933,7 +938,7 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
       uint8_t e[4]; std::memcpy(e, src + 4 * k, 4); xenos::Swap(e, 4, t.endian);
       std::memcpy(&vals[k], e, 4);
     }
-    if (vt.loc >= 0) glUniform4fv(vt.loc, n, vals.data());
+    if (vt.loc >= 0) { g_vtVec4Sent += uint64_t(n); glUniform4fv(vt.loc, n, vals.data()); }
     if (vt.params >= 0) glUniform2f(vt.params, float(t.width), float(base));
   }
 }
@@ -1025,6 +1030,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
+  g_indicesDrawn += c.indexCount;
   glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   g_pDraw += Ms(t3, Clock::now());
 }
@@ -1060,7 +1066,8 @@ void PlanDirectPasses(const Frame& f) {
       if (n.kind == Kind::Skip) continue;
       if (TargetKeyOf(f.blob.data() + n.state) != srcKey) continue;
       if (n.kind == Kind::Resolve && ((n.flags & 4) || !(n.flags & 0x300))) continue;  // profundidade ou 2º destino da mesma cena
-      if (n.kind == Kind::Draw) g_resolveKeep[i] = 1;  // continua desenhando por cima: manter conteúdo
+      static bool noKeep = std::getenv("NIER_NO_KEEP") != nullptr;  // A/B
+      if (n.kind == Kind::Draw && !noKeep) g_resolveKeep[i] = 1;  // continua desenhando por cima: manter conteúdo
       break;
     }
   }
@@ -1164,7 +1171,8 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false)
         std::swap(src.depth, dst.depth);
         dst.from3D = src.drew3DFrame == g_frames.load();
         src.holder = key;
-        src.clearedFrame = ~0ull;  // o próximo desenho no alvo limpa: entrar sem limpar recarrega os tiles
+        static bool noClear = std::getenv("NIER_NO_CLEAR_ALIAS") != nullptr;  // A/B: comportamento antigo (conteúdo antigo do ping-pong)
+        if (!noClear) src.clearedFrame = ~0ull;  // o próximo desenho no alvo limpa: entrar sem limpar recarrega os tiles
         DiscardDepth(dst.fbo, dst.depth);
         ++g_aliases;
       } else if (src.holder && src.holder != key) {
@@ -1368,6 +1376,17 @@ void RenderThread() {
   GLint vsUniforms = 0, fsUniforms = 0;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   g_vsUniformVectors = vsUniforms > 0 ? vsUniforms : 256;
+  {
+    const char* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));  // LEVE_OK: inicialização
+    bool mali = renderer && std::strstr(renderer, "Mali");
+    // Ordem do dono (07/11): na Mali a resolução interna padrão é 640x360 (nunca abaixo de 640 de largura);
+    // NIER_RENDER_WIDTH continua valendo quando dado. glDiscardFramebufferEXT na Mali só com NIER_DISCARD=1
+    // (F13: quadrados pretos e retângulo de quadro antigo = conteúdo indefinido pelo driver).
+    if (mali && !std::getenv("NIER_RENDER_WIDTH")) { g_config.renderWidth = 640; g_config.renderHeight = 360; }
+    g_config.renderWidth = std::max(g_config.renderWidth, 640);
+    g_config.renderHeight = std::max(g_config.renderHeight, g_config.renderWidth * 9 / 16);
+    if (mali && !std::getenv("NIER_DISCARD")) g_discard = nullptr;
+  }
   glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
@@ -1434,9 +1453,9 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u) glFinish(GPU) %.2f\n",
-                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0;
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
+                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
