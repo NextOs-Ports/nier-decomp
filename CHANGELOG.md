@@ -4,6 +4,7 @@
 
 - Extraído o ISO (XGD2) e identificado o `default.xex`: SHA-256 `f375d506…`, Title ID `535107E8`, Media ID `507D2720`, entrada `0x8255CEA0`, XDK D3D 2.0.9328. Imagem PE decifrada fixada por hash.
 - Referência externa de timing: Xbox 360 original apresenta 30 quadros distintos/s; RGH destravado e FPS Boost rodam a 60. A trava de 30 é de apresentação (`0x8256BB90`).
+- Codegen ReXGlue do NieR: 21.985 funções e 180 imports traduzidos sem avisos; 248 tabelas de salto (243 pelo analisador padrão, 5 pelo detector simulado adaptado do Rayman). Código gerado fica privado.
 - Equipe de três terminais iniciada: CPU/recompilação ARM64, renderização GLES2 Mali-450 e coordenação.
 - Recebido `NieR (USA, Europe) (En).7z`, SHA-256 `f6a8c194708482d2fd8fa70520b6a5e8dd38b87d016a1c1099cf40d7ac80bc67`; integridade do arquivo aprovada pelo 7-Zip.
 - Escrito o plano detalhado de decompilação, runtime, renderização GLES2, gameplay, desempenho e ampliação de cobertura.
