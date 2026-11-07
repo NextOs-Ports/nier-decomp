@@ -210,6 +210,8 @@ std::map<uint64_t, Target> g_resolved;
 uint64_t g_mainTarget = 0;
 // Resolve preguiçoso (Mali: cada glCopyTexSubImage esvazia o tile e custa ms): a cópia só acontece se a
 // textura destino for amostrada ou antes de o alvo de origem ser alterado; sem uso no quadro, é descartada.
+GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
+GLint g_blitRect = -1, g_blitFlip = -1;
 struct PendingCopy { uint64_t src, dst; int x0, y0, w, h; bool srcResolved; };
 std::vector<PendingCopy> g_pendingCopies;
 std::set<uint64_t> g_frameSampled, g_everSampled;
@@ -251,8 +253,6 @@ void FlushCopyTo(uint64_t dst) {  // antes de amostrar a textura destino
   for (size_t i = 0; i < g_pendingCopies.size(); ++i)
     if (g_pendingCopies[i].dst == dst) { DoCopy(g_pendingCopies[i]); g_pendingCopies.erase(g_pendingCopies.begin() + i); return; }
 }
-GLuint g_blitProgram = 0, g_blitBuffer = 0, g_vertexBuffer = 0, g_indexBuffer = 0;
-GLint g_blitRect = -1, g_blitFlip = -1;
 std::map<std::string, uint32_t> g_skipReasons;
 bool g_depth24 = false;
 
@@ -264,7 +264,7 @@ void Skip(const char* reason) {
 GLuint CompileShader(GLenum type, const char* source, const char* name) {
   GLuint s = glCreateShader(type);
   glShaderSource(s, 1, &source, nullptr);
-  glCompileShader(s);
+  glCompileShader(s);  // LEVE_OK: compilar só na 1ª vez do programa (cache g_programs por chave VS/PS) e no init do blit
   GLint ok = 0;
   glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
   if (!ok) {
@@ -283,7 +283,7 @@ void CreateBlit() {
   g_blitProgram = glCreateProgram();
   glAttachShader(g_blitProgram, v); glAttachShader(g_blitProgram, f);
   glBindAttribLocation(g_blitProgram, 0, "p");
-  glLinkProgram(g_blitProgram);
+  glLinkProgram(g_blitProgram);  // LEVE_OK: inicialização (CreateBlit, uma vez)
   glDeleteShader(v); glDeleteShader(f);
   g_blitRect = glGetUniformLocation(g_blitProgram, "r");
   g_blitFlip = glGetUniformLocation(g_blitProgram, "flip");
@@ -502,7 +502,7 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   // Mali-450: textura minificada sem mipmap satura a banda e segura a CPU (medido no Rayman).
   bool pot = (t.width & (t.width - 1)) == 0 && (t.height & (t.height - 1)) == 0;
   if (g_config.mipmaps && pot && tex.uploads == 1 && (t.width > 16 || t.height > 16)) {
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glGenerateMipmap(GL_TEXTURE_2D);  // LEVE_OK: só no 1º envio da textura (tex.uploads == 1), textura estática POT
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
   } else {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -539,7 +539,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
   for (uint32_t i = 0; i < vs->inputs.size() && i < kMaxInputs; ++i) glBindAttribLocation(p.id, i, ("a" + std::to_string(i)).c_str());
-  glLinkProgram(p.id);
+  glLinkProgram(p.id);  // LEVE_OK: ligar só na 1ª vez do programa (cache g_programs)
   glDeleteShader(v); glDeleteShader(f);
   GLint ok = 0;
   glGetProgramiv(p.id, GL_LINK_STATUS, &ok);
@@ -861,7 +861,7 @@ void PresentToWindow() {
       lastShot = Clock::now();
       std::vector<uint8_t> px(size_t(ww) * wh * 4);
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
-      glReadPixels(0, 0, ww, wh, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+      glReadPixels(0, 0, ww, wh, GL_RGBA, GL_UNSIGNED_BYTE, px.data());  // LEVE_OK: captura de prova opt-in (NIER_GLES2_CAPTURE), nunca em entrega
       static unsigned shot = 0;
       std::string target = capture;
       if (target.size() < 4 || target.compare(target.size() - 4, 4, ".ppm") != 0) {  // diretório: numeradas
@@ -890,8 +890,8 @@ void RenderThread() {
   }
   CreateBlit();
   GLint vsUniforms = 0, fsUniforms = 0;
-  glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);
-  glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);
+  glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
+  glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
                g_config.renderWidth, g_config.renderHeight, vsUniforms, fsUniforms, int(g_depth24));
@@ -928,7 +928,7 @@ void RenderThread() {
     }
     g_copiesSkipped += uint32_t(g_pendingCopies.size());
     g_pendingCopies.clear();
-    if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }
+    if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }  // LEVE_OK: perfil opt-in (NIER_GL_PROFILE) para medir a GPU
     auto tp = Clock::now();
     g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
     PresentToWindow();
@@ -941,7 +941,7 @@ void RenderThread() {
     {
       std::fprintf(stderr, "[nier-gl] %llu quadros, %.2f ms, %u draws no quadro, %llu pulados (total), intervalo do jogo %u, programas %zu, texturas %zu, texturas %.2f ms/quadro (hash %.2f decod %.2f envio %.2f), replay %.2f swap %.2f espera do jogo %.2f ms/quadro, GL 0x%x\n",
                    (unsigned long long)n, g_lastFrameMs.load(), frameDraws, (unsigned long long)g_skipped.load(), work.presentInterval,
-                   g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, glGetError());
+                   g_programs.size(), g_textures.size(), g_textureMs / 120.0, g_sigMs / 120.0, g_decodeMs / 120.0, g_uploadMs / 120.0, g_replayMs / 120.0, g_swapMs / 120.0, g_gameWaitNs.exchange(0) / 120e6, GlProfile() ? glGetError() : 0u);  // LEVE_OK: glGetError só no perfil opt-in
       if (!g_skipReasons.empty()) {
         std::string line;
         for (auto& [r, n] : g_skipReasons) line += " | " + r + ": " + std::to_string(n);
