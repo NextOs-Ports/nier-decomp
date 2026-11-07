@@ -516,8 +516,9 @@ std::atomic<bool> g_frameskipAuto{false};
 // registra o custo do quadro na thread GL por modo. Imagem errada de propósito (diagnóstico).
 // 0 base, 1 sem pós/UP (cls 3), 2 sem cenário (cls 0), 3 sem Resolve, 4 PS chapado, 5 tesoura 1x1 (sem preenchimento)
 int g_abMode = 0;
-// 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices)
-const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices"};
+// 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices),
+// 8 LOD por distância (NIER_LOD_DIST ou 60)
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -1441,6 +1442,7 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
 }
 // Descarte no CPU: AABB do VBO de posição (1x por serial) × MVP do desenho (constantes do estado). Fora do
 // frustum (os 8 cantos atrás do mesmo plano) ou < 2 px na tela (todos os cantos à frente) = não desenha.
+uint64_t g_lodHist[8] = {}, g_lodCulledIdx = 0;
 bool CullDraw(const Frame& f, const Cmd& c) {
   static bool off = std::getenv("NIER_NO_CULL_AABB") != nullptr;
   if (off || !c.vs || !c.ps) return false;
@@ -1448,7 +1450,14 @@ bool CullDraw(const Frame& f, const Cmd& c) {
   auto ci = infos.find(c.vs->key);
   if (ci == infos.end()) ci = infos.emplace(c.vs->key, ParseCull(c.vs->source)).first;
   const CullInfo& cull = ci->second;
-  if (!cull.ok) { ++g_cullNoPattern; return false; }
+  if (!cull.ok) {
+    ++g_cullNoPattern;
+    if (DiagOsso()) { static std::map<uint64_t, uint64_t> miss; static uint64_t n = 0; miss[c.vs->key] += c.indexCount;
+      if (++n % 20000 == 0) { std::vector<std::pair<uint64_t, uint64_t>> v(miss.begin(), miss.end()); std::sort(v.begin(), v.end(), [](auto& a, auto& b) { return a.second > b.second; });
+        std::string t; char b[64]; for (size_t i = 0; i < v.size() && i < 8; ++i) { std::snprintf(b, sizeof b, " %016llX:%llu", (unsigned long long)v[i].first, (unsigned long long)v[i].second); t += b; }
+        std::fprintf(stderr, "[nier-lod] VS sem padrão MVP (índices acumulados):%s\n", t.c_str()); } }
+    return false;
+  }
   int pi = cull.posInput;
   if (pi < 0 || uint32_t(pi) >= c.inputCount || !c.vertexData[pi]) { ++g_cullNoData; return false; }
   ++g_cullEval;
@@ -1476,7 +1485,7 @@ bool CullDraw(const Frame& f, const Cmd& c) {
     for (int cc = 0; cc < 4; ++cc) m[r][cc] = BEF(Field(state, kVertexConstants + reg * 16 + 4 * cc));
   }
   int outside[6] = {};  // -x +x -y +y -z +z (clip D3D: -w<=x<=w, -w<=y<=w, 0<=z<=w)
-  float sx0 = 1e30f, sx1 = -1e30f, sy0 = 1e30f, sy1 = -1e30f; bool allFront = true;
+  float sx0 = 1e30f, sx1 = -1e30f, sy0 = 1e30f, sy1 = -1e30f; bool allFront = true; float minW = 1e30f;
   for (int i = 0; i < 8; ++i) {
     float v[4] = {(i & 1) ? a.hi[0] : a.lo[0], (i & 2) ? a.hi[1] : a.lo[1], (i & 4) ? a.hi[2] : a.lo[2], 1.0f};
     float cl[4];
@@ -1485,6 +1494,7 @@ bool CullDraw(const Frame& f, const Cmd& c) {
     if (cl[0] < -w) ++outside[0]; if (cl[0] > w) ++outside[1];
     if (cl[1] < -w) ++outside[2]; if (cl[1] > w) ++outside[3];
     if (cl[2] < 0) ++outside[4]; if (cl[2] > w) ++outside[5];
+    minW = std::min(minW, w);
     if (w <= 1e-6f) allFront = false;
     else { float x = cl[0] / w, y = cl[1] / w; sx0 = std::min(sx0, x); sx1 = std::max(sx1, x); sy0 = std::min(sy0, y); sy1 = std::max(sy1, y); }
   }
@@ -1496,6 +1506,15 @@ bool CullDraw(const Frame& f, const Cmd& c) {
     // cuja caixa projetada cobre menos de 1 % da tela não são desenhados. Padrão 0 = desligado.
     static float areaFrac = std::getenv("NIER_CULL_AREA") ? float(std::atof(std::getenv("NIER_CULL_AREA"))) : 0.0f;
     if (areaFrac > 0 && px * py < areaFrac * float(g_config.renderWidth) * float(g_config.renderHeight)) return true;
+    // C1-H9 histograma: índices do cenário por distância (w de recorte do canto mais próximo da caixa)
+    static const float edges[] = {5, 10, 20, 40, 80, 160, 320};
+    int bucket = 0; while (bucket < 7 && minW >= edges[bucket]) ++bucket;
+    g_lodHist[bucket] += c.indexCount;
+    // LOD por distância (autorizado pelo dono: "efeitos podem reduzir se jogável"): cenário cuja parte mais próxima
+    // está além de NIER_LOD_DIST não é desenhado. Só cenário (classe cor, não UP), nunca o que cruza o plano da câmera.
+    static float lodDist = std::getenv("NIER_LOD_DIST") ? float(std::atof(std::getenv("NIER_LOD_DIST"))) : 0.0f;
+    float dist = g_abMode == 8 ? (lodDist > 0 ? lodDist : 60.0f) : lodDist;
+    if (dist > 0 && minW > dist) { g_lodCulledIdx += c.indexCount; return true; }
   }
   return false;
 }
@@ -2093,7 +2112,7 @@ void RenderThread() {
     static Clock::time_point abStart{}; static bool abOn = false;
     if (abCycle) {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
-      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 8 : 0;
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 9 : 0;
     }
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
@@ -2181,6 +2200,11 @@ void RenderThread() {
         double secs = std::chrono::duration<double>(Clock::now() - fsLast).count(); fsLast = Clock::now();
         uint64_t up = g_fsUpdates.exchange(0), dr = g_fsDropped.exchange(0);
         uint64_t rec = g_recordNs.exchange(0), th = g_triHits.exchange(0), tm = g_triMisses.exchange(0);
+        if (W) {
+          std::fprintf(stderr, "[nier-lod] índices de cenário/quadro por distância (w): <5 %.0f, 5-10 %.0f, 10-20 %.0f, 20-40 %.0f, 40-80 %.0f, 80-160 %.0f, 160-320 %.0f, >=320 %.0f; cortados por LOD %.0f\n",
+                       g_lodHist[0] / double(W), g_lodHist[1] / double(W), g_lodHist[2] / double(W), g_lodHist[3] / double(W), g_lodHist[4] / double(W), g_lodHist[5] / double(W), g_lodHist[6] / double(W), g_lodHist[7] / double(W), g_lodCulledIdx / double(W));
+          for (auto& h : g_lodHist) h = 0; g_lodCulledIdx = 0;
+        }
         { uint64_t ph[7]; for (int k = 0; k < 7; ++k) ph[k] = g_recPhaseNs[k].exchange(0);
           double u = up ? up * 1e6 : 1.0;
           static uint64_t lastHits = 0, lastMisses = 0, lastConv = 0;
