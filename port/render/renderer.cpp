@@ -158,7 +158,9 @@ struct Target {
   // texturas entre FBOs, ping-pong) e `holder` guarda a chave em g_resolved onde está o conteúdo mais recente;
   // um desenho novo no alvo zera `holder`. Passes menores (bloom) desenham direto no FBO do destino.
   uint64_t holder = 0;
-  bool shared = false;  // textura/FBO emprestados de outro destino (mesmo conteúdo): nunca apagar nem desenhar nela
+  // Resolve repetido da mesma tela para um 2º destino: este destino aponta para o outro só neste quadro
+  // (sharedFrom/sharedFrame); mantém os próprios recursos (nada recriado por quadro na Mali).
+  uint64_t sharedFrom = 0, sharedFrame = ~0ull;
 };
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
@@ -181,7 +183,19 @@ struct GlCache {
 GlCache g_gl;
 GLint g_vsUniformVectors = 256;  // medido no init (Mali-450: 256)
 void InvalidateGl() { g_gl = GlCache{}; }
-void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
+uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
+void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; ++g_fboBinds; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
+// GL_EXT_discard_framebuffer: ao fechar um passe, a profundidade/estêncil não precisa voltar para a memória.
+PFNGLDISCARDFRAMEBUFFEREXTPROC g_discard = nullptr;
+std::set<GLuint> g_depthKeep;  // texturas de profundidade com alias neste quadro (não descartar)
+uint32_t g_discards = 0;
+void DiscardDepth(GLuint fbo, GLuint depth) {
+  if (!g_discard || !fbo || !depth || g_depthKeep.count(depth)) return;
+  BindFbo(fbo);
+  static const GLenum att[] = {GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT};
+  g_discard(GL_FRAMEBUFFER, 2, att);
+  ++g_discards;
+}
 void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; glUseProgram(id); } }
 void ActiveUnit(int unit) { if (g_gl.unit != unit) { g_gl.unit = unit; glActiveTexture(GL_TEXTURE0 + unit); } }
 void BindTexture(int unit, GLuint id) { if (g_gl.tex[unit] != id) { ActiveUnit(unit); g_gl.tex[unit] = id; glBindTexture(GL_TEXTURE_2D, id); } }
@@ -283,18 +297,20 @@ void CreateBlit() {
   const char* ext = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
   g_depth24 = ext && std::strstr(ext, "GL_OES_depth24");
   g_depthTexture = ext && std::strstr(ext, "GL_OES_depth_texture") && !std::getenv("NIER_NO_DEPTH_TEXTURE");
-  std::fprintf(stderr, "[nier-gl] profundidade: depth24 %d, textura de profundidade %d\n", int(g_depth24), int(g_depthTexture));
+  if (ext && std::strstr(ext, "GL_EXT_discard_framebuffer") && !std::getenv("NIER_NO_DISCARD"))
+    g_discard = reinterpret_cast<PFNGLDISCARDFRAMEBUFFEREXTPROC>(eglGetProcAddress("glDiscardFramebufferEXT"));  // LEVE_OK: inicialização
+  std::fprintf(stderr, "[nier-gl] profundidade: depth24 %d, textura de profundidade %d, discard %d\n", int(g_depth24), int(g_depthTexture), int(g_discard != nullptr));
 }
 
 void ReleaseTarget(Target& t) {
-  if (!t.shared) {
-    if (t.texture) glDeleteTextures(1, &t.texture);
-    if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
-    if (t.depth) { if (g_depthTexture) glDeleteTextures(1, &t.depth); else glDeleteRenderbuffers(1, &t.depth); }
-  }
+  if (t.texture) glDeleteTextures(1, &t.texture);
+  if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
+  if (t.depth) { if (g_depthTexture) glDeleteTextures(1, &t.depth); else glDeleteRenderbuffers(1, &t.depth); }
   t = Target{};
 }
+uint32_t g_targetCreates = 0;  // alvos (re)criados na janela: na Mali cada criação custa ms
 void CreateTarget(Target& t, int w, int h, bool withDepth) {
+  ++g_targetCreates;
   ReleaseTarget(t);
   InvalidateGl();  // liga textura/FBO/renderbuffer fora do cache
   t.w = w; t.h = h;
@@ -352,7 +368,8 @@ void ClearOncePerFrame(Target& t) {
 // FBO próprio do destino de Resolve (passe desenhado direto, sem cópia): tamanho do destino na escala interna.
 Target& DirectTarget(uint64_t key, int w, int h) {
   Target& t = g_resolved[key];
-  if (t.w != w || t.h != h || !t.depth || t.shared) CreateTarget(t, w, h, true);
+  if (t.w != w || t.h != h || !t.depth) CreateTarget(t, w, h, true);
+  t.sharedFrom = 0;
   BindFbo(t.fbo);
   ClearOncePerFrame(t);
   return t;
@@ -437,7 +454,9 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   if (auto r = g_resolved.find(key); r != g_resolved.end() && (allowResolved || r->second.from3D)) {
     g_everSampled.insert(key);
     if (!g_pendingCopies.empty()) FlushCopyTo(key);
-    return r->second.texture;
+    if (r->second.sharedFrom && r->second.sharedFrame == g_frames.load())
+      if (auto h = g_resolved.find(r->second.sharedFrom); h != g_resolved.end() && h->second.texture) return h->second.texture;
+    return r->second.texture ? r->second.texture : White();
   }
   if (t.format == xenos::k248) {
     if (auto d = g_depthAlias.find(key); d != g_depthAlias.end()) return d->second;
@@ -858,10 +877,12 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
     if (vt.params >= 0) glUniform2f(vt.params, float(t.width), float(base));
   }
 }
-struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; };
+struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; bool skip = false; };
+uint32_t g_bloomSkips = 0;
 void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
+  if (rd.skip) return;  // nível de bloom mantido do quadro anterior
   Target& drawTarget = rd.key ? DirectTarget(rd.key, rd.w, rd.h) : CurrentTarget(state);
   if (rd.key) { ++g_directDraws; if (rd.passStart) drawTarget.from3D = false; if (!c.up) drawTarget.from3D = true; }
   if (!c.up) drawTarget.drew3DFrame = g_frames.load();
@@ -993,9 +1014,14 @@ void PlanDirectPasses(const Frame& f) {
       if (ok) {
         uint64_t key = TexKey(t);
         int tw = std::max(1, int(t.width * s)), th = std::max(1, int(t.height * s));
-        for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0};
+        // Níveis minúsculos da cadeia de bloom (< NIER_BLOOM_MIN, padrão 32) em quadros alternados: o destino
+        // guarda o conteúdo do quadro anterior (brilho largo muda devagar); poupa trocas de alvo na Mali.
+        static int bloomMin = std::getenv("NIER_BLOOM_MIN") ? std::atoi(std::getenv("NIER_BLOOM_MIN")) : 32;
+        bool skipThisFrame = int(t.width) < bloomMin && (g_frames.load() & 1) && g_resolved.count(key) && g_resolved[key].texture;
+        for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0, skipThisFrame};
         g_resolveDirect[i] = 1;
         ++g_directPasses;
+        if (skipThisFrame) ++g_bloomSkips;
       }
     }
     draws.clear();
@@ -1015,7 +1041,7 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
       if (srcIt != g_targets.end()) {
         Target& src = srcIt->second;
         GLuint depth = src.holder ? g_resolved[src.holder].depth : src.depth;
-        if (depth) g_depthAlias[TexKey(t)] = depth;
+        if (depth) { g_depthAlias[TexKey(t)] = depth; g_depthKeep.insert(depth); }
       }
     }
   } else if (c.fetch != SIZE_MAX) {
@@ -1026,6 +1052,7 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
       // o passe já foi desenhado no FBO do destino (PlanDirectPasses); o alvo não recebe o conteúdo
       Target& src = g_targets[srcKey];
       src.holder = key;
+      if (auto d = g_resolved.find(key); d != g_resolved.end()) DiscardDepth(d->second.fbo, d->second.depth);
     } else if (t.width >= 8 && t.height >= 8 && !noCopy) {
       ++g_resolveCopies;
       int x0, y0, w, h; ResolveRect(c, t, x0, y0, w, h);
@@ -1043,32 +1070,34 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
         FlushCopiesFrom(srcKey);
         Target& dst = g_resolved[key];
         // destino com FBO completo (cor+profundidade) para a troca ser de FBO inteiro: zero chamadas GL
-        if (dst.w != dw || dst.h != dh || !dst.texture || !dst.depth || dst.shared) CreateTarget(dst, dw, dh, true);
+        if (dst.w != dw || dst.h != dh || !dst.texture || !dst.depth) CreateTarget(dst, dw, dh, true);
+        dst.sharedFrom = 0;
         std::swap(src.texture, dst.texture);
         std::swap(src.fbo, dst.fbo);
         std::swap(src.depth, dst.depth);
-        // a textura que volta ao alvo vai ser desenhada: destinos que a emprestavam deixam de valer
-        for (auto& [k, r] : g_resolved) if (r.shared && r.texture == src.texture) r = Target{};
         dst.from3D = src.drew3DFrame == g_frames.load();
         src.holder = key;
+        src.clearedFrame = ~0ull;  // o próximo desenho no alvo limpa: entrar sem limpar recarrega os tiles
+        DiscardDepth(dst.fbo, dst.depth);
         ++g_aliases;
       } else if (src.holder && src.holder != key) {
         // conteúdo está numa textura resolvida (alias/passe direto anterior)
         Target& holder = g_resolved[src.holder];
         Target& dst = g_resolved[key];
         if (full && holder.w == dw && holder.h == dh && holder.texture) {
-          // mesma tela inteira para um segundo destino: empresta a textura (sem cópia)
-          ReleaseTarget(dst);
-          dst = holder; dst.shared = true; dst.holder = 0;
+          // mesma tela inteira para um segundo destino: aponta para o outro destino neste quadro (sem cópia)
+          dst.sharedFrom = src.holder; dst.sharedFrame = g_frames.load(); dst.from3D = holder.from3D;
           ++g_aliases;
         } else {
-          if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
+          dst.sharedFrom = 0;
+          if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
           if (g_frameSampled.count(key) || g_everSampled.count(key)) DoCopy(PendingCopy{src.holder, key, int(x0 * s), int(y0 * s), dw, dh, true});
           else ++g_copiesSkipped;
         }
       } else if (!src.holder) {
         Target& dst = g_resolved[key];
-        if (dst.w != dw || dst.h != dh || dst.shared) CreateTarget(dst, dw, dh, false);
+        dst.sharedFrom = 0;
+        if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
         // Retângulo parcial: copia só se o destino for amostrado (neste quadro ou alguma vez).
         if (g_frameSampled.count(key) || g_everSampled.count(key)) {
           g_pendingCopies.push_back({srcKey, key, int(x0 * s), int(y0 * s), dw, dh, false});
@@ -1276,8 +1305,10 @@ void RenderThread() {
     if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }  // LEVE_OK: perfil opt-in (NIER_GL_PROFILE) para medir a GPU
     auto tp = Clock::now();
     g_replayMs += std::chrono::duration<double, std::milli>(tp - tr).count();
+    for (auto& [k, t] : g_targets) if (t.clearedFrame == g_frames.load()) DiscardDepth(t.fbo, t.depth);
     PresentToWindow();
-    InvalidateGl();  // apresentação (e auditoria opt-in) mexem no estado fora do cache
+    InvalidateGl();
+    g_depthKeep.clear();  // apresentação (e auditoria opt-in) mexem no estado fora do cache
     auto now = Clock::now();
     g_swapMs += std::chrono::duration<double, std::milli>(now - tp).count();
     g_lastFrameMs = std::chrono::duration<double, std::milli>(now - last).count();
@@ -1298,9 +1329,9 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos) glFinish(GPU) %.2f\n",
-                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0;
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u) glFinish(GPU) %.2f\n",
+                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_pFinish / double(W));
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
