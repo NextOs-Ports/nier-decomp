@@ -161,6 +161,7 @@ struct Target {
   // Resolve repetido da mesma tela para um 2º destino: este destino aponta para o outro só neste quadro
   // (sharedFrom/sharedFrame); mantém os próprios recursos (nada recriado por quadro na Mali).
   uint64_t sharedFrom = 0, sharedFrame = ~0ull;
+  uint64_t lastCopy = 0;  // destino que já recebeu cópia deste conteúdo (Resolve repetido referencia, não copia)
 };
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
@@ -385,7 +386,7 @@ Target& CurrentTarget(const uint8_t* state, bool forDraw = true) {
   if (!g_pendingCopies.empty()) FlushCopiesFrom(key);
   Target& t = g_targets[key];
   if (t.w != w || (forDraw ? t.h < h : t.h != h && t.h < h)) CreateTarget(t, w, std::max(h, t.h), true);
-  if (forDraw) t.holder = 0;  // o conteúdo mais novo volta a ser a textura do próprio alvo
+  if (forDraw) { t.holder = 0; t.lastCopy = 0; }  // o conteúdo mais novo volta a ser a textura do próprio alvo
   if ((key & 0x3FFF) > (g_mainTarget & 0x3FFF)) g_mainTarget = key;
   BindFbo(t.fbo);
   // O ClearF do 9328 ainda não foi localizado e os Resolve do jogo não pedem limpeza (flags 0/4):
@@ -974,9 +975,26 @@ void ResolveRect(const Cmd& c, const xenos::TextureFetch& t, int& x0, int& y0, i
 // cancelam o redirecionamento (o segundo precisaria do conteúdo no alvo).
 std::vector<Redirect> g_redirects;
 std::vector<uint8_t> g_resolveDirect;
+// Resolve de tela cheia seguido de mais desenho no MESMO alvo (nuvens/partículas sobre a cena resolvida): o alvo
+// precisa manter o conteúdo, então esse Resolve copia por blit (1 passe) em vez de trocar o FBO e limpar.
+std::vector<uint8_t> g_resolveKeep;
 void PlanDirectPasses(const Frame& f) {
   g_redirects.assign(f.cmds.size(), Redirect{});
   g_resolveDirect.assign(f.cmds.size(), 0);
+  g_resolveKeep.assign(f.cmds.size(), 0);
+  for (size_t i = 0; i < f.cmds.size(); ++i) {
+    const Cmd& c = f.cmds[i];
+    if (c.kind != Kind::Resolve || (c.flags & 4) || (c.flags & 0x300)) continue;
+    uint64_t srcKey = TargetKeyOf(f.blob.data() + c.state);
+    for (size_t j = i + 1; j < f.cmds.size(); ++j) {
+      const Cmd& n = f.cmds[j];
+      if (n.kind == Kind::Skip) continue;
+      if (TargetKeyOf(f.blob.data() + n.state) != srcKey) continue;
+      if (n.kind == Kind::Resolve && ((n.flags & 4) || !(n.flags & 0x300))) continue;  // profundidade ou 2º destino da mesma cena
+      if (n.kind == Kind::Draw) g_resolveKeep[i] = 1;  // continua desenhando por cima: manter conteúdo
+      break;
+    }
+  }
   static bool off = std::getenv("NIER_NO_DIRECT_RESOLVE") != nullptr;
   if (off) return;
   std::map<uint64_t, std::vector<size_t>> open;  // alvo -> desenhos desde o último Resolve desse alvo
@@ -1027,7 +1045,7 @@ void PlanDirectPasses(const Frame& f) {
     draws.clear();
   }
 }
-void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
+void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false) {
   const uint8_t* state = f.blob.data() + c.state;
   uint64_t srcKey = TargetKeyOf(state);
   bool clears = c.flags & 0x300;
@@ -1064,7 +1082,7 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
       for (size_t i = 0; i < g_pendingCopies.size(); ++i)
         if (g_pendingCopies[i].dst == key) { g_pendingCopies.erase(g_pendingCopies.begin() + i); ++g_copiesSkipped; break; }
       bool full = x0 == 0 && y0 == 0 && w == int(t.width) && h == int(t.height) && dw == src.w && dh == src.h;
-      if (full && !src.holder) {
+      if (full && !src.holder && !keep) {
         // Tela cheia: o destino fica com a própria textura do alvo (sem cópia); o alvo segue com a textura antiga
         // do destino (ping-pong) e o próximo desenho nele limpa/sobrescreve como antes.
         FlushCopiesFrom(srcKey);
@@ -1097,13 +1115,21 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct) {
       } else if (!src.holder) {
         Target& dst = g_resolved[key];
         dst.sharedFrom = 0;
-        if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
-        // Retângulo parcial: copia só se o destino for amostrado (neste quadro ou alguma vez).
-        if (g_frameSampled.count(key) || g_everSampled.count(key)) {
-          g_pendingCopies.push_back({srcKey, key, int(x0 * s), int(y0 * s), dw, dh, false});
-          FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
+        if (full && src.lastCopy && src.lastCopy != key && g_resolved.count(src.lastCopy) && g_resolved[src.lastCopy].texture) {
+          // mesma cena já copiada para outro destino neste passe: referencia, sem 2ª cópia
+          dst.sharedFrom = src.lastCopy; dst.sharedFrame = g_frames.load(); dst.from3D = g_resolved[src.lastCopy].from3D;
+          if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
+          ++g_aliases;
         } else {
-          ++g_copiesSkipped;      // ninguém amostra este destino: a cópia é pulada
+          if (dst.w != dw || dst.h != dh) CreateTarget(dst, dw, dh, false);
+          // Retângulo parcial ou passe que continua: copia só se o destino for amostrado (neste quadro ou alguma vez).
+          if (g_frameSampled.count(key) || g_everSampled.count(key)) {
+            g_pendingCopies.push_back({srcKey, key, int(x0 * s), int(y0 * s), dw, dh, false});
+            FlushCopiesFrom(srcKey);  // cópia já (semântica do Resolve), só para destinos usados
+            if (full) src.lastCopy = key;
+          } else {
+            ++g_copiesSkipped;      // ninguém amostra este destino: a cópia é pulada
+          }
         }
       }
     }
@@ -1151,7 +1177,7 @@ void AuditBufferImage(const Frame& work) {
       const Cmd& c = work.cmds[i];
       bool planned = i < g_redirects.size();
       if (c.kind == Kind::Draw) ReplayDraw(work, c, planned ? g_redirects[i] : Redirect{});
-      else if (c.kind == Kind::Resolve) ReplayResolve(work, c, planned && g_resolveDirect[i] != 0);
+      else if (c.kind == Kind::Resolve) ReplayResolve(work, c, planned && g_resolveDirect[i] != 0, planned && g_resolveKeep[i] != 0);
     }
     g_bufferAuditReference = false;
     std::vector<uint8_t> pixels;
@@ -1295,7 +1321,7 @@ void RenderThread() {
     PlanDirectPasses(work);
     for (size_t i = 0; i < work.cmds.size(); ++i) {
       const Cmd& c = work.cmds[i];
-      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
+      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
       else { ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]); }
     }
