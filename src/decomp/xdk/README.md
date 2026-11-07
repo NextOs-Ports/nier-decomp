@@ -148,3 +148,18 @@ O lote X1-16 também inclui três folhas de máscaras/tags (`824C4258`,
 `824CF0B8`, `824CF110`, 208 bytes), todas com 2.000 comparações iguais.
 A posição da máscara conta os bits até o primeiro bit da máscara de destino,
 com resultado -1 quando não existe interseção; não assume destino one-hot.
+
+## Lote X1-18 — saída float/PCM
+
+Oito conversores finais e dois seletores (3.372 bytes) passaram em 2.000
+comparações cada. Formatos: float com clamp, U8, PCM16 BE, PCM20/24 em três
+bytes LE e em palavras BE alinhadas, PCM32 BE. Mantêm os limites assimétricos,
+a ordem de soma/multiplicação/arredondamento, truncamento e NaNs. Em PCM32,
+o limite de comparação double e o valor de saturação float são distintos.
+
+`nier_audio_output_probe` passou 61.480 casos tanto em x86 quanto ARM64/QEMU:
+quatro modos FP, contagens 0–9 (blocos e caudas), extremos/subnormais/NaNs,
+quatro alinhamentos, saída separada ou exatamente in-place e palavra alta de
+r3 preenchida. Corrigida a seleção por CTR: os testes de zero usam a palavra
+baixa. Sobreposições parciais arbitrárias entre entrada/saída não são parte
+da prova. Os testes ARM reutilizam os objetos do C2 e não abrem o aparelho.
