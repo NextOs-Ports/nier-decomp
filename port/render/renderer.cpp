@@ -288,10 +288,19 @@ std::unordered_map<uint64_t, Texture> g_textures;
 std::vector<uint8_t> g_pixels;
 GLuint g_white = 0;
 
+// Conteúdo inteiro até 2 MB (atlas de fonte e texturas escritas pela CPU mudam em poucos bytes);
+// acima disso, 64 amostras. Pendente para a Mali: trocar por write watch da memória física (ReXGlue).
 uint64_t Signature(uint32_t base, uint32_t span) {
-  uint64_t h = 1469598103934665603ull;
-  for (uint32_t i = 0; i < 32; ++i) {
-    uint32_t off = span > 8 ? uint32_t(uint64_t(span - 8) * i / 31) : 0;
+  uint64_t h = 1469598103934665603ull ^ span;
+  if (span <= (2u << 20)) {
+    if (const uint8_t* p = Physical(base, span)) {
+      size_t words = span / 8;
+      for (size_t i = 0; i < words; ++i) { uint64_t w; std::memcpy(&w, p + 8 * i, 8); h = (h ^ w) * 0x100000001B3ull; h ^= h >> 29; }
+      return h;
+    }
+  }
+  for (uint32_t i = 0; i < 64; ++i) {
+    uint32_t off = span > 8 ? uint32_t(uint64_t(span - 8) * i / 63) : 0;
     uint64_t w = 0;
     if (const uint8_t* p = Physical(base + off, 8)) std::memcpy(&w, p, 8);
     h = (h ^ w) * 1099511628211ull;
@@ -319,7 +328,12 @@ GLuint TextureFor(const xenos::TextureFetch& t) {
   uint64_t frame = g_frames.load();
   if (tex.id && tex.checkedFrame == frame) return tex.id;
   tex.checkedFrame = frame;
-  uint64_t sig = Signature(t.base, t.width * t.height * 4);
+  uint32_t bpe = xenos::BytesPerElement(t.format);
+  bool block = xenos::Block(t.format);
+  uint32_t bw = block ? (t.width + 3) / 4 : t.width, bh = block ? (t.height + 3) / 4 : t.height;
+  uint32_t pitchE = std::max(block ? t.pitch / 4 : t.pitch, bw);
+  uint32_t span = ((pitchE + 31) & ~31u) * ((bh + 31) & ~31u) * bpe;
+  uint64_t sig = Signature(t.base, span);
   if (tex.id && sig == tex.signature) return tex.id;
   if (!xenos::DecodeLevel0(Physical, t, g_pixels)) { Skip("decodificação de textura (branco)"); return tex.id ? tex.id : White(); }
   if (const char* dump = std::getenv("NIER_DUMP_TEXTURES"); dump && tex.uploads < 3) {  // diagnóstico
@@ -328,6 +342,12 @@ GLuint TextureFor(const xenos::TextureFetch& t) {
     if (FILE* f = std::fopen(name, "wb")) {
       std::fprintf(f, "P6\n%u %u\n255\n", t.width, t.height);
       for (size_t i = 0; i < size_t(t.width) * t.height; ++i) std::fwrite(&g_pixels[i * 4], 1, 3, f);
+      std::fclose(f);
+    }
+    std::string alpha = std::string(name) + ".alfa.pgm";
+    if (FILE* f = std::fopen(alpha.c_str(), "wb")) {
+      std::fprintf(f, "P5\n%u %u\n255\n", t.width, t.height);
+      for (size_t i = 0; i < size_t(t.width) * t.height; ++i) std::fwrite(&g_pixels[i * 4 + 3], 1, 1, f);
       std::fclose(f);
     }
   }
@@ -675,8 +695,13 @@ bool SnapshotInputs(Cmd& c, const uint8_t* state, uint32_t first, uint32_t count
 // NIER_RENDER_TRACE=N: descreve os N primeiros desenhos (diagnóstico).
 int TraceBudget() { static int n = std::getenv("NIER_RENDER_TRACE") ? std::atoi(std::getenv("NIER_RENDER_TRACE")) : 0; return n; }
 std::atomic<int> g_traced{0};
+std::atomic<uint64_t> g_presented{0};
+bool TraceThisFrame() {
+  static long long f = std::getenv("NIER_RENDER_TRACE_FRAME") ? std::atoll(std::getenv("NIER_RENDER_TRACE_FRAME")) : -1;
+  return f >= 0 && g_presented.load() == uint64_t(f);
+}
 void TraceDraw(const Cmd& c, const uint8_t* state, uint32_t primitive, uint32_t count, bool indexed) {
-  if (g_traced.fetch_add(1) >= TraceBudget()) return;
+  if (!TraceThisFrame() && g_traced.fetch_add(1) >= TraceBudget()) return;
   float vp[6]; for (int i = 0; i < 6; ++i) vp[i] = BEF(Field(state, kViewport + 4 * i));
   std::fprintf(stderr, "[nier-trace] draw prim %u n %u idx %d vs %016llX ps %016llX surf %08X color %08X vport %.1f %.1f %.1f %.1f %.3f %.3f blend %08X depth %08X mode %08X vte %08X cc %08X mask %08X\n",
                primitive, count, int(indexed), (unsigned long long)c.vs->key, (unsigned long long)c.ps->key,
@@ -701,13 +726,16 @@ void TraceDraw(const Cmd& c, const uint8_t* state, uint32_t primitive, uint32_t 
   }
 }
 
-struct PendingUP { uint32_t device = 0, primitive = 0, count = 0, stride = 0, data = 0; } g_pendingUP;
-void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride);
+// Estado do device copiado NO BeginVertices: até o jogo fechar o bloco ele já pode ter trocado textura e
+// constantes para o desenho seguinte.
+struct PendingUP { uint32_t device = 0, primitive = 0, count = 0, stride = 0, data = 0; const GuestShader* vs = nullptr; const GuestShader* ps = nullptr; std::vector<uint8_t> state; } g_pendingUP;
+void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride, const PendingUP* frozen);
 void FlushPendingUP() {
   if (!g_pendingUP.data) return;
-  PendingUP p = g_pendingUP;
-  g_pendingUP = {};
-  if (const uint8_t* data = Virtual(p.data, p.count * p.stride)) RecordDrawUPImpl(p.device, p.primitive, p.count, data, p.stride);
+  uint32_t address = g_pendingUP.data;
+  g_pendingUP.data = 0;
+  if (const uint8_t* data = Virtual(address, g_pendingUP.count * g_pendingUP.stride))
+    RecordDrawUPImpl(g_pendingUP.device, g_pendingUP.primitive, g_pendingUP.count, data, g_pendingUP.stride, &g_pendingUP);
 }
 
 bool PrepareShaders(Cmd& c, uint32_t device) {
@@ -806,20 +834,28 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
 
 void RecordBeginVertices(uint32_t device, uint32_t primitive, uint32_t vertexCount, uint32_t stride, uint32_t guestData) {
   FlushPendingUP();
-  if (guestData && stride && vertexCount && vertexCount <= 65535) g_pendingUP = {device, primitive, vertexCount, stride, guestData};
+  if (!guestData || !stride || !vertexCount || vertexCount > 65535) return;
+  const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
+  if (!state) return;
+  Cmd probe{Kind::Draw};
+  if (!PrepareShaders(probe, device)) return;  // shaders também no momento do Begin
+  g_pendingUP.device = device; g_pendingUP.primitive = primitive; g_pendingUP.count = vertexCount;
+  g_pendingUP.stride = stride; g_pendingUP.data = guestData; g_pendingUP.vs = probe.vs; g_pendingUP.ps = probe.ps;
+  g_pendingUP.state.assign(state, state + kStateSize);
 }
 
 void RecordDrawUP(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride) {
   FlushPendingUP();
-  RecordDrawUPImpl(device, primitive, vertexCount, data, stride);
+  RecordDrawUPImpl(device, primitive, vertexCount, data, stride, nullptr);
 }
 
 namespace {
-void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride) {
-  const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
+void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount, const uint8_t* data, uint32_t stride, const PendingUP* frozen) {
+  const uint8_t* state = frozen ? frozen->state.data() : Virtual(device + kStateBegin, kStateSize);
   if (!state || !data || !stride || !vertexCount || vertexCount > 65535) return;
   Cmd c{Kind::Draw};
-  if (!PrepareShaders(c, device)) return;
+  if (frozen) { c.vs = frozen->vs; c.ps = frozen->ps; }
+  else if (!PrepareShaders(c, device)) return;
   c.state = Append(g_building, state, kStateSize);
   g_srcIndices.clear();
   for (uint32_t i = 0; i < vertexCount; ++i) g_srcIndices.push_back(i);
@@ -856,8 +892,7 @@ void DriveTestInput(uint64_t frame);  // test_input.cpp
 void Present() {
   if (!g_enabled) return;
   FlushPendingUP();
-  static uint64_t presented = 0;
-  DriveTestInput(++presented);
+  DriveTestInput(++g_presented);
   std::unique_lock lock(g_queueMutex);
   g_queueCv.wait(lock, [] { return !g_hasInflight || g_quit; });
   g_inflight.blob.swap(g_building.blob);

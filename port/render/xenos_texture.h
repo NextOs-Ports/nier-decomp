@@ -18,12 +18,13 @@ enum Format : uint32_t { k8 = 2, k1555 = 3, k565 = 4, k8888 = 6, k4444 = 15, kDX
 struct TextureFetch {
   uint32_t base = 0, mipBase = 0, format = 0, endian = 0, width = 0, height = 0, pitch = 0;
   uint32_t clampX = 0, clampY = 0, dimension = 0;
+  uint32_t swizzle = 0x688;  // palavra 3 bits 1-12: 3 bits por saída (x,y,z,w); 0-3 = componente, 4 = 0, 5 = 1
   bool tiled = false, packedMips = false;
 };
 
 // Fetch constant de textura (6 palavras big-endian).
 inline TextureFetch DecodeFetch(const uint8_t* f) {
-  uint32_t w0 = BE32(f), w1 = BE32(f + 4), w2 = BE32(f + 8), w5 = BE32(f + 20);
+  uint32_t w0 = BE32(f), w1 = BE32(f + 4), w2 = BE32(f + 8), w3 = BE32(f + 12), w5 = BE32(f + 20);
   TextureFetch t;
   t.clampX = (w0 >> 10) & 7;
   t.clampY = (w0 >> 13) & 7;
@@ -35,6 +36,7 @@ inline TextureFetch DecodeFetch(const uint8_t* f) {
   t.width = (w2 & 0x1FFF) + 1;
   t.height = ((w2 >> 13) & 0x1FFF) + 1;
   t.dimension = (w5 >> 9) & 3;
+  t.swizzle = (w3 >> 1) & 0xFFF;
   t.packedMips = (w5 >> 11) & 1;  // a confirmar contra a captura
   t.mipBase = w5 & 0xFFFFF000;
   return t;
@@ -143,11 +145,20 @@ inline bool DecodeLevel0(Reader read, const TextureFetch& t, std::vector<uint8_t
       }
       uint8_t* o = &out[(size_t(y) * t.width + x) * 4];
       switch (t.format) {
-        case k8888: o[0] = e[2]; o[1] = e[1]; o[2] = e[0]; o[3] = e[3]; break;  // B G R A após a troca
+        case k8888: o[0] = e[0]; o[1] = e[1]; o[2] = e[2]; o[3] = e[3]; break;  // componentes x y z w (swizzle abaixo)
         case k565: Rgb565(uint16_t(e[0] | e[1] << 8), o); o[3] = 255; break;
         case k4444: { uint16_t c = uint16_t(e[0] | e[1] << 8); o[0] = uint8_t(((c >> 8) & 15) * 17); o[1] = uint8_t(((c >> 4) & 15) * 17); o[2] = uint8_t((c & 15) * 17); o[3] = uint8_t((c >> 12) * 17); break; }
         case k8: o[0] = o[1] = o[2] = o[3] = e[0]; break;
       }
+    }
+  }
+  // Swizzle da fetch constant (como a Xenia: amostra os componentes e depois escolhe x/y/z/w).
+  if (t.swizzle != 0x688) {
+    uint32_t sel[4];
+    for (int c = 0; c < 4; ++c) sel[c] = (t.swizzle >> (3 * c)) & 7;
+    for (size_t i = 0; i < out.size(); i += 4) {
+      uint8_t in[4] = {out[i], out[i + 1], out[i + 2], out[i + 3]};
+      for (int c = 0; c < 4; ++c) out[i + c] = sel[c] < 4 ? in[sel[c]] : sel[c] == 5 ? 255 : 0;
     }
   }
   return true;
