@@ -4788,6 +4788,22 @@
    "time_pass": true
   },
   {
+   "name": "sub_82144588",
+   "address": "0x82144588",
+   "size": 3412,
+   "source": "src/decomp/game/particle_update.cpp",
+   "trials": 2000,
+   "equal": 10000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 159.3,
+   "decomp_ns": 114.7,
+   "time_ratio": 0.72,
+   "time_pass": true
+  },
+  {
    "name": "sub_821459B8",
    "address": "0x821459B8",
    "size": 88,
@@ -63825,6 +63841,22 @@
    "orig_ns": 276.0,
    "decomp_ns": 83.5,
    "time_ratio": 0.303,
+   "time_pass": true
+  },
+  {
+   "name": "sub_82579100",
+   "address": "0x82579100",
+   "size": 320,
+   "source": "src/decomp/d3d/shader_cache.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 51.5,
+   "decomp_ns": 40.4,
+   "time_ratio": 0.784,
    "time_pass": true
   },
   {
