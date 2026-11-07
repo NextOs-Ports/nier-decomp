@@ -465,6 +465,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < trials && err.empty(); ++i) {
       fill_scratch(s, rng); fill_vtables(s); fill_scratch(t, rng); fill_scratch(st, rng);
       PPCContext in{};
+      in.fpscr.InitHost();  // Mesma política de exceções FP do runtime; csr=0 cria SIGFPE espúrio.
       for (int n = 0; n < 32; ++n) gpr(in, n)->u64 = rng();
       for (int n = 0; n < 32; ++n) fpr(in, n)->f64 = (double)((int64_t)(rng() % 20000) - 10000) / 16.0;
       in.r1.u64 = kSp; in.r13.u64 = kTls + 0x100; in.lr = 0x82000000;
