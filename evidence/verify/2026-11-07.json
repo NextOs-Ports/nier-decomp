@@ -114,6 +114,17 @@
    "error": ""
   },
   {
+   "name": "sub_82106118",
+   "address": "0x82106118",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1073,
+   "both_faulted": 927,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82107050",
    "address": "0x82107050",
    "size": 36,
@@ -169,6 +180,17 @@
    "error": ""
   },
   {
+   "name": "sub_82107398",
+   "address": "0x82107398",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1040,
+   "both_faulted": 960,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82108DF8",
    "address": "0x82108DF8",
    "size": 32,
@@ -209,6 +231,17 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8210CBC0",
+   "address": "0x8210CBC0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1075,
+   "both_faulted": 925,
    "pass": true,
    "error": ""
   },
@@ -308,6 +341,17 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8210E7C0",
+   "address": "0x8210E7C0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1067,
+   "both_faulted": 933,
    "pass": true,
    "error": ""
   },
@@ -620,6 +664,17 @@
    "error": ""
   },
   {
+   "name": "sub_82116028",
+   "address": "0x82116028",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1053,
+   "both_faulted": 947,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82116390",
    "address": "0x82116390",
    "size": 36,
@@ -726,6 +781,17 @@
    "trials": 2000,
    "equal": 1999,
    "both_faulted": 1,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8211D8D8",
+   "address": "0x8211D8D8",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1083,
+   "both_faulted": 917,
    "pass": true,
    "error": ""
   },
@@ -1056,6 +1122,17 @@
    "trials": 2000,
    "equal": 1127,
    "both_faulted": 873,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8213C5A8",
+   "address": "0x8213C5A8",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1053,
+   "both_faulted": 947,
    "pass": true,
    "error": ""
   },
@@ -1408,6 +1485,39 @@
    "trials": 2000,
    "equal": 1165,
    "both_faulted": 835,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82147E58",
+   "address": "0x82147E58",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1058,
+   "both_faulted": 942,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82148F60",
+   "address": "0x82148F60",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1048,
+   "both_faulted": 952,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82149270",
+   "address": "0x82149270",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1069,
+   "both_faulted": 931,
    "pass": true,
    "error": ""
   },
@@ -1852,6 +1962,61 @@
    "error": ""
   },
   {
+   "name": "sub_821713D0",
+   "address": "0x821713D0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1051,
+   "both_faulted": 949,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82180578",
+   "address": "0x82180578",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1043,
+   "both_faulted": 957,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82183210",
+   "address": "0x82183210",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1103,
+   "both_faulted": 897,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8218D9D0",
+   "address": "0x8218D9D0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1043,
+   "both_faulted": 957,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8218EF78",
+   "address": "0x8218EF78",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1065,
+   "both_faulted": 935,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_821909F0",
    "address": "0x821909F0",
    "size": 244,
@@ -1859,6 +2024,50 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82196EF0",
+   "address": "0x82196EF0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1103,
+   "both_faulted": 897,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8219BC28",
+   "address": "0x8219BC28",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1090,
+   "both_faulted": 910,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821A86D0",
+   "address": "0x821A86D0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1025,
+   "both_faulted": 975,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821AA418",
+   "address": "0x821AA418",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1052,
+   "both_faulted": 948,
    "pass": true,
    "error": ""
   },
@@ -1896,6 +2105,193 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_821C6720",
+   "address": "0x821C6720",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1046,
+   "both_faulted": 954,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7330",
+   "address": "0x821C7330",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1968,
+   "both_faulted": 32,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7350",
+   "address": "0x821C7350",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1973,
+   "both_faulted": 27,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7370",
+   "address": "0x821C7370",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1979,
+   "both_faulted": 21,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7390",
+   "address": "0x821C7390",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C74F0",
+   "address": "0x821C74F0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7510",
+   "address": "0x821C7510",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1963,
+   "both_faulted": 37,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7530",
+   "address": "0x821C7530",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1977,
+   "both_faulted": 23,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7550",
+   "address": "0x821C7550",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1971,
+   "both_faulted": 29,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7570",
+   "address": "0x821C7570",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7598",
+   "address": "0x821C7598",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C75B8",
+   "address": "0x821C75B8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C75D8",
+   "address": "0x821C75D8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1962,
+   "both_faulted": 38,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C75F8",
+   "address": "0x821C75F8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1968,
+   "both_faulted": 32,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7618",
+   "address": "0x821C7618",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7B10",
+   "address": "0x821C7B10",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1081,
+   "both_faulted": 919,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821C7EE0",
+   "address": "0x821C7EE0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1069,
+   "both_faulted": 931,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_821CB078",
    "address": "0x821CB078",
    "size": 108,
@@ -1905,6 +2301,259 @@
    "both_faulted": 2000,
    "pass": false,
    "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_821D9618",
+   "address": "0x821D9618",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9638",
+   "address": "0x821D9638",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1974,
+   "both_faulted": 26,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9658",
+   "address": "0x821D9658",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1959,
+   "both_faulted": 41,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9678",
+   "address": "0x821D9678",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D97F0",
+   "address": "0x821D97F0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1975,
+   "both_faulted": 25,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9810",
+   "address": "0x821D9810",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1971,
+   "both_faulted": 29,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9830",
+   "address": "0x821D9830",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9978",
+   "address": "0x821D9978",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9998",
+   "address": "0x821D9998",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1978,
+   "both_faulted": 22,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D99B8",
+   "address": "0x821D99B8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1975,
+   "both_faulted": 25,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9E18",
+   "address": "0x821D9E18",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1968,
+   "both_faulted": 32,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821D9E38",
+   "address": "0x821D9E38",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1973,
+   "both_faulted": 27,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA378",
+   "address": "0x821DA378",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1978,
+   "both_faulted": 22,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA398",
+   "address": "0x821DA398",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1969,
+   "both_faulted": 31,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA5A0",
+   "address": "0x821DA5A0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA5C0",
+   "address": "0x821DA5C0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA5E0",
+   "address": "0x821DA5E0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1973,
+   "both_faulted": 27,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA600",
+   "address": "0x821DA600",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1974,
+   "both_faulted": 26,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA620",
+   "address": "0x821DA620",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA728",
+   "address": "0x821DA728",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA748",
+   "address": "0x821DA748",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1974,
+   "both_faulted": 26,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA768",
+   "address": "0x821DA768",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1965,
+   "both_faulted": 35,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821DA788",
+   "address": "0x821DA788",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
   },
   {
    "name": "sub_821EB450",
@@ -1929,6 +2578,17 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_82200EF8",
+   "address": "0x82200EF8",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1108,
+   "both_faulted": 892,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82219220",
    "address": "0x82219220",
    "size": 176,
@@ -1947,6 +2607,17 @@
    "trials": 2000,
    "equal": 1136,
    "both_faulted": 864,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82256968",
+   "address": "0x82256968",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1067,
+   "both_faulted": 933,
    "pass": true,
    "error": ""
   },
@@ -1984,6 +2655,17 @@
    "error": ""
   },
   {
+   "name": "sub_8226AC18",
+   "address": "0x8226AC18",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_8226AF58",
    "address": "0x8226AF58",
    "size": 108,
@@ -2017,6 +2699,17 @@
    "error": ""
   },
   {
+   "name": "sub_8226FC20",
+   "address": "0x8226FC20",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_82270658",
    "address": "0x82270658",
    "size": 108,
@@ -2037,6 +2730,17 @@
    "both_faulted": 0,
    "pass": true,
    "error": ""
+  },
+  {
+   "name": "sub_82273A30",
+   "address": "0x82273A30",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
    "name": "sub_822750F8",
@@ -2149,6 +2853,17 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_8228F7A8",
+   "address": "0x8228F7A8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_8228FC28",
    "address": "0x8228FC28",
    "size": 72,
@@ -2163,6 +2878,28 @@
    "name": "sub_82290990",
    "address": "0x82290990",
    "size": 108,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_82294080",
+   "address": "0x82294080",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822940D0",
+   "address": "0x822940D0",
+   "size": 76,
    "source": "src/decomp/game/lifecycle_instances.cpp",
    "trials": 2000,
    "equal": 0,
@@ -2189,6 +2926,17 @@
    "trials": 2000,
    "equal": 1,
    "both_faulted": 1999,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_82297080",
+   "address": "0x82297080",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
    "pass": false,
    "error": "poucas tentativas executaram sem falha de acesso"
   },
@@ -2226,6 +2974,17 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_8229E5C0",
+   "address": "0x8229E5C0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_8229EC28",
    "address": "0x8229EC28",
    "size": 72,
@@ -2240,6 +2999,17 @@
    "name": "sub_8229F248",
    "address": "0x8229F248",
    "size": 108,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822A1690",
+   "address": "0x822A1690",
+   "size": 76,
    "source": "src/decomp/game/lifecycle_instances.cpp",
    "trials": 2000,
    "equal": 0,
@@ -2281,6 +3051,17 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_822A6010",
+   "address": "0x822A6010",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_822A6558",
    "address": "0x822A6558",
    "size": 72,
@@ -2303,6 +3084,17 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_822AB110",
+   "address": "0x822AB110",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_822AB3A8",
    "address": "0x822AB3A8",
    "size": 72,
@@ -2317,6 +3109,28 @@
    "name": "sub_822ACB48",
    "address": "0x822ACB48",
    "size": 108,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822AFC98",
+   "address": "0x822AFC98",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822AFCE8",
+   "address": "0x822AFCE8",
+   "size": 76,
    "source": "src/decomp/game/lifecycle_instances.cpp",
    "trials": 2000,
    "equal": 0,
@@ -2369,6 +3183,17 @@
    "error": ""
   },
   {
+   "name": "sub_822BB3D0",
+   "address": "0x822BB3D0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_822BB8D8",
    "address": "0x822BB8D8",
    "size": 72,
@@ -2383,6 +3208,28 @@
    "name": "sub_822BDD08",
    "address": "0x822BDD08",
    "size": 108,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822C0CF8",
+   "address": "0x822C0CF8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822C0D48",
+   "address": "0x822C0D48",
+   "size": 76,
    "source": "src/decomp/game/lifecycle_instances.cpp",
    "trials": 2000,
    "equal": 0,
@@ -2446,6 +3293,28 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_822CD170",
+   "address": "0x822CD170",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822CD1C0",
+   "address": "0x822CD1C0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_822CDFA8",
    "address": "0x822CDFA8",
    "size": 72,
@@ -2468,6 +3337,28 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_822D0820",
+   "address": "0x822D0820",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822D0870",
+   "address": "0x822D0870",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_822D1020",
    "address": "0x822D1020",
    "size": 108,
@@ -2479,6 +3370,28 @@
    "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
+   "name": "sub_822D1090",
+   "address": "0x822D1090",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822D10E0",
+   "address": "0x822D10E0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_822D1750",
    "address": "0x822D1750",
    "size": 108,
@@ -2486,6 +3399,28 @@
    "trials": 2000,
    "equal": 1,
    "both_faulted": 1999,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822D1AA0",
+   "address": "0x822D1AA0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822D1AF0",
+   "address": "0x822D1AF0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
    "pass": false,
    "error": "poucas tentativas executaram sem falha de acesso"
   },
@@ -2534,6 +3469,17 @@
    "error": ""
   },
   {
+   "name": "sub_822E21B8",
+   "address": "0x822E21B8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_822E3740",
    "address": "0x822E3740",
    "size": 108,
@@ -2552,6 +3498,17 @@
    "trials": 2000,
    "equal": 1,
    "both_faulted": 1999,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_822EA870",
+   "address": "0x822EA870",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
    "pass": false,
    "error": "poucas tentativas executaram sem falha de acesso"
   },
@@ -2677,6 +3634,17 @@
    "error": ""
   },
   {
+   "name": "sub_823014B0",
+   "address": "0x823014B0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_82301740",
    "address": "0x82301740",
    "size": 72,
@@ -2743,6 +3711,17 @@
    "error": ""
   },
   {
+   "name": "sub_82311B58",
+   "address": "0x82311B58",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_823122D0",
    "address": "0x823122D0",
    "size": 108,
@@ -2765,6 +3744,17 @@
    "error": ""
   },
   {
+   "name": "sub_82315CA0",
+   "address": "0x82315CA0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_82316430",
    "address": "0x82316430",
    "size": 108,
@@ -2785,6 +3775,17 @@
    "both_faulted": 0,
    "pass": true,
    "error": ""
+  },
+  {
+   "name": "sub_82317CF0",
+   "address": "0x82317CF0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
    "name": "sub_82318440",
@@ -2831,6 +3832,28 @@
    "error": ""
   },
   {
+   "name": "sub_8231A190",
+   "address": "0x8231A190",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_8231A1E0",
+   "address": "0x8231A1E0",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_8231A468",
    "address": "0x8231A468",
    "size": 108,
@@ -2851,6 +3874,17 @@
    "both_faulted": 0,
    "pass": true,
    "error": ""
+  },
+  {
+   "name": "sub_8231B3B8",
+   "address": "0x8231B3B8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
   },
   {
    "name": "sub_8231BA58",
@@ -3007,6 +4041,28 @@
    "error": ""
   },
   {
+   "name": "sub_82338748",
+   "address": "0x82338748",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1052,
+   "both_faulted": 948,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82338790",
+   "address": "0x82338790",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1034,
+   "both_faulted": 966,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_82338BD0",
    "address": "0x82338BD0",
    "size": 60,
@@ -3069,6 +4125,446 @@
    "trials": 2000,
    "equal": 662,
    "both_faulted": 1338,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8235F500",
+   "address": "0x8235F500",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8235F520",
+   "address": "0x8235F520",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8235F540",
+   "address": "0x8235F540",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1968,
+   "both_faulted": 32,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8235F560",
+   "address": "0x8235F560",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8235FB38",
+   "address": "0x8235FB38",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1055,
+   "both_faulted": 945,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82367FA0",
+   "address": "0x82367FA0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82367FC0",
+   "address": "0x82367FC0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82367FE0",
+   "address": "0x82367FE0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82368000",
+   "address": "0x82368000",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1972,
+   "both_faulted": 28,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82368020",
+   "address": "0x82368020",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236DF08",
+   "address": "0x8236DF08",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236DF28",
+   "address": "0x8236DF28",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236DF48",
+   "address": "0x8236DF48",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1961,
+   "both_faulted": 39,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236DF68",
+   "address": "0x8236DF68",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236DFA8",
+   "address": "0x8236DFA8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236DFC8",
+   "address": "0x8236DFC8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236DFE8",
+   "address": "0x8236DFE8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E008",
+   "address": "0x8236E008",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1971,
+   "both_faulted": 29,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E028",
+   "address": "0x8236E028",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E108",
+   "address": "0x8236E108",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E128",
+   "address": "0x8236E128",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E148",
+   "address": "0x8236E148",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E168",
+   "address": "0x8236E168",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1973,
+   "both_faulted": 27,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E188",
+   "address": "0x8236E188",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E270",
+   "address": "0x8236E270",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E290",
+   "address": "0x8236E290",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1973,
+   "both_faulted": 27,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E2B0",
+   "address": "0x8236E2B0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E398",
+   "address": "0x8236E398",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E3B8",
+   "address": "0x8236E3B8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E3F8",
+   "address": "0x8236E3F8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E418",
+   "address": "0x8236E418",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E438",
+   "address": "0x8236E438",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E458",
+   "address": "0x8236E458",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E4E0",
+   "address": "0x8236E4E0",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E500",
+   "address": "0x8236E500",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236E520",
+   "address": "0x8236E520",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236EBE8",
+   "address": "0x8236EBE8",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236EC08",
+   "address": "0x8236EC08",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236EC28",
+   "address": "0x8236EC28",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8236EC48",
+   "address": "0x8236EC48",
+   "size": 28,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -3722,6 +5218,149 @@
    "error": ""
   },
   {
+   "name": "sub_82497AA8",
+   "address": "0x82497AA8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 269,
+   "both_faulted": 1731,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_8249A1B8",
+   "address": "0x8249A1B8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_8249D530",
+   "address": "0x8249D530",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 8,
+   "both_faulted": 1992,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_8249E7A8",
+   "address": "0x8249E7A8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A0670",
+   "address": "0x824A0670",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A1BE8",
+   "address": "0x824A1BE8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 12,
+   "both_faulted": 1988,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A1E68",
+   "address": "0x824A1E68",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 5,
+   "both_faulted": 1995,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A3840",
+   "address": "0x824A3840",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A4408",
+   "address": "0x824A4408",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 62,
+   "both_faulted": 1938,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A4D68",
+   "address": "0x824A4D68",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 17,
+   "both_faulted": 1983,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A6A20",
+   "address": "0x824A6A20",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824A6F28",
+   "address": "0x824A6F28",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 69,
+   "both_faulted": 1931,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824B1198",
+   "address": "0x824B1198",
+   "size": 360,
+   "source": "src/decomp/xdk/audio_flags.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824B23E0",
    "address": "0x824B23E0",
    "size": 64,
@@ -3777,6 +5416,50 @@
    "error": ""
   },
   {
+   "name": "sub_824B3390",
+   "address": "0x824B3390",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 245,
+   "both_faulted": 1755,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824B3B98",
+   "address": "0x824B3B98",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1,
+   "both_faulted": 1999,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824B4EC8",
+   "address": "0x824B4EC8",
+   "size": 40,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B53F8",
+   "address": "0x824B53F8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 253,
+   "both_faulted": 1747,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_824B54A0",
    "address": "0x824B54A0",
    "size": 92,
@@ -3799,10 +5482,153 @@
    "error": ""
   },
   {
+   "name": "sub_824B6150",
+   "address": "0x824B6150",
+   "size": 104,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B6430",
+   "address": "0x824B6430",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 3,
+   "both_faulted": 1997,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824B6668",
+   "address": "0x824B6668",
+   "size": 204,
+   "source": "src/decomp/xdk/audio_validation.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B6738",
+   "address": "0x824B6738",
+   "size": 260,
+   "source": "src/decomp/xdk/audio_validation.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824B6948",
    "address": "0x824B6948",
    "size": 180,
    "source": "src/decomp/xdk/audio_layout.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B6A00",
+   "address": "0x824B6A00",
+   "size": 300,
+   "source": "src/decomp/xdk/audio_validation.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B6B30",
+   "address": "0x824B6B30",
+   "size": 300,
+   "source": "src/decomp/xdk/audio_validation.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B7EE8",
+   "address": "0x824B7EE8",
+   "size": 44,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B8498",
+   "address": "0x824B8498",
+   "size": 264,
+   "source": "src/decomp/xdk/audio_matrix.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B85A0",
+   "address": "0x824B85A0",
+   "size": 472,
+   "source": "src/decomp/xdk/audio_matrix.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B8778",
+   "address": "0x824B8778",
+   "size": 744,
+   "source": "src/decomp/xdk/audio_matrix.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B9BF8",
+   "address": "0x824B9BF8",
+   "size": 320,
+   "source": "src/decomp/xdk/audio_matrix.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B9D38",
+   "address": "0x824B9D38",
+   "size": 560,
+   "source": "src/decomp/xdk/audio_matrix.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824B9F68",
+   "address": "0x824B9F68",
+   "size": 928,
+   "source": "src/decomp/xdk/audio_matrix.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
@@ -3854,6 +5680,17 @@
    "error": ""
   },
   {
+   "name": "sub_824BBAF8",
+   "address": "0x824BBAF8",
+   "size": 460,
+   "source": "src/decomp/xdk/audio_dispatch.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824BE428",
    "address": "0x824BE428",
    "size": 48,
@@ -3887,9 +5724,31 @@
    "error": ""
   },
   {
+   "name": "sub_824BEBF0",
+   "address": "0x824BEBF0",
+   "size": 188,
+   "source": "src/decomp/xdk/audio_dispatch.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824BFAB0",
    "address": "0x824BFAB0",
    "size": 172,
+   "source": "src/decomp/xdk/audio_filter.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824BFB60",
+   "address": "0x824BFB60",
+   "size": 240,
    "source": "src/decomp/xdk/audio_filter.cpp",
    "trials": 2000,
    "equal": 2000,
@@ -3942,6 +5801,237 @@
    "error": ""
   },
   {
+   "name": "sub_824C1A78",
+   "address": "0x824C1A78",
+   "size": 184,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1B30",
+   "address": "0x824C1B30",
+   "size": 16,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1B40",
+   "address": "0x824C1B40",
+   "size": 20,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1B58",
+   "address": "0x824C1B58",
+   "size": 40,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1BD8",
+   "address": "0x824C1BD8",
+   "size": 12,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1BE8",
+   "address": "0x824C1BE8",
+   "size": 36,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1C10",
+   "address": "0x824C1C10",
+   "size": 40,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1C38",
+   "address": "0x824C1C38",
+   "size": 72,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C1C80",
+   "address": "0x824C1C80",
+   "size": 144,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C4AE8",
+   "address": "0x824C4AE8",
+   "size": 84,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C50B0",
+   "address": "0x824C50B0",
+   "size": 144,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C6660",
+   "address": "0x824C6660",
+   "size": 204,
+   "source": "src/decomp/xdk/audio_flags.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824C6730",
+   "address": "0x824C6730",
+   "size": 208,
+   "source": "src/decomp/xdk/audio_flags.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824CA758",
+   "address": "0x824CA758",
+   "size": 68,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824D0B60",
+   "address": "0x824D0B60",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824D1388",
+   "address": "0x824D1388",
+   "size": 80,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824D2448",
+   "address": "0x824D2448",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_824D64F8",
+   "address": "0x824D64F8",
+   "size": 156,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824DB878",
+   "address": "0x824DB878",
+   "size": 40,
+   "source": "src/decomp/xdk/audio_samples.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824DBA10",
+   "address": "0x824DBA10",
+   "size": 196,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824DBB98",
+   "address": "0x824DBB98",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_824DEAB8",
    "address": "0x824DEAB8",
    "size": 76,
@@ -3971,6 +6061,28 @@
    "trials": 2000,
    "equal": 1069,
    "both_faulted": 931,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824DEF60",
+   "address": "0x824DEF60",
+   "size": 96,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824DF650",
+   "address": "0x824DF650",
+   "size": 144,
+   "source": "src/decomp/xdk/audio_initializers.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
    "pass": true,
    "error": ""
   },
@@ -4206,6 +6318,17 @@
    "error": ""
   },
   {
+   "name": "sub_824F0D38",
+   "address": "0x824F0D38",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1074,
+   "both_faulted": 926,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824F16D0",
    "address": "0x824F16D0",
    "size": 76,
@@ -4272,6 +6395,17 @@
    "error": ""
   },
   {
+   "name": "sub_824F9370",
+   "address": "0x824F9370",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1042,
+   "both_faulted": 958,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_824F94E0",
    "address": "0x824F94E0",
    "size": 76,
@@ -4301,6 +6435,17 @@
    "trials": 2000,
    "equal": 1071,
    "both_faulted": 929,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_824FC258",
+   "address": "0x824FC258",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1037,
+   "both_faulted": 963,
    "pass": true,
    "error": ""
   },
@@ -4558,6 +6703,138 @@
    "error": ""
   },
   {
+   "name": "sub_8258BCE0",
+   "address": "0x8258BCE0",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1055,
+   "both_faulted": 945,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8258C8B8",
+   "address": "0x8258C8B8",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1062,
+   "both_faulted": 938,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8258D840",
+   "address": "0x8258D840",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 278,
+   "both_faulted": 1722,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_82594F48",
+   "address": "0x82594F48",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1048,
+   "both_faulted": 952,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_8259E668",
+   "address": "0x8259E668",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825A4488",
+   "address": "0x825A4488",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1052,
+   "both_faulted": 948,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825A4EE8",
+   "address": "0x825A4EE8",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825A6B68",
+   "address": "0x825A6B68",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825AA298",
+   "address": "0x825AA298",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 156,
+   "both_faulted": 1844,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825AC178",
+   "address": "0x825AC178",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 192,
+   "both_faulted": 1808,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825D0878",
+   "address": "0x825D0878",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 0,
+   "both_faulted": 2000,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
+   "name": "sub_825D0E48",
+   "address": "0x825D0E48",
+   "size": 76,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 255,
+   "both_faulted": 1745,
+   "pass": false,
+   "error": "poucas tentativas executaram sem falha de acesso"
+  },
+  {
    "name": "sub_825D3010",
    "address": "0x825D3010",
    "size": 1160,
@@ -4605,6 +6882,28 @@
    "name": "sub_825D3680",
    "address": "0x825D3680",
    "size": 28,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D38F8",
+   "address": "0x825D38F8",
+   "size": 92,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D3958",
+   "address": "0x825D3958",
+   "size": 92,
    "source": "src/decomp/crt/wide_strings.cpp",
    "trials": 2000,
    "equal": 2000,
@@ -4690,6 +6989,72 @@
    "error": ""
   },
   {
+   "name": "sub_825D4568",
+   "address": "0x825D4568",
+   "size": 396,
+   "source": "src/decomp/crt/exponential_log.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D4FC8",
+   "address": "0x825D4FC8",
+   "size": 112,
+   "source": "src/decomp/crt/classification.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D8E50",
+   "address": "0x825D8E50",
+   "size": 224,
+   "source": "src/decomp/crt/trigonometry.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D8F30",
+   "address": "0x825D8F30",
+   "size": 224,
+   "source": "src/decomp/crt/trigonometry.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D9010",
+   "address": "0x825D9010",
+   "size": 248,
+   "source": "src/decomp/crt/trigonometry.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D9108",
+   "address": "0x825D9108",
+   "size": 200,
+   "source": "src/decomp/crt/trigonometry.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_825D91D8",
    "address": "0x825D91D8",
    "size": 60,
@@ -4712,10 +7077,32 @@
    "error": ""
   },
   {
+   "name": "sub_825D9258",
+   "address": "0x825D9258",
+   "size": 388,
+   "source": "src/decomp/crt/remainder.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_825D93E0",
    "address": "0x825D93E0",
    "size": 108,
    "source": "src/decomp/crt/numeric.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825D9AC0",
+   "address": "0x825D9AC0",
+   "size": 220,
+   "source": "src/decomp/crt/exponential_log.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
@@ -4760,6 +7147,17 @@
    "address": "0x825DA050",
    "size": 140,
    "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DA3C8",
+   "address": "0x825DA3C8",
+   "size": 28,
+   "source": "src/decomp/crt/numeric_bits.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
@@ -4866,10 +7264,76 @@
    "error": ""
   },
   {
+   "name": "sub_825DBF00",
+   "address": "0x825DBF00",
+   "size": 168,
+   "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DCC78",
+   "address": "0x825DCC78",
+   "size": 52,
+   "source": "src/decomp/crt/classification.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DE390",
+   "address": "0x825DE390",
+   "size": 40,
+   "source": "src/decomp/crt/numeric_bits.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DE3D0",
+   "address": "0x825DE3D0",
+   "size": 132,
+   "source": "src/decomp/crt/classification.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825DE458",
+   "address": "0x825DE458",
+   "size": 244,
+   "source": "src/decomp/crt/numeric_bits.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_825E4AF0",
    "address": "0x825E4AF0",
    "size": 80,
    "source": "src/decomp/crt/byte_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E4B40",
+   "address": "0x825E4B40",
+   "size": 52,
+   "source": "src/decomp/crt/numeric_bits.cpp",
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
@@ -4888,6 +7352,61 @@
    "error": ""
   },
   {
+   "name": "sub_825E5270",
+   "address": "0x825E5270",
+   "size": 72,
+   "source": "src/decomp/crt/classification.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E79C0",
+   "address": "0x825E79C0",
+   "size": 224,
+   "source": "src/decomp/crt/numeric_bits.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E7B88",
+   "address": "0x825E7B88",
+   "size": 1812,
+   "source": "src/decomp/crt/extended_conversion.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E82A0",
+   "address": "0x825E82A0",
+   "size": 1812,
+   "source": "src/decomp/crt/extended_conversion.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825E9678",
+   "address": "0x825E9678",
+   "size": 72,
+   "source": "src/decomp/crt/wide_strings.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
    "name": "sub_825EB868",
    "address": "0x825EB868",
    "size": 40,
@@ -4895,6 +7414,28 @@
    "trials": 2000,
    "equal": 2000,
    "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_825FB910",
+   "address": "0x825FB910",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1072,
+   "both_faulted": 928,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_82605700",
+   "address": "0x82605700",
+   "size": 72,
+   "source": "src/decomp/game/lifecycle_instances.cpp",
+   "trials": 2000,
+   "equal": 1041,
+   "both_faulted": 959,
    "pass": true,
    "error": ""
   }
