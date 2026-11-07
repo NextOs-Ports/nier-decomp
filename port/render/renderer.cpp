@@ -504,6 +504,7 @@ double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs 
 // ficam do último quadro desenhado.
 std::atomic<bool> g_frameskipAuto{false};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
+std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_gameWaitNs{0};  // tempo da thread de render em decodificação/envio de texturas (por janela de log)
 GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved);
 GLuint TextureFor(const xenos::TextureFetch& t, bool allowResolved = true) {
@@ -2159,8 +2160,10 @@ void RenderThread() {
         static Clock::time_point fsLast = Clock::now();
         double secs = std::chrono::duration<double>(Clock::now() - fsLast).count(); fsLast = Clock::now();
         uint64_t up = g_fsUpdates.exchange(0), dr = g_fsDropped.exchange(0);
-        std::fprintf(stderr, "[nier-frameskip] updates/s %.1f desenhados/s %.1f pulados %llu maior rajada %llu\n",
-                     secs > 0 ? up / secs : 0.0, secs > 0 ? W / secs : 0.0, (unsigned long long)dr, (unsigned long long)g_fsMaxBurst.exchange(0));
+        uint64_t rec = g_recordNs.exchange(0), th = g_triHits.exchange(0), tm = g_triMisses.exchange(0);
+        std::fprintf(stderr, "[nier-frameskip] updates/s %.1f desenhados/s %.1f pulados %llu maior rajada %llu; captura RecordDraw %.2f ms/update, triangulação em cache %llu acertos / %llu erros\n",
+                     secs > 0 ? up / secs : 0.0, secs > 0 ? W / secs : 0.0, (unsigned long long)dr, (unsigned long long)g_fsMaxBurst.exchange(0),
+                     up ? rec / (up * 1e6) : 0.0, (unsigned long long)th, (unsigned long long)tm);
       }
       if (GlProfile())
         std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, skinning CPU %.0f vtx em %.1f desenhos %.2f ms (no worker; espera da thread GL %.2f ms; conversões %.2f ms, %.1f misses, %.0f vtx), VS com índice dinâmico de uniforme %.1f desenhos / %.0f vtx / %.0f idx, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
@@ -2341,7 +2344,14 @@ void Shutdown() {
 bool Enabled() { return g_enabled.load(std::memory_order_relaxed); }
 const Config& Settings() { return g_config; }
 
+// C1-H3: cache de triangulação na thread de captura. Malhas estáticas mandam o mesmo IB todo quadro: a chave é
+// (endereço físico, contagem, 16/32 bits, primitiva) e a validação é memcmp dos bytes brutos (muito mais barato que
+// trocar bytes + triangular ~550 mil índices/quadro no A53). NIER_NO_TRI_CACHE=1 desliga (A/B).
+struct TriCacheEntry { std::vector<uint8_t> raw; std::vector<uint16_t> tri; uint32_t lo = 0, hi = 0; GLenum mode = GL_TRIANGLES; };
+std::unordered_map<uint64_t, TriCacheEntry> g_triCache;
+struct RecordTimer { Clock::time_point t0 = Clock::now(); ~RecordTimer() { g_recordNs += uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - t0).count()); } };
 void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32_t startIndex, uint32_t count, bool indexed) {
+  RecordTimer recordTimer;
   static uint64_t calls = 0;
   if (++calls % 5000 == 0)
     std::fprintf(stderr, "[nier-jogo] %llu desenhos gravados; quadro atual %zu comandos %zu MB; apresentados %llu\n", (unsigned long long)calls,
@@ -2357,6 +2367,7 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   g_srcIndices.clear();
   int64_t first = 0;
   uint32_t vertices = 0;
+  const std::vector<uint16_t>* triCached = nullptr;
   if (indexed) {
     // Objeto IB (+0x3144): palavra 0 bit 31 = índices de 32 bits; +0x18 = endereço dos dados.
     uint32_t ib = BE32(Field(copy, kIndexBuffer));
@@ -2368,6 +2379,26 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     c.indexAddress = uint64_t(physical) + uint64_t(startIndex) * bytes;
     const uint8_t* src = Physical(physical + startIndex * bytes, count * bytes);
     if (!src) { RecordSkip("index buffer ilegível"); return; }
+    static bool noTriCache = std::getenv("NIER_NO_TRI_CACHE") != nullptr;
+    uint64_t triKey = (c.indexAddress * 0x9E3779B97F4A7C15ull) ^ (uint64_t(count) << 8) ^ (uint64_t(primitive) << 1) ^ uint64_t(is32);
+    if (!noTriCache) {
+      auto hit = g_triCache.find(triKey);
+      if (hit != g_triCache.end() && hit->second.raw.size() == size_t(count) * bytes && std::memcmp(hit->second.raw.data(), src, hit->second.raw.size()) == 0) {
+        ++g_triHits;
+        triCached = &hit->second.tri; g_triMode = hit->second.mode;
+        first = int64_t(int32_t(baseVertex)) + hit->second.lo; vertices = hit->second.hi - hit->second.lo + 1;
+      }
+    }
+  }
+  if (triCached) {
+    // índices já triangulados (acerto do cache)
+  } else if (indexed) {
+    uint32_t ib = BE32(Field(copy, kIndexBuffer));
+    const uint8_t* object = Virtual(ib, 0x20);
+    bool is32 = BE32(object) & 0x80000000u;
+    uint32_t address = BE32(object + 0x18), bytes = is32 ? 4 : 2;
+    uint32_t physical = (address & 0x1FFFFFFF) + (address >= 0xE0000000 ? 0x1000 : 0);
+    const uint8_t* src = Physical(physical + startIndex * bytes, count * bytes);
     uint32_t lo = 0xFFFFFFFF, hi = 0;
     for (uint32_t i = 0; i < count; ++i) {
       uint32_t v = is32 ? BE32(src + 4 * i) : uint32_t(src[2 * i]) << 8 | src[2 * i + 1];
@@ -2379,12 +2410,24 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
     if (hi - lo >= 65535) { RecordSkip("faixa de índices > 65535"); return; }
     for (auto& v : g_srcIndices) if (v != 0xFFFFFFFFu) v -= lo;
     first = int64_t(int32_t(baseVertex)) + lo; vertices = hi - lo + 1;
+    if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
+    static bool noTriCache = std::getenv("NIER_NO_TRI_CACHE") != nullptr;
+    if (!noTriCache) {
+      if (g_triCache.size() > 8192) g_triCache.clear();
+      uint64_t triKey = (c.indexAddress * 0x9E3779B97F4A7C15ull) ^ (uint64_t(count) << 8) ^ (uint64_t(primitive) << 1) ^ uint64_t(is32);
+      auto& e = g_triCache[triKey];
+      e.raw.assign(src, src + size_t(count) * bytes); e.tri = g_triIndices; e.lo = lo; e.hi = hi; e.mode = g_triMode;
+      ++g_triMisses;
+    }
+    triCached = &g_triIndices;
   } else {
     first = int64_t(int32_t(baseVertex)); vertices = count;
     for (uint32_t i = 0; i < count; ++i) g_srcIndices.push_back(i);
+    if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
+    triCached = &g_triIndices;
   }
-  if (!Triangulate(primitive, g_srcIndices, g_triIndices)) { RecordSkip("tipo de primitiva não suportado"); return; }
-  if (g_triIndices.empty()) return;
+  const std::vector<uint16_t>& tri = *triCached;
+  if (tri.empty()) return;
   static int trace3d = std::getenv("NIER_RENDER_TRACE_3D") ? std::atoi(std::getenv("NIER_RENDER_TRACE_3D")) : 0;
   if (trace3d > 0 && indexed) {
     --trace3d;
@@ -2395,12 +2438,12 @@ void RecordDraw(uint32_t device, uint32_t primitive, uint32_t baseVertex, uint32
   }
   if (!SnapshotInputs(c, copy, first, vertices, nullptr, 0)) return;
   TraceDraw(c, g_building.blob.data() + c.state, primitive, count, indexed);
-  c.indexCount = uint32_t(g_triIndices.size());
+  c.indexCount = uint32_t(tri.size());
   c.prim = uint8_t(primitive);
   c.mode = g_triMode;
-  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, g_triIndices.data(), g_triIndices.size() * 2);
+  if (ReferenceBuffers() || c.up) c.indices = Append(g_building, tri.data(), tri.size() * 2);
   else {
-    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, g_triIndices.data(), c.indexCount, g_bufferRecordingFrame);
+    c.indexData = g_bufferSnapshots.Indices(c.indexAddress, tri.data(), c.indexCount, g_bufferRecordingFrame);
     g_building.bufferBytes += c.indexData->raw.size() + c.indexData->bytes.size();
   }
   g_recordedBytes = g_building.blob.size();
