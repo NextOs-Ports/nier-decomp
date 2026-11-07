@@ -280,3 +280,31 @@ A prova de pad virtual/saída e a reabertura XContent host foram repetidas com
 a biblioteca final para verificar a troca de SDK. Ambas passaram. O perfil
 `messages/X1-quentes.json` agora corresponde ao SDK corrigido; o perfil anterior
 foi preservado como `X1-quentes-antes-audio.json` para a comparação.
+
+## X1-C1 — PCM significativo da abertura/título e dos menus
+
+Com o build GLES2 do C1 copiado para uma área privada do X1, a captura anterior
+quase silenciosa foi substituída por uma prova direta da submissão SDL. Roteiro
+finito: START no quadro 2.700 pula a abertura; outro START no 3.300 entra pelo
+título; A no 3.900 confirma o menu. Baixo/cima foram enviados uma vez cada nos
+quadros 4.500/4.800. Execução limitada a 100 segundos e encerrada pelo supervisor.
+
+| Trecho privado, sem normalização | Duração | RMS L/R | Pico L/R | Centroide | Entropia espectral |
+| --- | ---: | --- | --- | ---: | ---: |
+| Música da sequência de abertura/título | 25 s | 0,05461 / 0,07099 | 0,45123 / 0,61722 | 1.205,8 Hz | 15,248 bits |
+| Efeito de START no título | 4 s | 0,05442 / 0,05197 | 0,32633 / 0,30386 | 265,6 Hz | 10,069 bits |
+| Efeito de confirmação A | 4 s | 0,04891 / 0,04933 | 0,36921 / 0,38595 | 208,8 Hz | 9,216 bits |
+
+O PCM original é float32/48 kHz/seis canais. Os trechos preservam os frontais;
+centro/LFE são zero e surrounds residuais são desprezíveis nesse trecho.
+O estado estacionário “Press START” após pular a abertura fica quase silencioso;
+não se afirma que existe música contínua nesse estado. A música comprovada é
+a da sequência de abertura/título e os efeitos são transientes alinhados aos
+dois comandos, com intervalos silenciosos entre eles. Isso distingue áudio real
+de ruído de quantização. Não é validação de toda a campanha ou de saída física.
+
+WAVs e gráfico de forma de onda/espectro permanecem em `nier-build/x1/c1/proof`;
+metadados e hashes em `messages/X1-C1-audio.json`. O renderer do C1 não foi
+modificado: a prova PC usou ES 2.0 e adaptação privada dos prelúdios conhecidos
+para mediump. As capturas mostram o contexto, sem certificar os defeitos visuais
+restantes do renderer experimental.
