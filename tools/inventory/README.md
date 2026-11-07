@@ -44,3 +44,17 @@ dados com o registro gerado. Na revisão X1-2c foram encontrados 328 padrões,
 135 referenciados em dados e 12 entradas ausentes. Quatro limites antigos
 agrupavam thunks adjacentes; após separá-los em unidades de oito bytes, os
 135 estão registrados. O scanner fixa a identidade da PE e não publica bytes.
+
+`scan_code_pointers.py` cruza LIS+ADDI/ORI em `.text`/`PSFD00` com o registro
+atual. A janela de até 64 instruções respeita clobbers GPR decodificados e
+fronteiras de controle; aceita destinos diferentes do registrador do LIS.
+O adaptador `nier_ppc_decode` usa o disassembler externo do SDK. A auditoria
+X1-2d encontrou 1.422 alvos: 1.175 entradas registradas, 230 tabelas inline
+(com pelo menos oito ponteiros consecutivos válidos) e 17 bases de dispatch
+`add; mtctr; bctr`. As duas últimas classes não são callbacks independentes.
+
+Entraram 16 stubs de 16 bytes e dois callbacks de cleanup; a antiga faixa
+82386540 foi dividida para não englobar stubs adjacentes. A regeneração passou
+sem erros e o scanner não deixou callbacks de código pendentes. Os números são
+restritos ao padrão/proveniência auditados; não afirmam resolver qualquer forma
+possível de cálculo indireto de endereço.
