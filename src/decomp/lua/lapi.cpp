@@ -72,7 +72,8 @@ NIER_VERIFY_SPEC(sub_82121F38, 0x82121F38, "r3=ptr r4=range:0xFFFFFFFA..8 @r3.12
 // sub_82122200 (32 bytes) — lua_typename(L, t): nome do tipo; -1 é "no value".
 NIER_DECOMP(sub_82122200) {
   const int32_t t = static_cast<int32_t>(ctx.r4.u32);
-  if (t == -1) { ctx.r3.u64 = 0x8200CAC8; return; }
+  // Endereço montado com lis/addi: no registrador de 64 bits fica com sinal estendido.
+  if (t == -1) { ctx.r3.s64 = static_cast<int32_t>(0x8200CAC8u); return; }
   ctx.r3.u64 = ld32(base, 0x8200E57C + static_cast<uint32_t>(t << 2));
 }
 NIER_VERIFY_SPEC(sub_82122200, 0x82122200, "r4=range:0xFFFFFFFF..8");
