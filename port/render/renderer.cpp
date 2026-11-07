@@ -742,7 +742,8 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
   std::string psSource = ScalarizeRegisters(alphaTest ? ps->source : StripAlphaTest(ps->source));
   std::vector<std::pair<int, int>> vtfSlots;
-  std::string vsSource = ScalarizeRegisters(StripUnusedVaryings(vs->textureMask ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source, flat ? 0xFF : ps->inputMask));
+  static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
+  std::string vsSource = ScalarizeRegisters(StripUnusedVaryings((vs->textureMask && !noVtf) ? EmulateVertexTextures(vs->source, vs, vtfSlots) : vs->source, flat ? 0xFF : ps->inputMask));
   p.cull = ParseCull(vs->source);
   for (size_t at = 0; (at = vsSource.find(" vr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
   for (size_t at = 0; (at = vsSource.find(" sr = ", at)) != std::string::npos; at += 6) ++p.vsOps;
