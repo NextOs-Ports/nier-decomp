@@ -1,0 +1,40 @@
+{
+ "tool": "tools/verify/verify_main.cpp",
+ "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
+ "method": "Mesmo estado inicial aleatório para a função traduzida (oráculo) e a reconstruída; compara r1-r4, r13-r31, f1, f2, f14-f31, memória tocada da imagem, dados de teste, área do r13 e pilha acima do r1. Aprovação exige zero divergência e ao menos metade das tentativas sem falha de acesso.",
+ "results": [
+  {
+   "name": "sub_82102878",
+   "address": "0x82102878",
+   "size": 64,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_821B6180",
+   "address": "0x821B6180",
+   "size": 64,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 2000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": ""
+  },
+  {
+   "name": "sub_823C6A50",
+   "address": "0x823C6A50",
+   "size": 76,
+   "source": "src/decomp/game/predicates_a.cpp",
+   "trials": 2000,
+   "equal": 1524,
+   "both_faulted": 476,
+   "pass": true,
+   "error": ""
+  }
+ ]
+}
