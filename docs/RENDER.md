@@ -144,11 +144,12 @@ Cada endereço do `docs/D3D_MAP.md` do NieR vai registrar a âncora usada e a co
 | 23 ms/quadro de Resolve na Mali | 4 cópias de 1280x720 por quadro, sem uso | Cópia só se o destino é amostrado no quadro, já foi amostrado, ou nas 3 primeiras vezes |
 | Vídeo SFD lento na Mali | Planos k8 (x,x,x,1) lineares decodificados texel a texel em RGBA | `GL_LUMINANCE` com cópia de linha; hash amostrado nos planos reenviados |
 
-**Tradutor (dependência privada).** Pino original `dmc3-hd-nextos@c76b074` (`xenos_shader.cpp` `d46a61fe…`). Patch NieR em `nier-data/deps/dmc3-xenos-c76b074-nier/` (`d707e60e…`, diff `nier-xenos-patch-c76b074.diff` `11379d39…`):
+**Tradutor (dependência privada).** Pino original `dmc3-hd-nextos@c76b074` (`xenos_shader.cpp` `d46a61fe…`). Patch NieR em `nier-data/deps/dmc3-xenos-c76b074-nier/` (`4af99b31…`, diff `nier-xenos-patch-c76b074.diff` `2b6e18e7…`; versão anterior `d707e60e…`/`11379d39…`):
 - op. vetorial 18 (CUBE) sem projeção de face;
 - fetch 3D/cúbico devolve cor neutra;
 - `setTextureLod`/gradientes sem efeito;
-- textura no VS devolve 0 (a Mali-450 não tem busca de textura no vértice).
+- textura no VS devolve 0 (a Mali-450 não tem busca de textura no vértice);
+- PS que exporta profundidade (oDepth) compila com a profundidade interpolada (GLES2 não tem `gl_FragDepth`); antes reprovava e o desenho era pulado.
 
 Cada desvio é visível: reflexos e efeitos cúbicos ficam neutros. Build: `-DNIER_XENOS_TRANSLATOR_DIR=…-nier -DNIER_XENOS_TRANSLATOR_PATCHED=ON`.
 

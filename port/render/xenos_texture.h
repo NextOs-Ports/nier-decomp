@@ -1,5 +1,6 @@
 // Decodificação de texturas da Xenos para RGBA8 (CPU): fetch constant, tiling 2D, troca de bytes,
-// DXT1/3/5, 8888, 565, 4444, 8.
+// DXT1/3/5, DXN, DXT3A/DXT5A, CTX1, 8888, 565, 4444, 1555, 2-10-10-10, 8, 8_8, 16/16_16/16_16_16_16 (unorm e half),
+// 32_FLOAT. Componentes ausentes seguem o hardware: (x, 0, 0, 1) antes do swizzle da fetch constant.
 // As duas funções de endereço tiled seguem a fórmula da Xenia (texture_util, BSD-3-Clause,
 // Copyright (c) 2015 Ben Vanik); o restante é código deste projeto (MIT).
 #pragma once
@@ -13,7 +14,12 @@ namespace nier::xenos {
 
 inline uint32_t BE32(const uint8_t* p) { return uint32_t(p[0]) << 24 | p[1] << 16 | p[2] << 8 | p[3]; }
 
-enum Format : uint32_t { k8 = 2, k1555 = 3, k565 = 4, k8888 = 6, k4444 = 15, kDXT1 = 18, kDXT3 = 19, kDXT5 = 20 };
+enum Format : uint32_t {
+  k8 = 2, k1555 = 3, k565 = 4, k8888 = 6, k2101010 = 7, k8A = 8, k8B = 9, k88 = 10, k4444 = 15,
+  kDXT1 = 18, kDXT3 = 19, kDXT5 = 20, k248 = 22, k16 = 24, k1616 = 25, k16161616 = 26,
+  k16Expand = 27, k1616Expand = 28, k16161616Expand = 29, k16Float = 30, k1616Float = 31, k16161616Float = 32,
+  k32Float = 36, kDXN = 49, kDXT3A = 58, kDXT5A = 59, kCTX1 = 60
+};
 
 struct TextureFetch {
   uint32_t base = 0, mipBase = 0, format = 0, endian = 0, width = 0, height = 0, pitch = 0;
@@ -42,22 +48,50 @@ inline TextureFetch DecodeFetch(const uint8_t* f) {
   return t;
 }
 
-inline bool Supported(uint32_t format) {
+inline bool Block(uint32_t format) {
   switch (format) {
-    case k8: case k565: case k8888: case k4444: case kDXT1: case kDXT3: case kDXT5: return true;
+    case kDXT1: case kDXT3: case kDXT5: case kDXN: case kDXT3A: case kDXT5A: case kCTX1: return true;
     default: return false;
   }
 }
-inline bool Block(uint32_t format) { return format == kDXT1 || format == kDXT3 || format == kDXT5; }
 inline uint32_t BytesPerElement(uint32_t format) {
   switch (format) {
-    case k8: return 1;
-    case k565: case k4444: case k1555: return 2;
-    case k8888: return 4;
-    case kDXT1: return 8;
-    case kDXT3: case kDXT5: return 16;
+    case k8: case k8A: case k8B: return 1;
+    case k565: case k4444: case k1555: case k88: case k16: case k16Expand: case k16Float: return 2;
+    case k8888: case k2101010: case k1616: case k1616Expand: case k1616Float: case k32Float: return 4;
+    case k16161616: case k16161616Expand: case k16161616Float: return 8;
+    case kDXT1: case kDXT3A: case kDXT5A: case kCTX1: return 8;
+    case kDXT3: case kDXT5: case kDXN: return 16;
     default: return 0;
   }
+}
+inline bool Supported(uint32_t format) { return BytesPerElement(format) != 0; }
+// 16_16_16_16_EXPAND e irmãos: a Xenia os carrega como half float (R16G16B16A16_FLOAT).
+inline bool HalfFormat(uint32_t f) { return f >= k16Expand && f <= k16161616Float; }
+inline float HalfToFloat(uint16_t h) {
+  uint32_t s = (h >> 15) & 1, e = (h >> 10) & 31, m = h & 1023;
+  float v;
+  if (e == 0) v = float(m) * (1.0f / 16777216.0f);          // subnormal: m * 2^-24
+  else if (e == 31) v = m ? 0.0f : 65504.0f;                 // NaN -> 0, inf -> máximo
+  else { v = (1.0f + float(m) / 1024.0f); int sh = int(e) - 15; v = sh >= 0 ? v * float(1u << sh) : v / float(1u << -sh); }
+  return s ? -v : v;
+}
+inline uint8_t Unorm(float v) { return uint8_t(std::min(std::max(v, 0.0f), 1.0f) * 255.0f + 0.5f); }
+// BC4 (bloco de 8 bytes): 8 valores de 8 bits -> out[16]
+inline void DecodeBc4(const uint8_t* b, uint8_t out[16]) {
+  uint8_t a[8] = {b[0], b[1]};
+  if (a[0] > a[1]) for (int i = 1; i < 7; ++i) a[i + 1] = uint8_t(((7 - i) * a[0] + i * a[1]) / 7);
+  else { for (int i = 1; i < 5; ++i) a[i + 1] = uint8_t(((5 - i) * a[0] + i * a[1]) / 5); a[6] = 0; a[7] = 255; }
+  uint64_t bits = 0;
+  for (int i = 0; i < 6; ++i) bits |= uint64_t(b[2 + i]) << (8 * i);
+  for (int i = 0; i < 16; ++i) out[i] = a[(bits >> (3 * i)) & 7];
+}
+// CTX1 (bloco de 8 bytes): dois pontos (x0,y0) (x1,y1) de 8 bits e 2 bits de índice por texel.
+inline void DecodeCtx1(const uint8_t* b, uint8_t out[16][4]) {
+  uint8_t pal[4][2] = {{b[0], b[1]}, {b[2], b[3]}, {uint8_t((2 * b[0] + b[2]) / 3), uint8_t((2 * b[1] + b[3]) / 3)},
+                       {uint8_t((b[0] + 2 * b[2]) / 3), uint8_t((b[1] + 2 * b[3]) / 3)}};
+  uint32_t bits = uint32_t(b[4]) | b[5] << 8 | b[6] << 16 | uint32_t(b[7]) << 24;
+  for (int i = 0; i < 16; ++i) { uint32_t k = (bits >> (2 * i)) & 3; out[i][0] = pal[k][0]; out[i][1] = pal[k][1]; out[i][2] = 0; out[i][3] = 255; }
 }
 
 // Xenia texture_util (BSD-3-Clause): deslocamento em bytes de (x, y) numa superfície tiled 2D.
@@ -132,10 +166,22 @@ inline bool DecodeLevel0(Reader read, const TextureFetch& t, std::vector<uint8_t
       if (block) {
         uint8_t px[16][4];
         if (t.format == kDXT1) DecodeColorBlock(e, px, true);
-        else {
+        else if (t.format == kDXT3 || t.format == kDXT5) {
           DecodeColorBlock(e + 8, px, false);
           if (t.format == kDXT5) DecodeAlpha5(e, px);
           else for (int i = 0; i < 16; ++i) { uint8_t n = uint8_t((e[i / 2] >> (4 * (i & 1))) & 15); px[i][3] = uint8_t(n * 17); }
+        } else if (t.format == kDXN) {  // dois blocos BC4: x e y (mapa de normais)
+          uint8_t r[16], g[16];
+          DecodeBc4(e, r); DecodeBc4(e + 8, g);
+          for (int i = 0; i < 16; ++i) { px[i][0] = r[i]; px[i][1] = g[i]; px[i][2] = 0; px[i][3] = 255; }
+        } else if (t.format == kDXT5A) {
+          uint8_t r[16];
+          DecodeBc4(e, r);
+          for (int i = 0; i < 16; ++i) { px[i][0] = r[i]; px[i][1] = px[i][2] = 0; px[i][3] = 255; }
+        } else if (t.format == kDXT3A) {
+          for (int i = 0; i < 16; ++i) { uint8_t n = uint8_t((e[i / 2] >> (4 * (i & 1))) & 15); px[i][0] = uint8_t(n * 17); px[i][1] = px[i][2] = 0; px[i][3] = 255; }
+        } else {
+          DecodeCtx1(e, px);
         }
         for (int i = 0; i < 16; ++i) {
           uint32_t px_x = x * 4 + (i & 3), px_y = y * 4 + (i >> 2);
@@ -144,11 +190,26 @@ inline bool DecodeLevel0(Reader read, const TextureFetch& t, std::vector<uint8_t
         continue;
       }
       uint8_t* o = &out[(size_t(y) * t.width + x) * 4];
+      o[1] = o[2] = 0; o[3] = 255;
       switch (t.format) {
         case k8888: o[0] = e[0]; o[1] = e[1]; o[2] = e[2]; o[3] = e[3]; break;  // componentes x y z w (swizzle abaixo)
-        case k565: Rgb565(uint16_t(e[0] | e[1] << 8), o); o[3] = 255; break;
+        case k565: Rgb565(uint16_t(e[0] | e[1] << 8), o); break;
         case k4444: { uint16_t c = uint16_t(e[0] | e[1] << 8); o[0] = uint8_t(((c >> 8) & 15) * 17); o[1] = uint8_t(((c >> 4) & 15) * 17); o[2] = uint8_t((c & 15) * 17); o[3] = uint8_t((c >> 12) * 17); break; }
-        case k8: o[0] = o[1] = o[2] = o[3] = e[0]; break;
+        case k1555: { uint16_t c = uint16_t(e[0] | e[1] << 8); o[0] = uint8_t(((c >> 10) & 31) * 255 / 31); o[1] = uint8_t(((c >> 5) & 31) * 255 / 31); o[2] = uint8_t((c & 31) * 255 / 31); o[3] = (c >> 15) ? 255 : 0; break; }
+        case k2101010: { uint32_t c = uint32_t(e[0]) | e[1] << 8 | e[2] << 16 | uint32_t(e[3]) << 24; o[0] = uint8_t((c & 1023) * 255 / 1023); o[1] = uint8_t(((c >> 10) & 1023) * 255 / 1023); o[2] = uint8_t(((c >> 20) & 1023) * 255 / 1023); o[3] = uint8_t((c >> 30) * 85); break; }
+        case k8: o[0] = o[1] = o[2] = o[3] = e[0]; break;  // mantido: planos de vídeo dependem da réplica
+        case k8A: case k8B: o[0] = e[0]; break;
+        case k88: o[0] = e[0]; o[1] = e[1]; break;
+        case k16: o[0] = e[1]; break;
+        case k1616: o[0] = e[1]; o[1] = e[3]; break;
+        case k16161616: o[0] = e[1]; o[1] = e[3]; o[2] = e[5]; o[3] = e[7]; break;
+        case k16Expand: case k16Float: o[0] = Unorm(HalfToFloat(uint16_t(e[0] | e[1] << 8))); break;
+        case k1616Expand: case k1616Float: o[0] = Unorm(HalfToFloat(uint16_t(e[0] | e[1] << 8))); o[1] = Unorm(HalfToFloat(uint16_t(e[2] | e[3] << 8))); break;
+        case k16161616Expand: case k16161616Float:
+          for (int c = 0; c < 4; ++c) o[c] = Unorm(HalfToFloat(uint16_t(e[2 * c] | e[2 * c + 1] << 8)));
+          break;
+        case k32Float: { float v; std::memcpy(&v, e, 4); o[0] = Unorm(v); break; }
+        default: o[0] = 255; o[1] = o[2] = 255; break;
       }
     }
   }
