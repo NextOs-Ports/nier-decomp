@@ -37,3 +37,10 @@ O ranking contém no máximo 300 funções realmente observadas por lista,
 ordenadas por tempo próprio e depois inclusivo. Funções não amostradas não
 são preenchidas com tempos inventados. O perfil de boot null no PC serve
 para priorização, não para declarar custo do gameplay ou da Mali.
+
+`scan_this_thunks.py` varre todas as seções executáveis da PE por
+`addi r3,r3,simm16; b alvo` e cruza ponteiros alinhados de todas as seções de
+dados com o registro gerado. Na revisão X1-2c foram encontrados 328 padrões,
+135 referenciados em dados e 12 entradas ausentes. Quatro limites antigos
+agrupavam thunks adjacentes; após separá-los em unidades de oito bytes, os
+135 estão registrados. O scanner fixa a identidade da PE e não publica bytes.

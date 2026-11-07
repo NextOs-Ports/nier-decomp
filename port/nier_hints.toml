@@ -1,6 +1,20 @@
 # Tail-call targets missed by the baseline scanner; verified in original PE.
 # No explicit size: the analyzer follows the target's control flow.
 [functions]
+# Data-referenced this-adjustment thunks; complete PE scan, X1-2c.
+0x8249D488 = { size = 0x8 } # this -4, tail 0x824A1B20
+0x8249D490 = { size = 0x8 } # this -4, tail 0x824A1AE8
+0x8249D498 = { size = 0x8 } # this -4, tail 0x8249D530
+0x8249D4B0 = { size = 0x8 } # this -4, tail 0x8249D3E0
+0x8249D4B8 = { size = 0x8 } # this -4, tail 0x8249BFB8
+0x824A1B50 = { size = 0x8 } # this -4, tail 0x824A1DE8
+0x824A1B58 = { size = 0x8 } # this -4, tail 0x824A1AF0
+0x824A1B60 = { size = 0x8 } # this -4, tail 0x824A1B08
+0x824A1B68 = { size = 0x8 } # this -4, tail 0x824A1DC8
+0x824A1B70 = { size = 0x8 } # this -4, tail 0x824A1BE8
+0x824A1B88 = { size = 0x8 } # this -4, tail 0x824A1B10
+0x824A1B90 = { size = 0x8 } # this -4, tail 0x824A1AE0
+
 # Coordinator-reviewed uncovered leaf/virtual-call entries from the same PE.
 0x82102F84 = { size = 0x4 }
 0x82103038 = { size = 0x4 }
@@ -182,10 +196,10 @@
 0x8249BE18 = { size = 0x4 }
 0x8249BE40 = { size = 0x4 }
 0x8249BE68 = { size = 0x4 }
-0x8249D480 = { size = 0x20 }
-0x8249D4A8 = { size = 0x18 }
-0x824A1B48 = { size = 0x30 }
-0x824A1B80 = { size = 0x18 }
+0x8249D480 = { size = 0x8 } # split adjacent this-adjustment entries
+0x8249D4A8 = { size = 0x8 } # split adjacent this-adjustment entries
+0x824A1B48 = { size = 0x8 } # split adjacent this-adjustment entries
+0x824A1B80 = { size = 0x8 } # split adjacent this-adjustment entries
 0x824A1E08 = { size = 0x8 }
 0x824A1F30 = { size = 0x4 }
 0x824A1F58 = { size = 0x4 }
