@@ -20,6 +20,32 @@ NIER_DECOMP(sub_825DABF0) {
 }
 NIER_VERIFY_SPEC(sub_825DABF0,0x825DABF0,"r3=const:0x40010000 r4=const:0x40050000");
 
+// strncpy: copy at most n bytes, padding the remainder after a source NUL.
+NIER_DECOMP(sub_825D38F8) {
+    uint32_t dst=ctx.r3.u32,src=ctx.r4.u32,n=ctx.r5.u32;
+    while(n) {
+        const uint8_t ch=ld8(base,src++);st8(base,dst++,ch);--n;
+        if(!ch) {while(n--)st8(base,dst++,0);break;}
+    }
+}
+NIER_VERIFY_SPEC(sub_825D38F8,0x825D38F8,"r3=const:0x40010000 r4=const:0x40050000 r5=range:0..128");
+
+// Trim decimal trailing zeros before an exponent (e/E) or the terminator.
+// The return register is the full pointer to the decimal separator, or NUL.
+NIER_DECOMP(sub_825DBF00) {
+    const uint32_t separator_address=ld32(base,ld32(base,0x8278e734));
+    const uint8_t separator=ld8(base,separator_address);
+    while(ld8(base,ctx.r3.u32) && ld8(base,ctx.r3.u32)!=separator)++ctx.r3.u64;
+    if(!ld8(base,ctx.r3.u32))return;
+    uint32_t end=ctx.r3.u32+1;
+    while(ld8(base,end) && ld8(base,end)!='e' && ld8(base,end)!='E')++end;
+    uint32_t last=end-1;
+    while(ld8(base,last)=='0')--last;
+    if(ld8(base,last)==separator)--last;
+    for(;;) {const uint8_t ch=ld8(base,end++);st8(base,++last,ch);if(!ch)break;}
+}
+NIER_VERIFY_SPEC(sub_825DBF00,0x825DBF00,"r3=bptr");
+
 // strcat, retaining the original destination as return value.
 NIER_DECOMP(sub_825DAC18) {
     uint32_t dst=ctx.r3.u32,src=ctx.r4.u32;

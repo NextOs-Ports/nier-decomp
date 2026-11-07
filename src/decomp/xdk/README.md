@@ -58,3 +58,41 @@ não inventa recuperação para a desreferência nula do original fora desse dom
 formato/channels/flags, escolhas suportadas e rejeitadas, e filtro sob quatro
 modos FP. A prova é de resultados/ABI/memória; não substitui audição no jogo ou
 uma prova formal de estabilidade do filtro para coeficientes arbitrários.
+
+## Lote X1-9 — validação de formatos e seleção de processamento
+
+Quatro validadores (`824B6668`, `824B6738`, `824B6A00`, `824B6B30`) conferem
+layouts de PCM/ADPCM/XMA: bits significativos, alinhamento, taxa, coeficientes,
+streams, máscaras, blocos e limites de amostras. Preservam a aritmética guest
+inclusive somas de 32 bits nos limites. Os coeficientes ADPCM vêm da PE.
+Dois seletores (`824BBAF8`, `824BEBF0`) escolhem as funções guest existentes
+por representação, canais e flags; não executam esses processadores na prova.
+
+Todos passaram em 2.000 comparações. A prova complementar passou 81.285 casos:
+quatro cabeçalhos válidos, substituição de cada um dos primeiros 64 bytes
+por todos os 256 valores, 1.000 cabeçalhos aleatórios por layout e combinações
+dos seletores. Cada validador teve milhares de aceitações e rejeições iguais
+ao original. O número de streams aleatório é limitado a quatro para manter
+os buffers válidos. A prova não certifica buffers truncados/malformados.
+
+## Lote X1-10 — matrizes de canais e filtro estéreo
+
+Seis kernels (`824B8498`, `824B9BF8`, `824B85A0`, `824B9D38`, `824B8778`,
+`824B9F68`) convertem mono→estéreo, mono→seis canais e estéreo→seis canais,
+com entrada float ou PCM16 BE, sobrescrita/acumulação e rampa de coeficientes.
+O filtro estéreo `824BFB60` mantém os dois pares de estados e processa o par
+final completo quando a contagem de amostras é ímpar, como o original.
+
+As sete funções passaram em 2.000 casos cada, sem falhas. A prova adicional
+passou 1.740 casos em quatro modos FP, com/sem rampa, acumulação/sobrescrita,
+contagem zero/ímpar, extremos PCM, zeros assinados e subnormais. Mantemos a
+ordem de FMA/arredondamento e os temporários f1 observados pelo comparador.
+O domínio de amostras/coeficientes desta prova é finito.
+
+Um microbenchmark detectou que estreitar a multiplicação para float pelo
+compilador causava lentidão com subnormais. A multiplicação intermediária
+agora permanece em double. Mediana de 5×10.000 chamadas, 128 amostras, CPU0
+fixa do i7-13700F: reconstrução 1,15–2,27× mais rápida nos casos medidos.
+Isso compara o oráculo do verificador em -O1 com a reconstrução em -O3;
+não é ganho medido no jogo, nem prova de velocidade no Cortex-A53. Os fontes
+C3 são comprovados isoladamente; o CMake atual do port ainda não os inclui.
