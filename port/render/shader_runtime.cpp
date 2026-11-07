@@ -4,6 +4,7 @@
 #include "nier_d3d.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <map>
@@ -188,7 +189,8 @@ const GuestShader* Load(uint32_t device, VirtualReader read, bool pixel) {
     s->source = std::string("#version 100\n") +
                 (pixel ? "precision mediump float;\nprecision mediump int;\nprecision mediump sampler2D;\n"
                        : "precision highp float;\nprecision highp int;\n") + t.body;
-    if (s->ok) CompactConstants(*s);
+    if (s->ok && !std::getenv("NIER_NO_COMPACT")) CompactConstants(*s);
+    if (s->constMap.empty()) for (int r = 0; r < 256; ++r) s->constMap.push_back(uint16_t(r));
     if (!s->ok) std::fprintf(stderr, "[nier-shader] %s %016llX não traduzido: %s\n", pixel ? "PS" : "VS", (unsigned long long)key, s->error.c_str());
     if (!g_dumpDir.empty()) {
       char name[64];

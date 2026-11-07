@@ -1,6 +1,6 @@
 // Roteiro FINITO de entradas para provas automatizadas (diagnóstico; nunca em jogo normal).
 // NIER_INPUT_SCRIPT="2600:start,2900:a:6,3200:down" — quadro apresentado : botão [: quadros pressionado].
-// Cada toque roda uma vez; no máximo 16 toques por execução (regra: nada de START/A em laço).
+// Cada toque roda uma vez; no máximo 60 toques por execução (regra: nada de START/A em laço).
 #include "renderer.h"
 
 #include <SDL3/SDL.h>
@@ -34,7 +34,7 @@ void Parse() {
   if (!s || !*s) return;
   std::string text = s;
   size_t at = 0;
-  while (at < text.size() && g_script.size() < 16) {
+  while (at < text.size() && g_script.size() < 60) {
     size_t end = text.find(',', at);
     std::string item = text.substr(at, end == std::string::npos ? std::string::npos : end - at);
     at = end == std::string::npos ? text.size() : end + 1;

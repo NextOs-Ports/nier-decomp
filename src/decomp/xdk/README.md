@@ -96,3 +96,33 @@ fixa do i7-13700F: reconstrução 1,15–2,27× mais rápida nos casos medidos.
 Isso compara o oráculo do verificador em -O1 com a reconstrução em -O3;
 não é ganho medido no jogo, nem prova de velocidade no Cortex-A53. Os fontes
 C3 são comprovados isoladamente; o CMake atual do port ainda não os inclui.
+
+## Lote X1-13 — amostras PCM, quantização e interleaving
+
+Onze folhas (760 bytes) cobrem endereçamento de amostras de 16/20/24 bits,
+escrita BE, normalização por bit depth, quantização/saturação, interleaving
+de buffers por canal, escala tabelada e multiplicação de palavras. Os dois
+layouts de três bytes distintos foram preservados; não são tratados como
+um único par leitor/escritor intercambiável. Contagens de interleaving da
+prova ficam em 0–16 amostras e até três canais válidos.
+
+Todos passaram em 2.000 comparações e a prova extra passou 2.676 casos,
+incluindo quatro modos FP, profundidades fora do usual, extremos inteiros,
+NaN/infinito, ponteiros com palavra alta preenchida e canais/contagens zero.
+A prova detectou e corrigiu o ramo unordered da quantização: o `bge` original
+testa !LT e inclui NaN, diferente de `>=` em C++. Os bits altos do retorno
+na saturação e na consulta tabelada também foram preservados.
+
+## Lote X1-14 — construção/reset e flags de áudio
+
+Treze folhas (1.772 bytes) passaram em 2.000 comparações cada: dez rotinas de
+construção/reset e três auxiliares de flags/pares de parâmetros. As estruturas
+preservam padding e campos não escritos, listas livres internas, arrays de
+índices/ponteiros, valores padrão da PE e o retorno completo de r3. Os pares
+usam médias inteiras truncadas em direção a zero, após wrap de 16 bits quando
+a rotina original o faz; o modo que devolve a média em r3 foi mantido.
+
+A especificação varia os ramos de flags, parâmetros e proprietário, incluindo
+os argumentos lidos na pilha pelo empacotador `824B1198`. Ponteiros de objetos,
+proprietários e saídas pertencem a RAM válida; não se certifica aliasing entre
+essas estruturas nem tabelas de defaults alteradas.
