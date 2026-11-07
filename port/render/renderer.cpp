@@ -1846,7 +1846,9 @@ void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFet
   glReadPixels(rx, ry, tg->w, tg->h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());  // LEVE_OK: readback da luminância (exposição), ≤16 texels por Resolve
   const uint32_t alignedW = (t.width + 31) & ~31u, alignedH = (t.height + 31) & ~31u;
   const uint32_t span = std::max(4096u, alignedW * alignedH * 4);
-  uint8_t* dst = const_cast<uint8_t*>(Physical(addr, span));
+  // endereço do fetch está na faixa virtual 0xE0000000+ (o ponteiro do Lock da CPU é o mesmo, FEC21000): o físico
+  // tem +0x1000 nessa faixa (PhysicalOf, mesma regra dos index buffers). Sem isso a CPU lia 4 KB adiante (zeros).
+  uint8_t* dst = const_cast<uint8_t*>(Physical(PhysicalOf(addr), span));
   if (!dst) return;
   for (uint32_t y = 0; y < t.height; ++y) {
     int32_t rowBase = xenos::TiledOuter(int32_t(y), int32_t(alignedW), 2);
@@ -1857,6 +1859,8 @@ void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFet
       const uint8_t* p = &px[(size_t(sy) * tg->w + sx) * 4];
       // A8R8G8B8 como a CPU do jogo lê (D1, 825A3668): bytes A, R, G, B
       uint8_t e[4] = {p[3], p[0], p[1], p[2]};
+      static const char* force = std::getenv("NIER_READBACK_FORCE");  // diagnóstico: AARRGGBB fixo
+      if (force) { uint32_t v = uint32_t(std::strtoul(force, nullptr, 16)); e[0] = uint8_t(v >> 24); e[1] = uint8_t(v >> 16); e[2] = uint8_t(v >> 8); e[3] = uint8_t(v); }
       std::memcpy(dst + off, e, 4);
     }
   }
