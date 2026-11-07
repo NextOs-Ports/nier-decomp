@@ -58,3 +58,19 @@ não inventa recuperação para a desreferência nula do original fora desse dom
 formato/channels/flags, escolhas suportadas e rejeitadas, e filtro sob quatro
 modos FP. A prova é de resultados/ABI/memória; não substitui audição no jogo ou
 uma prova formal de estabilidade do filtro para coeficientes arbitrários.
+
+## Lote X1-9 — validação de formatos e seleção de processamento
+
+Quatro validadores (`824B6668`, `824B6738`, `824B6A00`, `824B6B30`) conferem
+layouts de PCM/ADPCM/XMA: bits significativos, alinhamento, taxa, coeficientes,
+streams, máscaras, blocos e limites de amostras. Preservam a aritmética guest
+inclusive somas de 32 bits nos limites. Os coeficientes ADPCM vêm da PE.
+Dois seletores (`824BBAF8`, `824BEBF0`) escolhem as funções guest existentes
+por representação, canais e flags; não executam esses processadores na prova.
+
+Todos passaram em 2.000 comparações. A prova complementar passou 81.285 casos:
+quatro cabeçalhos válidos, substituição de cada um dos primeiros 64 bytes
+por todos os 256 valores, 1.000 cabeçalhos aleatórios por layout e combinações
+dos seletores. Cada validador teve milhares de aceitações e rejeições iguais
+ao original. O número de streams aleatório é limitado a quatro para manter
+os buffers válidos. A prova não certifica buffers truncados/malformados.
