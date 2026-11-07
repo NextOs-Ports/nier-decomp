@@ -1,53 +1,8 @@
 // Pools de objetos com lista livre e lista em uso, reconstruídos do NieR.
 // Pool: +8 último em uso, +12 primeiro em uso, +20 primeiro livre, +24 quantidade em uso.
 // Cada nó guarda anterior/próximo/em-uso num deslocamento próprio do tipo.
-#include <nier/decomp.h>
-using namespace nier::guest;
+#include "pools_template.h"
 
-namespace {
-struct Link { uint32_t prev, next, used; };
-// Campos do pool: último em uso, primeiro em uso, primeiro livre, quantidade.
-struct PoolFields { uint32_t tail = 8, head = 12, free = 20, count = 24; };
-// O compilador emitiu duas ordens para a atualização final; a ordem importa quando
-// ponteiros se sobrepõem, então cada função usa a sua.
-enum class CountOrder { BeforeHead, AfterHead };
-
-// Tira o primeiro nó livre, marca em uso e o põe à frente da lista em uso.
-// Sem nó livre, devolve o primeiro em uso.
-uint32_t pool_take(uint8_t* base, uint32_t pool, const Link& l, const PoolFields& f = {},
-                   CountOrder order = CountOrder::BeforeHead) {
-  const uint32_t node = ld32(base, pool + f.free);
-  if (node == 0) return ld32(base, pool + f.head);
-  const uint32_t next_free = ld32(base, node + l.next);
-  st32(base, pool + f.free, next_free);
-  if (next_free != 0) st32(base, next_free + l.prev, 0);
-  st8(base, node + l.used, 1);
-  const uint32_t head = ld32(base, pool + f.head);
-  st32(base, node + l.prev, 0);
-  st32(base, node + l.next, head);
-  const uint32_t head_now = ld32(base, pool + f.head);
-  if (head_now != 0) {
-    st32(base, head_now + l.prev, node);
-  } else if (order == CountOrder::BeforeHead) {
-    const uint32_t count = ld32(base, pool + f.count) + 1;
-    st32(base, pool + f.tail, node);
-    st32(base, pool + f.head, node);
-    st32(base, pool + f.count, count);
-    return node;
-  } else {
-    st32(base, pool + f.tail, node);
-  }
-  if (order == CountOrder::BeforeHead) {
-    const uint32_t count = ld32(base, pool + f.count) + 1;
-    st32(base, pool + f.head, node);
-    st32(base, pool + f.count, count);
-  } else {
-    st32(base, pool + f.head, node);
-    st32(base, pool + f.count, ld32(base, pool + f.count) + 1);
-  }
-  return node;
-}
-}  // namespace
 
 // sub_821171A0 (128 bytes) — pool de nós de 348 bytes.
 NIER_DECOMP(sub_821171A0) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {340, 344, 348}); }
@@ -99,3 +54,37 @@ NIER_DECOMP(sub_82147B38) {
   ctx.r3.u64 = pool_take(base, ctx.r3.u32, {448, 452, 456}, {0x1C520, 0x1C524, 0x1C52C, 0x1C530}, CountOrder::AfterHead);
 }
 NIER_VERIFY_SPEC(sub_82147B38, 0x82147B38, "r3=const:0x40000000 @r3.0x1C52C=ptr @r3.0x1C524=ptr");
+
+// Instâncias do template de pool: montar a lista em uso a partir de um array.
+// sub_8214B350 (156 bytes) — ligações +4288/+4292, campos +4304/+4308/+4320.
+NIER_DECOMP(sub_8214B350) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 4288, 4292, {4304, 4308, 0, 4320}); }
+NIER_VERIFY_SPEC(sub_8214B350, 0x8214B350, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+// sub_82153758 (156 bytes) — ligações +144/+148, campos +5120/+5124/+5136.
+NIER_DECOMP(sub_82153758) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 144, 148, {5120, 5124, 0, 5136}); }
+NIER_VERIFY_SPEC(sub_82153758, 0x82153758, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+// sub_821548F8 (156 bytes) — ligações +144/+148, campos +20480/+20484/+20496.
+NIER_DECOMP(sub_821548F8) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 144, 148, {20480, 20484, 0, 20496}); }
+NIER_VERIFY_SPEC(sub_821548F8, 0x821548F8, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+// sub_82156D88 (156 bytes) — ligações +176/+180, campos +192/+196/+208.
+NIER_DECOMP(sub_82156D88) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 176, 180, {192, 196, 0, 208}); }
+NIER_VERIFY_SPEC(sub_82156D88, 0x82156D88, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+// sub_82158440 (156 bytes) — ligações +176/+180, campos +768/+772/+784.
+NIER_DECOMP(sub_82158440) { build_used(base, ctx.r3.u32, ctx.r4.u32, static_cast<int32_t>(ctx.r5.u32), 176, 180, {768, 772, 0, 784}); }
+NIER_VERIFY_SPEC(sub_82158440, 0x82158440, "r3=ptr r4=ptr r5=range:1..6 @r4.0=ptr @r4.4=ptr @r4.8=ptr @r4.12=ptr @r4.16=ptr @r4.20=ptr");
+
+// Instâncias do template de pool: tirar um nó livre.
+// sub_821538D0 (128 bytes)
+NIER_DECOMP(sub_821538D0) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {144, 148, 152}, {5120, 5124, 5132, 5136}); }
+NIER_VERIFY_SPEC(sub_821538D0, 0x821538D0, "r3=ptr @r3.5132=ptr @r3.5124=ptr");
+// sub_82154A70 (128 bytes)
+NIER_DECOMP(sub_82154A70) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {144, 148, 152}, {20480, 20484, 20492, 20496}); }
+NIER_VERIFY_SPEC(sub_82154A70, 0x82154A70, "r3=ptr @r3.20492=ptr @r3.20484=ptr");
+// sub_82155C60 (164 bytes) — contagem depois da cabeça.
+NIER_DECOMP(sub_82155C60) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {144, 148, 152}, {0xC800, 0xC804, 0xC80C, 0xC810}, CountOrder::AfterHead); }
+NIER_VERIFY_SPEC(sub_82155C60, 0x82155C60, "r3=ptr @r3.0xC80C=ptr @r3.0xC804=ptr");
+// sub_82156F20 (128 bytes)
+NIER_DECOMP(sub_82156F20) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {176, 180, 184}, {192, 196, 204, 208}); }
+NIER_VERIFY_SPEC(sub_82156F20, 0x82156F20, "r3=ptr @r3.204=ptr @r3.196=ptr");
+// sub_82158608 (128 bytes)
+NIER_DECOMP(sub_82158608) { ctx.r3.u64 = pool_take(base, ctx.r3.u32, {176, 180, 184}, {768, 772, 780, 784}); }
+NIER_VERIFY_SPEC(sub_82158608, 0x82158608, "r3=ptr @r3.780=ptr @r3.772=ptr");

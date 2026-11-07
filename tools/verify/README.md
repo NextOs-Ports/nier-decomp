@@ -42,3 +42,7 @@ tools/verify/run_all.sh <build> <default.pe> run.json 8
 python3 tools/verify/apply_results.py run.json
 python3 tools/progress.py --snapshot && python3 tools/progress.py --check
 ```
+
+## Instâncias de template
+
+`tools/decomp/gen_pool_instances.py` localiza as instâncias do template de pool (reconstruído à mão em `src/decomp/game/pools_template.h`) comparando a estrutura das instruções, sem os imediatos, com as três formas de referência. Ele gera `src/decomp/game/pool_instances.cpp` com os deslocamentos de cada instância. Cada uma é provada individualmente pelo comparador; uma instância que divergir reprova como qualquer outra função.
