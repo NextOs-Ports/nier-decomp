@@ -166,6 +166,7 @@ struct Target {
   // (sharedFrom/sharedFrame); mantém os próprios recursos (nada recriado por quadro na Mali).
   uint64_t sharedFrom = 0, sharedFrame = ~0ull;
   uint64_t lastCopy = 0;  // destino que já recebeu cópia deste conteúdo (Resolve repetido referencia, não copia)
+  uint64_t whiteFrame = ~0ull;  // quadro em que foi limpo em branco (recepção de sombra pulada)
 };
 std::map<uint64_t, Target> g_targets;
 std::map<uint64_t, Target> g_resolved;
@@ -188,6 +189,11 @@ struct GlCache {
 GlCache g_gl;
 GLint g_vsUniformVectors = 256;  // medido no init (Mali-450: 256)
 void InvalidateGl() { g_gl = GlCache{}; }
+// Medição do "desenho" (CPU dentro de glDrawElements no driver Mali): o que cada janela enviou
+uint64_t g_vec4Sent = 0, g_vtVec4Sent = 0, g_indicesDrawn = 0, g_programsLinked = 0, g_programSwitches = 0;
+uint64_t g_idxByClass[5] = {}, g_drawsByClass[5] = {}, g_skippedPrepass = 0, g_skippedShadow = 0, g_skippedReceive = 0;
+bool g_mali = false;
+bool g_skipPrepass = false, g_skipShadow = false, g_sortByProgram = false;
 uint32_t g_fboBinds = 0;  // por janela de perfil (troca de alvo = recarga/gravação de tiles na Mali)
 void BindFbo(GLuint id) { if (g_gl.fbo != id) { g_gl.fbo = id; ++g_fboBinds; glBindFramebuffer(GL_FRAMEBUFFER, id); } }
 // GL_EXT_discard_framebuffer: ao fechar um passe, a profundidade/estêncil não precisa voltar para a memória.
@@ -201,7 +207,7 @@ void DiscardDepth(GLuint fbo, GLuint depth) {
   g_discard(GL_FRAMEBUFFER, 2, att);
   ++g_discards;
 }
-void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; glUseProgram(id); } }
+void UseProgram(GLuint id) { if (g_gl.program != id) { g_gl.program = id; ++g_programSwitches; glUseProgram(id); } }
 void ActiveUnit(int unit) { if (g_gl.unit != unit) { g_gl.unit = unit; glActiveTexture(GL_TEXTURE0 + unit); } }
 void BindTexture(int unit, GLuint id) { if (g_gl.tex[unit] != id) { ActiveUnit(unit); g_gl.tex[unit] = id; glBindTexture(GL_TEXTURE_2D, id); } }
 void SetAttribs(uint32_t count) {
@@ -595,7 +601,8 @@ struct Program {
 std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs, std::vector<std::pair<int, int>>& slots) {
   std::string out = src;
   int budget = int(g_vsUniformVectors) - int(vs->constMap.size()) - 24;
-  int k = std::clamp(budget, 32, 1024);  // Mali-450: ~220 (55 ossos); host: 1024
+  static int capK = std::getenv("NIER_VT_K") ? std::atoi(std::getenv("NIER_VT_K")) : 1024;  // emular a Mali no PC: NIER_VT_K=220
+  int k = std::clamp(std::min(budget, capK), 32, 1024);  // Mali-450: ~220 (55 ossos); host: 1024
   for (int t = 0; t < 32; ++t) {
     if (!(vs->textureMask & (1u << t))) continue;
     std::string n = std::to_string(t);
@@ -603,7 +610,7 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
     size_t at = out.find(stub);
     if (at == std::string::npos) continue;
     std::string repl = "uniform vec4 VT" + n + "[" + std::to_string(k) + "];\nuniform vec2 VT" + n + "_p;\n"
-      "vec4 nx_sample" + n + "(vec2 uv) { int i = int(floor(uv.x * VT" + n + "_p.x + 0.001)) - int(VT" + n + "_p.y); i = nx_clamp_int(i, 0, " + std::to_string(k - 1) + "); return VT" + n + "[i]; }\n";
+      "vec4 nx_sample" + n + "(vec2 uv) { return VT" + n + "[int(clamp(uv.x * VT" + n + "_p.x + 0.001 - VT" + n + "_p.y, 0.0, " + std::to_string(k - 1) + ".0))]; }\n";
     out.replace(at, stub.size(), repl);
     slots.push_back({t, k});
   }
@@ -662,6 +669,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   p.id = glCreateProgram();
   glAttachShader(p.id, v); glAttachShader(p.id, f);
   for (uint32_t i = 0; i < vs->inputs.size() && i < kMaxInputs; ++i) glBindAttribLocation(p.id, i, ("a" + std::to_string(i)).c_str());
+  ++g_programsLinked;
   glLinkProgram(p.id);  // LEVE_OK: ligar só na 1ª vez do programa (cache g_programs)
   glDeleteShader(v); glDeleteShader(f);
   GLint ok = 0;
@@ -732,11 +740,13 @@ void UploadConstants(GLint location, int count, const uint8_t* bank, const Guest
     if (first == n) return;
     while (lastIdx > first && std::memcmp(&last[(lastIdx - 1) * 4], &g_constants[(lastIdx - 1) * 4], 16) == 0) --lastIdx;
     std::memcpy(&last[first * 4], &g_constants[first * 4], (lastIdx - first) * 16);
-    if (sequential) { glUniform4fv(location + GLint(first), GLsizei(lastIdx - first), &g_constants[first * 4]); return; }
+    if (sequential) { g_vec4Sent += lastIdx - first; glUniform4fv(location + GLint(first), GLsizei(lastIdx - first), &g_constants[first * 4]); return; }
+    g_vec4Sent += n;
     glUniform4fv(location, GLsizei(n), g_constants.data());
     return;
   }
   last = g_constants;
+  g_vec4Sent += n;
   glUniform4fv(location, GLsizei(n), g_constants.data());
 }
 
@@ -779,7 +789,9 @@ void ApplyFixedState(const uint8_t* state) {
   }
   if (!v || depth != g_gl.depth) {
     g_gl.depth = depth;
-    if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + ((depth >> 4) & 7)); } else glDisable(GL_DEPTH_TEST);
+    uint32_t func = (depth >> 4) & 7;
+    if (g_skipPrepass && func == 2) func = 3;  // sem pré-passe de profundidade: EQUAL vira LEQUAL
+    if (depth & 2) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_NEVER + func); } else glDisable(GL_DEPTH_TEST);
     glDepthMask((depth & 4) ? GL_TRUE : GL_FALSE);
   }
   if (!v || mode != g_gl.mode) {
@@ -890,7 +902,58 @@ bool g_bufferAuditReference = false; // render-thread-only diagnostic
 // Paleta de ossos para o VS: lê a textura float4 1024x1 (fmt 38) da memória do guest e envia só a janela de
 // texels [4*osso_min, 4*osso_max+4) que o desenho usa (ossos = atributo inteiro 8_8_8_8 do VS).
 std::unordered_map<uint64_t, std::pair<int, int>> g_boneRange;  // serial do atributo -> (min, max)
+// Remapeamento de ossos por malha (Mali: ~55 ossos cabem): os índices únicos viram slots 0..n-1, o atributo é
+// reescrito uma vez por malha (payload próprio, VBO em cache pelo X1) e só os ossos usados vão para VT<t>.
+struct BoneRemap { std::vector<int> bones; uint8_t slotOf[256]; buffers::Ref payload; };
+std::unordered_map<uint64_t, BoneRemap> g_boneRemap;  // serial do atributo original -> remapeamento
+buffers::Ref g_drawRemap[kMaxInputs];                 // por desenho: payload remapeado a ligar no lugar do original
+const BoneRemap* BoneRemapFor(const buffers::Ref& data, uint32_t vertexCount) {
+  if (!data || data->layout.type != GL_UNSIGNED_BYTE || data->layout.components != 4 || data->layout.normalized) return nullptr;
+  auto it = g_boneRemap.find(data->serial);
+  if (it != g_boneRemap.end()) return &it->second;
+  BoneRemap r{};
+  bool used[256] = {};
+  size_t n = std::min<size_t>(size_t(vertexCount) * 4, data->bytes.size());
+  for (size_t i = 0; i < n; ++i) used[data->bytes[i]] = true;
+  for (int b = 0; b < 256; ++b) if (used[b]) { r.slotOf[b] = uint8_t(r.bones.size()); r.bones.push_back(b); }
+  auto pl = std::make_shared<buffers::Payload>();
+  pl->serial = data->serial ^ 0x426F6E65A5A5A5A5ull; pl->sample = data->sample; pl->input = data->input; pl->endian = data->endian;
+  pl->count = data->count; pl->layout = data->layout; pl->raw = data->raw; pl->bytes = data->bytes;
+  pl->cacheable.store(true);
+  for (size_t i = 0; i < pl->bytes.size(); ++i) pl->bytes[i] = r.slotOf[pl->bytes[i]];
+  r.payload = pl;
+  return &(g_boneRemap[data->serial] = std::move(r));
+}
 void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
+  for (auto& r : g_drawRemap) r.reset();
+  // 1) remapeamento compacto (ossos únicos da malha cabem em k/4 slots)
+  if (p.vtf.size() == 1) {
+    const auto& vt = p.vtf[0];
+    for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
+      const auto& in = c.vs->inputs[i];
+      if (in.format != 6 || !in.isInteger) continue;
+      const BoneRemap* rm = BoneRemapFor(c.vertexData[i], c.vertexCount);
+      if (!rm) break;
+      int nb = int(rm->bones.size());
+      if (GlProfile()) { static std::set<uint64_t> seen; if (seen.insert(c.vertexData[i]->serial).second) std::fprintf(stderr, "[nier-perfil] malha com ossos: %d únicos (%s em %d texels)\n", nb, 4 * nb <= vt.k ? "cabem" : "NÃO cabem", vt.k); }
+      if (4 * nb > vt.k) break;  // não cabe: cai na janela min..max abaixo
+      const uint8_t* fetch = Field(state, kFetchConstants + 24 * vt.slot);
+      auto t = xenos::DecodeFetch(fetch);
+      if (t.format != xenos::k32323232Float || t.height != 1 || t.tiled) break;
+      static std::vector<float> vals; vals.resize(size_t(nb) * 16);
+      bool ok = true;
+      for (int j = 0; j < nb && ok; ++j) {
+        const uint8_t* src = Physical(t.base + uint32_t(rm->bones[j]) * 64, 64);
+        if (!src) { ok = false; break; }
+        for (int k = 0; k < 16; ++k) { uint8_t e[4]; std::memcpy(e, src + 4 * k, 4); xenos::Swap(e, 4, t.endian); std::memcpy(&vals[size_t(j) * 16 + k], e, 4); }
+      }
+      if (!ok) break;
+      if (vt.loc >= 0) { g_vtVec4Sent += uint64_t(nb) * 4; glUniform4fv(vt.loc, nb * 4, vals.data()); }
+      if (vt.params >= 0) glUniform2f(vt.params, float(t.width), 0.0f);
+      g_drawRemap[i] = rm->payload;
+      return;
+    }
+  }
   int bmin = 0, bmax = -1;
   for (uint32_t i = 0; i < c.inputCount && i < c.vs->inputs.size(); ++i) {
     const auto& in = c.vs->inputs[i];
@@ -933,7 +996,7 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
       uint8_t e[4]; std::memcpy(e, src + 4 * k, 4); xenos::Swap(e, 4, t.endian);
       std::memcpy(&vals[k], e, 4);
     }
-    if (vt.loc >= 0) glUniform4fv(vt.loc, n, vals.data());
+    if (vt.loc >= 0) { g_vtVec4Sent += uint64_t(n); glUniform4fv(vt.loc, n, vals.data()); }
     if (vt.params >= 0) glUniform2f(vt.params, float(t.width), float(base));
   }
 }
@@ -990,10 +1053,10 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
     const auto& stream = g_streamSlots[g_frames.load() % g_streamSlots.size()];
     bool streamBound = false;
     for (uint32_t i = 0; i < c.inputCount; ++i) {
-      const auto& data = c.vertexData[i];
+      const auto& data = g_drawRemap[i] ? g_drawRemap[i] : c.vertexData[i];
       auto layout = data ? data->layout : buffers::Layout{};
       size_t offset = 0;
-      if (c.residentInputs & (1u << i)) { BindSnapshot(GL_ARRAY_BUFFER, data); streamBound = false; }
+      if (g_drawRemap[i] || (c.residentInputs & (1u << i))) { BindSnapshot(GL_ARRAY_BUFFER, data); streamBound = false; }
       else {
         if (!streamBound) glBindBuffer(GL_ARRAY_BUFFER, stream.vertex);
         streamBound = true; offset = c.streamInputs[i];
@@ -1025,6 +1088,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   auto t3 = Clock::now();
   g_pBuffers += Ms(t2, t3);
+  g_indicesDrawn += c.indexCount;
   glDrawElements(GL_TRIANGLES, GLsizei(c.indexCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   g_pDraw += Ms(t3, Clock::now());
 }
@@ -1047,6 +1111,12 @@ std::vector<uint8_t> g_resolveDirect;
 // Resolve de tela cheia seguido de mais desenho no MESMO alvo (nuvens/partículas sobre a cena resolvida): o alvo
 // precisa manter o conteúdo, então esse Resolve copia por blit (1 passe) em vez de trocar o FBO e limpar.
 std::vector<uint8_t> g_resolveKeep;
+// C1-G3 (desempenho do desenho na Mali): classe de cada desenho e ordem de execução do quadro.
+// 0 cor, 1 sombra (alvo só com Resolve de profundidade), 2 pré-passe de profundidade (máscara de cor 0 +
+// escrita de profundidade num alvo de cor), 3 pós (UP / passe direto).
+std::vector<uint8_t> g_drawClass;
+std::vector<size_t> g_order;
+
 void PlanDirectPasses(const Frame& f) {
   g_redirects.assign(f.cmds.size(), Redirect{});
   g_resolveDirect.assign(f.cmds.size(), 0);
@@ -1060,7 +1130,8 @@ void PlanDirectPasses(const Frame& f) {
       if (n.kind == Kind::Skip) continue;
       if (TargetKeyOf(f.blob.data() + n.state) != srcKey) continue;
       if (n.kind == Kind::Resolve && ((n.flags & 4) || !(n.flags & 0x300))) continue;  // profundidade ou 2º destino da mesma cena
-      if (n.kind == Kind::Draw) g_resolveKeep[i] = 1;  // continua desenhando por cima: manter conteúdo
+      static bool noKeep = std::getenv("NIER_NO_KEEP") != nullptr;  // A/B
+      if (n.kind == Kind::Draw && !noKeep) g_resolveKeep[i] = 1;  // continua desenhando por cima: manter conteúdo
       break;
     }
   }
@@ -1103,7 +1174,7 @@ void PlanDirectPasses(const Frame& f) {
         int tw = std::max(1, int(t.width * s)), th = std::max(1, int(t.height * s));
         // Níveis minúsculos da cadeia de bloom (< NIER_BLOOM_MIN, padrão 32) em quadros alternados: o destino
         // guarda o conteúdo do quadro anterior (brilho largo muda devagar); poupa trocas de alvo na Mali.
-        static int bloomMin = std::getenv("NIER_BLOOM_MIN") ? std::atoi(std::getenv("NIER_BLOOM_MIN")) : 32;
+        static int bloomMin = std::getenv("NIER_BLOOM_MIN") ? std::atoi(std::getenv("NIER_BLOOM_MIN")) : 0;  // padrão desligado: deixava rastro (ghosting) de objetos brilhantes
         bool skipThisFrame = int(t.width) < bloomMin && (g_frames.load() & 1) && g_resolved.count(key) && g_resolved[key].texture;
         for (size_t k = 0; k < draws.size(); ++k) g_redirects[draws[k]] = Redirect{key, tw, th, k == 0, skipThisFrame};
         g_resolveDirect[i] = 1;
@@ -1112,6 +1183,52 @@ void PlanDirectPasses(const Frame& f) {
       }
     }
     draws.clear();
+  }
+  // ---- classes de desenho e ordem de execução
+  g_drawClass.assign(f.cmds.size(), 0);
+  std::map<uint64_t, uint8_t> keyKind;  // bit 1 = Resolve de cor, bit 2 = Resolve de profundidade
+  for (const Cmd& c : f.cmds)
+    if (c.kind == Kind::Resolve && c.fetch != SIZE_MAX) keyKind[TargetKeyOf(f.blob.data() + c.state)] |= (c.flags & 4) ? 2 : 1;
+  for (size_t i = 0; i < f.cmds.size(); ++i) {
+    const Cmd& c = f.cmds[i];
+    if (c.kind != Kind::Draw) continue;
+    const uint8_t* st = f.blob.data() + c.state;
+    uint64_t key = TargetKeyOf(st);
+    uint32_t mask = BE32(Field(st, 0x28DC)) & 15, depth = BE32(Field(st, kDepthControl));
+    uint8_t cls = 0;
+    bool samplesShadowMap = false;  // PS amostra o mapa de sombra (fmt 22, 1024x1024): passe de recepção de sombra
+    if (c.ps) for (int t = 0; t < 32 && !samplesShadowMap; ++t)
+      if (c.ps->textureMask & (1u << t)) { auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t)); samplesShadowMap = tf.format == xenos::k248 && tf.width == tf.height && tf.width >= 1024; }
+    if (!c.up && samplesShadowMap) cls = 4;
+    else if (c.up || g_redirects[i].key) cls = 3;
+    else if (keyKind.count(key) && keyKind[key] == 2) cls = 1;
+    else if (mask == 0 && (depth & 4)) cls = 2;
+    g_drawClass[i] = cls;
+  }
+  g_order.clear(); g_order.reserve(f.cmds.size());
+  for (size_t i = 0; i < f.cmds.size(); ++i) g_order.push_back(i);
+  if (g_sortByProgram) {
+    // corridas de desenhos opacos consecutivos (sem mistura, teste e escrita de profundidade, sem alpha test, mesmo
+    // alvo, classe cor) ordenadas por programa: a ordem entre opacos só muda empates de profundidade
+    auto opaque = [&](size_t i) {
+      const Cmd& c = f.cmds[i];
+      if (c.kind != Kind::Draw || g_drawClass[i] != 0) return false;
+      const uint8_t* st = f.blob.data() + c.state;
+      uint32_t depth = BE32(Field(st, kDepthControl));
+      return BE32(Field(st, kBlendControl)) == 0x00010001 && (depth & 6) == 6 && !(BE32(Field(st, kColorControl)) & 8);
+    };
+    for (size_t i = 0; i < g_order.size();) {
+      if (!opaque(i)) { ++i; continue; }
+      uint64_t key = TargetKeyOf(f.blob.data() + f.cmds[i].state);
+      size_t j = i + 1;
+      while (j < g_order.size() && opaque(j) && TargetKeyOf(f.blob.data() + f.cmds[j].state) == key) ++j;
+      if (j - i > 2) std::stable_sort(g_order.begin() + i, g_order.begin() + j, [&](size_t a, size_t b) {
+        const Cmd& ca = f.cmds[a]; const Cmd& cb = f.cmds[b];
+        if (ca.vs != cb.vs) return ca.vs < cb.vs;
+        return ca.ps < cb.ps;
+      });
+      i = j;
+    }
   }
 }
 void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false) {
@@ -1164,7 +1281,8 @@ void ReplayResolve(const Frame& f, const Cmd& c, bool direct, bool keep = false)
         std::swap(src.depth, dst.depth);
         dst.from3D = src.drew3DFrame == g_frames.load();
         src.holder = key;
-        src.clearedFrame = ~0ull;  // o próximo desenho no alvo limpa: entrar sem limpar recarrega os tiles
+        static bool noClear = std::getenv("NIER_NO_CLEAR_ALIAS") != nullptr;  // A/B: comportamento antigo (conteúdo antigo do ping-pong)
+        if (!noClear) src.clearedFrame = ~0ull;  // o próximo desenho no alvo limpa: entrar sem limpar recarrega os tiles
         DiscardDepth(dst.fbo, dst.depth);
         ++g_aliases;
       } else if (src.holder && src.holder != key) {
@@ -1368,6 +1486,25 @@ void RenderThread() {
   GLint vsUniforms = 0, fsUniforms = 0;
   glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &vsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   g_vsUniformVectors = vsUniforms > 0 ? vsUniforms : 256;
+  {
+    const char* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));  // LEVE_OK: inicialização
+    bool mali = renderer && std::strstr(renderer, "Mali");
+    g_mali = mali;
+    // C1-G3: na Mali (tiler) o pré-passe de profundidade só dobra o custo de vértice; mapa de sombra desligado
+    // (efeito pode reduzir, regra do dono); desenhos opacos ordenados por programa. NIER_PREPASS=1 / NIER_SHADOW=1 /
+    // NIER_NO_SORT=1 invertem; no PC NIER_MALI_LIKE=1 aplica os mesmos padrões para prova.
+    bool maliLike = mali || std::getenv("NIER_MALI_LIKE");
+    g_skipPrepass = maliLike && !std::getenv("NIER_PREPASS");
+    g_skipShadow = maliLike && !std::getenv("NIER_SHADOW");
+    g_sortByProgram = maliLike && !std::getenv("NIER_NO_SORT");
+    // Ordem do dono (07/11): na Mali a resolução interna padrão é 640x360 (nunca abaixo de 640 de largura);
+    // NIER_RENDER_WIDTH continua valendo quando dado. glDiscardFramebufferEXT na Mali só com NIER_DISCARD=1
+    // (F13: quadrados pretos e retângulo de quadro antigo = conteúdo indefinido pelo driver).
+    if (mali && !std::getenv("NIER_RENDER_WIDTH")) { g_config.renderWidth = 640; g_config.renderHeight = 360; }
+    g_config.renderWidth = std::max(g_config.renderWidth, 640);
+    g_config.renderHeight = std::max(g_config.renderHeight, g_config.renderWidth * 9 / 16);
+    if (mali && !std::getenv("NIER_DISCARD")) g_discard = nullptr;
+  }
   glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &fsUniforms);  // LEVE_OK: inicialização da thread de render, uma vez
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
@@ -1398,11 +1535,25 @@ void RenderThread() {
     auto tr = Clock::now();
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
-    for (size_t i = 0; i < work.cmds.size(); ++i) {
+    for (size_t oi = 0; oi < g_order.size(); ++oi) {
+      size_t i = g_order[oi];
       const Cmd& c = work.cmds[i];
       if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
       else if (c.kind == Kind::Skip) Skip(c.skipReason);
-      else { ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]); }
+      else {
+        uint8_t cls = g_drawClass[i];
+        if (cls == 2 && g_skipPrepass) { ++g_skippedPrepass; continue; }
+        if (cls == 1 && g_skipShadow) { ++g_skippedShadow; continue; }
+        if (cls == 4 && g_skipShadow) {
+          // recepção de sombra sem mapa de sombra: o destino (máscara) fica branco = tudo iluminado
+          ++g_skippedReceive;
+          const Redirect& rd = g_redirects[i];
+          if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
+          continue;
+        }
+        g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
+        ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
+      }
     }
     g_copiesSkipped += uint32_t(g_pendingCopies.size());
     g_pendingCopies.clear();
@@ -1434,9 +1585,12 @@ void RenderThread() {
         std::fprintf(stderr, "[nier-gl] motivos acumulados%s\n", line.c_str());
       }
       if (GlProfile())
-        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u) glFinish(GPU) %.2f\n",
-                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_pFinish / double(W));
-      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0;
+        std::fprintf(stderr, "[nier-perfil] índices/quadro por passe: cor %.0f (%.1f desenhos), sombra %.0f (%.1f), pré-passe prof. %.0f (%.1f), pós %.0f (%.1f), recepção de sombra %.0f (%.1f); pulados na janela: pré-passe %llu, sombra %llu, recepção %llu\n",
+                     g_idxByClass[0] / double(W), g_drawsByClass[0] / double(W), g_idxByClass[1] / double(W), g_drawsByClass[1] / double(W), g_idxByClass[2] / double(W), g_drawsByClass[2] / double(W), g_idxByClass[3] / double(W), g_drawsByClass[3] / double(W), g_idxByClass[4] / double(W), g_drawsByClass[4] / double(W), (unsigned long long)g_skippedPrepass, (unsigned long long)g_skippedShadow, (unsigned long long)g_skippedReceive);
+      if (GlProfile())
+        std::fprintf(stderr, "[nier-perfil] ms/quadro: alvo+limpeza %.2f estado+programa+texturas %.2f buffers %.2f desenho %.2f resolve %.2f (%.1f/quadro, cópias pedidas %.1f feitas %.1f evitadas %.1f, alias %.1f, passes diretos %.1f com %.1f desenhos; binds de FBO %.1f, discards %.1f, alvos criados %u; por quadro: vec4 VC/PC %.0f, vec4 ossos %.0f, índices %.0f, trocas de programa %.1f, programas ligados %llu) glFinish(GPU) %.2f\n",
+                     g_pTarget / double(W), g_pState / double(W), g_pBuffers / double(W), g_pDraw / double(W), g_pResolve / double(W), g_resolves / double(W), g_resolveCopies / double(W), g_copiesDone / double(W), g_copiesSkipped / double(W), g_aliases / double(W), g_directPasses / double(W), g_directDraws / double(W), g_fboBinds / double(W), g_discards / double(W), g_targetCreates, g_vec4Sent / double(W), g_vtVec4Sent / double(W), g_indicesDrawn / double(W), g_programSwitches / double(W), (unsigned long long)g_programsLinked, g_pFinish / double(W));
+      g_copiesDone = g_copiesSkipped = 0; g_aliases = g_directPasses = g_directDraws = 0; g_fboBinds = g_discards = 0; g_targetCreates = 0; for (auto& v : g_idxByClass) v = 0; for (auto& v : g_drawsByClass) v = 0; g_skippedPrepass = g_skippedShadow = g_skippedReceive = 0; g_vec4Sent = g_vtVec4Sent = g_indicesDrawn = g_programsLinked = g_programSwitches = 0;
       std::fprintf(stderr, "[nier-buffers] frame %llu CPU hits %llu misses %llu; GL hits %llu uploads %llu bytes %llu resident %zu\n",
                    (unsigned long long)n, (unsigned long long)g_bufferSnapshots.hits.load(),
                    (unsigned long long)g_bufferSnapshots.misses.load(), (unsigned long long)g_bufferHits,
