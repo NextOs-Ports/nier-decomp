@@ -10,10 +10,15 @@ done
 wait
 python3 - "$tmp" "$OUT" "$N" <<'PY'
 import json, sys, glob
+import os
 tmp, out, n = sys.argv[1], sys.argv[2], int(sys.argv[3])
 res = []; trials = None
 for i in range(n):
     d = json.load(open(f'{tmp}/{i}.json')); res += d['results']; trials = d['trials']
+# caminhos relativos ao repo (src/decomp/...), para o apply_results em qualquer checkout
+for r in res:
+    k = r['file'].find('/src/decomp/')
+    if k >= 0: r['file'] = r['file'][k + 1:]
 json.dump({'tool': 'nierverify', 'trials': trials, 'results': res, 'failed': sum(not r['pass'] for r in res)}, open(out, 'w'), indent=1)
 print(f"{len(res)} funções, {sum(r['pass'] for r in res)} aprovadas")
 slow = [r for r in res if r.get('time_pass') is False and r['pass'] is False and 'mais lenta' in r['error']]

@@ -27,7 +27,7 @@ for r in run['results']:
     addr = int(r['address'], 16)
     f = by_addr.get(addr)
     if f is None: sys.exit(f'{r["address"]} não está no inventário')
-    src = pathlib.Path(r['file']).resolve().relative_to(root).as_posix()
+    src = r['file'] if not r['file'].startswith('/') else pathlib.Path(r['file']).resolve().relative_to(root).as_posix()
     rec = {'name': r['name'], 'address': r['address'], 'size': f['size'], 'source': src,
            'trials': run['trials'], 'equal': r['equal'], 'both_faulted': r['both_faulted'],
            'pass': r['pass'], 'error': r['error'],

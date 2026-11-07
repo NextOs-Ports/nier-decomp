@@ -60,10 +60,13 @@ NIER_DECOMP(sub_824C1A78) {
     const uint32_t p=ctx.r3.u32,frames=ctx.r5.u16,output=ctx.r4.u32;
     const float scale=float(int32_t(slw(1,uint32_t(ld16(base,p+110))-1)));
     const float inverse=float(double(ldf(base,0x820007a4))/double(scale));
+    // Cabeçalho lido uma vez (a saída nunca se sobrepõe ao descritor); produto em float
+    // (float*float em double arredondado a float == produto em float).
+    const uint32_t channel_count=ld16(base,p+34),channels=ld32(base,p+320);
     uint32_t written=0;
-    for(uint32_t frame=0;frame<frames;++frame)for(uint32_t channel=0;channel<ld16(base,p+34);++channel) {
-        const uint32_t channels=ld32(base,p+320),source=ld32(base,channels+channel*1776+60);
-        stf(base,output+4*written++,float(double(ldf(base,source+frame*4))*double(inverse)));
+    for(uint32_t frame=0;frame<frames;++frame)for(uint32_t channel=0;channel<channel_count;++channel) {
+        const uint32_t source=ld32(base,channels+channel*1776+60);
+        stf(base,output+4*written++,ldf(base,source+frame*4)*inverse);
     }
     ctx.r3.u64=0;
 }
