@@ -21,3 +21,19 @@ Validação realizada sobre o inventário real com `tools/progress.py:calculate`
 faixas executáveis, ausência de sobreposição, tamanhos positivos, identidade
 SHA e estágios. O arquivo vai à caixa de mensagens do coordenador; este script
 não altera `progress/` nem regenera o painel compartilhado.
+
+## Perfil quente
+
+`export_hot_profile.py` lê `perf script -F comm,pid,tid,time,period,event,ip,sym,dso`
+obtido de `perf record -e cpu-clock:u -F 199 --call-graph dwarf,16384`.
+Recebe `--stacks`, `--inventory`, `--pid` e `--output`. O período da amostra é
+usado como peso em nanossegundos de CPU. A primeira frame determina tempo
+próprio; funções guest distintas na pilha recebem tempo inclusivo, sem dupla
+contagem de recursão/aliases dentro da mesma amostra. O denominador global é
+toda CPU user amostrada do PID, incluindo runtime; cada thread tem seu próprio
+denominador. Tempo inclusivo não deve ser somado entre funções.
+
+O ranking contém no máximo 300 funções realmente observadas por lista,
+ordenadas por tempo próprio e depois inclusivo. Funções não amostradas não
+são preenchidas com tempos inventados. O perfil de boot null no PC serve
+para priorização, não para declarar custo do gameplay ou da Mali.
