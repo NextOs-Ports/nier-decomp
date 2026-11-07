@@ -320,13 +320,17 @@ Target& CurrentTarget(const uint8_t* state) {
   if (t.w != w || t.h != h) CreateTarget(t, w, h, true);
   if ((key & 0x3FFF) > (g_mainTarget & 0x3FFF)) g_mainTarget = key;
   glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
-  // Profundidade: o ClearF do 9328 ainda não foi localizado; limpa na 1ª vez do alvo em cada quadro.
+  // O ClearF do 9328 ainda não foi localizado e os Resolve do jogo não pedem limpeza (flags 0/4):
+  // cor e profundidade são limpas na 1ª vez do alvo em cada quadro (sem isso, passes aditivos que
+  // realimentam a tela resolvida saturam para branco).
   if (t.clearedFrame != g_frames.load()) {
     t.clearedFrame = g_frames.load();
     glDisable(GL_SCISSOR_TEST);
     glDepthMask(GL_TRUE);
+    glColorMask(1, 1, 1, 1);
     glClearDepthf(1.0f);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
   }
   return t;
 }
@@ -708,8 +712,10 @@ void PresentToWindow() {
   }
   // NIER_GLES2_CAPTURE=<arquivo.ppm>: grava o quadro apresentado (a cada 3 s) para prova automatizada.
   if (const char* capture = std::getenv("NIER_GLES2_CAPTURE")) {
-    static Clock::time_point lastShot{};
-    if (Clock::now() - lastShot > std::chrono::seconds(3) && ww > 0 && wh > 0) {
+    // NIER_GLES2_CAPTURE_EVERY=<s> (padrão 3), contado a partir do 1º quadro apresentado.
+    static const int every = std::getenv("NIER_GLES2_CAPTURE_EVERY") ? std::max(1, std::atoi(std::getenv("NIER_GLES2_CAPTURE_EVERY"))) : 3;
+    static Clock::time_point lastShot = every > 3 ? Clock::now() : Clock::time_point{};
+    if (Clock::now() - lastShot > std::chrono::seconds(every) && ww > 0 && wh > 0) {
       lastShot = Clock::now();
       std::vector<uint8_t> px(size_t(ww) * wh * 4);
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -1047,7 +1053,7 @@ void RecordDrawUPImpl(uint32_t device, uint32_t primitive, uint32_t vertexCount,
 void RecordResolve(uint32_t device, uint32_t flags, const int32_t* rect, uint32_t destTexture, uint32_t clearColorArgb) {
   FlushPendingUP();
   const uint8_t* state = Virtual(device + kStateBegin, kStateSize);
-  if (!state || (flags & 0x70)) return;  // só cor; resolve de profundidade não é copiado
+  if (!state || (flags & 4)) return;  // D3DRESOLVE_DEPTHSTENCIL = 4 (rastro 07/11): profundidade não é copiada
   Cmd c{Kind::Resolve};
   c.flags = flags; c.argb = clearColorArgb;
   if (rect) { std::memcpy(c.rect, rect, sizeof c.rect); c.hasRect = true; }

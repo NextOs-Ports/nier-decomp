@@ -20,6 +20,8 @@ out = Path(sys.argv[2])
 script = sys.argv[3] if len(sys.argv) > 3 else ''
 capture = not (len(sys.argv) > 4 and sys.argv[4] == 'semcaptura')  # medição limpa de tempo
 profile = len(sys.argv) > 5 and sys.argv[5] == 'perfil'           # glFinish por quadro (distorce FPS)
+limit = int(sys.argv[6]) if len(sys.argv) > 6 else 55              # segundos do processo (F3 autorizada: 295)
+capture_every = sys.argv[7] if len(sys.argv) > 7 else '3'           # 270 = uma captura perto do fim
 out.mkdir(parents=True, exist_ok=True)
 locks = []
 for name in ['/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-team/locks/aparelho', '/tmp/nextos-device-test.lock']:
@@ -52,20 +54,22 @@ try:
     for name in ['nier', 'librexruntime.so', 'librexgpu-null.so']:
         run(['smbclient', '-N', '//' + host + '/roms', '-c', 'put "%s" "ports/nier-dev-c1/%s"' % (build / name, name)], timeout=180)
     ssh('chmod +x %s/nier; sha256sum %s/nier %s/librexruntime.so %s/librexgpu-null.so' % (remote, remote, remote, remote))
-    env = ('NIER_NATIVE_RENDER=1 ' + ('NIER_GL_PROFILE=1 ' if profile else '') + '%sNIER_GLES2_SHADERS=%s/run/shaders '
+    env = ('NIER_NATIVE_RENDER=1 NIER_TIMING_PROBE=1 NIER_GLES2_CAPTURE_EVERY=' + capture_every + ' ' + ('NIER_GL_PROFILE=1 ' if profile else '') + '%sNIER_GLES2_SHADERS=%s/run/shaders '
            'NIER_INPUT_SCRIPT="%s" LD_LIBRARY_PATH=%s' % ('NIER_GLES2_CAPTURE=%s/run/capturas ' % remote if capture else '', remote, script, remote))
-    sampler = ('( for i in $(seq 1 40); do sleep 2; p=$(pgrep -x nier) || break; '
-               'echo "$(date +%%s) $(grep -E \'VmRSS|VmHWM\' /proc/$p/status | tr -s \' \' | tr \'\\n\' \' \')"; done ) > ' + remote + '/run/rss.txt 2>&1 & ')
-    cmd = ('systemctl stop emustation; systemctl mask emustation; test -z "$(pgrep -x emulationstatio)"; ' + sampler +
-           'cd %s/run && %s flock -n /tmp/nextos-device-test.lock timeout -s TERM -k 5 55 %s/nier '
-           '--game_data_root=%s --user_data_root=%s/run/user --cache_root=%s/run/cache --gpu_plugin=null --headless '
-           '--log_file=%s/run/runtime.log --log_level=info > %s/run/console.log 2>&1; echo status=$?'
-           % (remote, env, remote, mnt, remote, remote, remote, remote))
-    ssh(cmd, check=False, timeout=75)
+    sampler = ('( for i in $(seq 1 160); do sleep 2; p=$(pgrep -x nier) || break; '
+               'echo "$(date +%s) $(grep -E \'VmRSS|VmHWM\' /proc/$p/status | tr -s \' \' | tr \'\\n\' \' \')"; done ) > ' + remote + '/run/rss.txt 2>&1 & ')
+    cmd = (f'systemctl stop emustation; systemctl mask emustation; test -z "$(pgrep -x emulationstatio)"; {sampler}'
+           f'cat /sys/class/thermal/thermal_zone0/temp > {remote}/run/temp-antes.txt; '
+           f'cd {remote}/run && {env} flock -n /tmp/nextos-device-test.lock timeout -s TERM -k 5 {limit} {remote}/nier '
+           f'--game_data_root={mnt} --user_data_root={remote}/run/user --cache_root={remote}/run/cache --gpu_plugin=null --headless '
+           f'--log_file={remote}/run/runtime.log --log_level=info > {remote}/run/console.log 2>&1; echo status=$?; '
+           f'cat /sys/class/thermal/thermal_zone0/temp > {remote}/run/temp-depois.txt')
+    print('COMANDO:', cmd[:900], flush=True)
+    ssh(cmd, check=False, timeout=limit + 30)
 finally:
     if mounted:
         ssh('test -z "$(pgrep -x nier)" && umount %s' % mnt, check=False, timeout=20)
     if exported:
         run(['sudo', '-n', 'exportfs', '-u', host + ':' + game], check=False)
     ssh('pgrep -x nier; awk \'$2=="%s" {print}\' /proc/mounts; systemctl is-active emustation; systemctl is-enabled emustation' % mnt, check=False)
-    run(['smbclient', '-N', '//' + host + '/roms', '-c', 'lcd "%s"; cd ports/nier-dev-c1/run; prompt OFF; recurse ON; mget console.log runtime.log rss.txt capturas shaders' % out], check=False, timeout=300)
+    run(['smbclient', '-N', '//' + host + '/roms', '-c', 'lcd "%s"; cd ports/nier-dev-c1/run; prompt OFF; recurse ON; mget console.log runtime.log rss.txt temp-antes.txt temp-depois.txt capturas shaders' % out], check=False, timeout=300)
