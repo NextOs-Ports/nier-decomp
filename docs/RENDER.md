@@ -176,7 +176,10 @@ O roteiro aceita `Ns:botão` (segundos desde o 1º quadro). Diagnósticos:
   - F4: roteiro por relógio, parou no diálogo "You have not selected a gamer profile… Continue without signing in?", que só existe no aparelho (sem perfil conectado no runtime ARM).
   - Medido nos menus: 23–37 ms/quadro, lógica 100,09% (Δt real), RSS 387–511 MB, até 76 °C, 0 shaders falhando. A cena 3D na Mali segue sem medição.
 
+- **F5 (07:15, DLL C5 do X1):** o perfil foi resolvido. A rodada parou em "No system data has been saved… Create a new file? Yes": a criação do save no ARM não conclui e a tela volta. Menus 25–37 ms/quadro, lógica 100,07%, RSS 386 MB, 63→76 °C.
+
 **Pendências.**
+0. (X1) Criação do save de sistema no aparelho; depois, mesmo roteiro (`roteiro-f4.txt`) para medir o 3D na Mali.
 1b. Primeira tela de gameplay estourada em branco (composição/pós-processamento).
 1. Faixas brancas nos menus desde que a composição passou a usar a tela resolvida (fundo do menu = tela anterior). O ClearF do 9328 ainda não foi localizado; a limpeza por quadro é heurística.
 2. Texturas de profundidade amostradas (formato 22) saem brancas: Resolve de profundidade ainda não é implementado.
