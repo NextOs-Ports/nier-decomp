@@ -2,6 +2,7 @@
 
 ## 2026-11-07
 
+- Lote 10 e lote 3 de bibliotecas: mais 5 pools de objetos (com as duas ordens de atualização do compilador), objeto estático local, e funções do XDK (último erro, timeout NT, troca atômica, filtro de exceção).
 - Lote 9: listas duplamente ligadas, inicialização de pools, checagens de vetor e outro gerador aleatório. O comparador agora injeta NaN, infinitos e zero com sinal, e a função de chance foi corrigida para a semântica exata do PowerPC com NaN.
 - Lote 8: acessores dos 3 slots (estado, flags, dados, double com fallback), fases da máquina de estados e pedido assíncrono. 129 funções verificadas.
 - Lote 7 e lote 2 de bibliotecas: luaO_int2fb, luaO_log2, luaO_rawequalObj, luaC_link e lua_sethook do Lua 5.1; construtores; funções de string ASCII/UTF-16, comparação e busca do CRT.
