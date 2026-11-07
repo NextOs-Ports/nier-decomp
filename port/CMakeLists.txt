@@ -13,6 +13,7 @@ include(cmake/rexglue.cmake)
 # Sources
 set(NIER_SOURCES
     src/main.cpp
+    src/cpu_profile.cpp
     src/timing_probe.cpp
     src/virtual_pad_probe.cpp
 )
@@ -24,6 +25,9 @@ else()
 endif()
 
 rexglue_setup_target(nier)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(nier PRIVATE rt)
+endif()
 
 # Renderizador GLES2 próprio (port/render, C1). Ver docs/RENDER.md.
 option(NIER_RENDER_GLES2 "Renderizador GLES2 nativo (ganchos do D3D 9328)" OFF)

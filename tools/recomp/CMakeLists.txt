@@ -191,3 +191,7 @@ if(NIER_PROFILE_RUNTIME)
   target_compile_definitions(nier_save_create_probe PRIVATE $<TARGET_PROPERTY:rex::runtime,INTERFACE_COMPILE_DEFINITIONS>)
   rexglue_apply_target_settings(nier_save_create_probe)
 endif()
+
+add_executable(nier_timer_queue_probe timer_queue_probe.cpp)
+target_link_libraries(nier_timer_queue_probe PRIVATE rex::runtime)
+rexglue_apply_target_settings(nier_timer_queue_probe)

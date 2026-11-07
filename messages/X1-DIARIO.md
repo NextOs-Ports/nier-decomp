@@ -31,3 +31,27 @@
 - F11Mali:menus186–271mscomanelSubData; PCnãoaprova buffers. Agora stagingCPUcompleto+1glBufferData(dados,STREAM_DRAW)porVBO/IBOantesdetodosdraws;rodízio3pares. SemSubDatadinâmico; STATICapós2quadrosmantido. Contadorconfirma2uploads/quadro; buffersincluicópia+upload.
 - PCapenasimagem/contadores:157draws3D/21alvos/16.000.896bytes,0diferenças,originaligual;rodada95sencerrada. Gatesglobal/incrementalOK. ARM64h4-upload/arm64/nier SHA1136e216e9dc12947262d93282999fee10d0196a767c1937d94b5c90e60b4ec7. AceiteMali(UI≤4,3D<21ms)aguardacoordenador.
 - CPUdraftcorrigido preservado emstash46abe590;16384bordas4modosFPpassaram,sem ganhoisoladoPC(10,589→10,640ns). Fora doELF entregue.
+
+## X1-H4 — aceite físico recebido (F12)
+- Coordenador aprovou o ELF 1136e216 no .164: menus 15–33 ms/quadro, buffers 0,1–4 ms; buffers 3D 7,9–12,4 ms. Meta final de 3 ms ainda não atingida, mas buffers deixaram de ser o gargalo principal. FPS permanece medido somente no aparelho.
+
+## X1-H5a — perfil para D1 e coletor ARM
+- Lista host pós-H4 atualizada em X1-H-hot.json e entregue no diretório compartilhado. D1 é dono da decomp; rascunho de feedback de áudio foi identificado como NÃO aprovado devido a NaNs sinalizantes e entregue separadamente.
+- Coletor opt-in: timers de CPU por thread, SIGPROF dirigido, handler apenas com atomics lock-free; JSON periódico e Build IDs. Informa threads bloqueadas, cobertura, overruns e perdas. Testes host/ARM-QEMU passaram; ELF incorreto foi recusado.
+- Base 7a7c9df integrada. ARM em h5-sampler/arm64, com DLL anterior para coleta inicial. Mesmo ELF pode usar a DLL TimerQueue candidata. Sem perf no aparelho; env padrão delay140/duração45/100Hz. Coordenador mantém corte ≤300s e envia JSON para simbolização. Recibo X1-H5-sampler.json.
+
+## X1-H5b — TimerQueue bloqueante
+- A fila usava spin até os deadlines. Patch passa a condition_variable e corrige a ordem dos argumentos nas duas esperas temporizadas da dependência. Prazos, recorrência e cancelamento preservados.
+- Host: 400 ms com timer de 1 ms consumiam 64,402 ms de CPU; agora 2,564 ms (-96,0%). Provas: 1200 timers concorrentes, prazo mais cedo, 399/400 callbacks periódicos, auto-cancelamento e cancelamento durante callback passaram. ARM/QEMU passou na correção. Não é medição de FPS.
+- DLL candidata ARM fc24bbed em h5-timer/arm64, junto ao mesmo ELF b5232912 do coletor. Baseline continua em h5-sampler/arm64 (DLL b79e167a). Prova host 3D bounded85s e smoke da base 7a7c9df bounded10s; aceite/FPS no .164 pendente do coordenador. Recibo X1-H5-timer.json.
+- Nova prioridade X1-I: imagem correta. Coleta ARM H5 segue com o coordenador; lista será atualizada quando o JSON chegar.
+
+## F15 — lista ARM entregue ao D1
+- ELF b5232912 e DLL b79e167a conferidos por Build ID; 45,100 s de parede, 99,488 s de CPU, 6526 amostras. Sem perdas de tabela/erros de timer; 2501 overruns, cobertura de PCs 65,6%. Usar ranking como amostragem, não como contabilidade completa.
+- render: 35.188 s de CPU, 35.37% do processo.
+- audio: 34.062 s de CPU, 34.24% do processo.
+- game_workers: 15.064 s de CPU, 15.14% do processo.
+- timers: 8.564 s de CPU, 8.61% do processo.
+- frontend_sdl: 4.417 s de CPU, 4.44% do processo.
+- Não atribuído: 2.194 s (2.21%). Grupos inferidos por nome e funções; clocks de threads cobrem 97,8% da CPU.
+- Top guest ARM: 824F5E40, 824F5EF0, 824E0038, 825D3010, 824FF5C0. Captura/triangulação: TID59442,18,382s; replay/driver:TID59459,10,025s; DSP:TID59452,18,701s; TimerQueue:TID59420,8,564s. Lista completa em X1-H-hot-arm.json compartilhado. Volto a X1-I.

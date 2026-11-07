@@ -6,6 +6,7 @@
 
 #include <rex/rex_app.h>
 #include "lifecycle.h"
+#include "cpu_profile.h"
 #include <rex/audio/downmix.h>
 #include <cstdio>
 #include <cstdlib>
@@ -29,10 +30,11 @@ class NierApp : public rex::ReXApp {
     rex::audio::SetOutputGain(1.0f);
     std::fprintf(stderr, "NIER_AUDIO stereo_fold=1.000 output_gain=1.000\n");
     lifecycle_.Start();
+    NierStartCpuProfile();
     if (std::getenv("NIER_VIRTUAL_PAD_PROBE"))
       NierProbeVirtualGamepad(dynamic_cast<rex::input::InputSystem*>(runtime()->input_system()));
   }
-  void OnShutdown() override { lifecycle_.Stop(); }
+  void OnShutdown() override { NierStopCpuProfile(); lifecycle_.Stop(); }
 
  private:
   NierLifecycle lifecycle_;

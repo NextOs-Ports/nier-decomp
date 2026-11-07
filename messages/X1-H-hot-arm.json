@@ -1,0 +1,2444 @@
+{
+  "schema_version": 2,
+  "architecture": "aarch64",
+  "source": "per-thread CPU clock + targeted SIGPROF",
+  "requested_hz_per_cpu_thread": 100,
+  "source_profile": "/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-team/messages/F15-164-cpu-profile.json",
+  "percentage_denominator": "delivered PC samples; blocked/short-lived threads may be absent",
+  "captured_cpu_seconds_estimate": 65.26,
+  "sample_coverage_percent": 65.5957188892753,
+  "sample_count": 6526,
+  "process_cpu_seconds": 99.4882,
+  "wall_seconds": 45.0999,
+  "complete": true,
+  "table_dropped": 0,
+  "timer_overruns": 2501,
+  "timer_errors": 0,
+  "elf_sha256": {
+    "nier": "b52329128ae3d348d8e1f09458358c1e4b964ebcb31cba56fe1d972f8f383317",
+    "librexruntime.so": "b79e167a30178221b0f700c7abe82660c18599dcc1754a6536b681e6de5b5041"
+  },
+  "executable_sha256": "f375d506413f52bd12fc9fd34df03250bbc4f3e7f98730332179f88777ea653b",
+  "top30": [
+    {
+      "address": 2186239552,
+      "name": "sub_824F5E40",
+      "own_samples": 284,
+      "own_percent": 4.351823475329452
+    },
+    {
+      "address": 2186239728,
+      "name": "sub_824F5EF0",
+      "own_samples": 163,
+      "own_percent": 2.4977015016855653
+    },
+    {
+      "address": 2186149944,
+      "name": "sub_824E0038",
+      "own_samples": 102,
+      "own_percent": 1.5629788538155072
+    },
+    {
+      "address": 2187145232,
+      "name": "sub_825D3010",
+      "own_samples": 78,
+      "own_percent": 1.1952191235059761
+    },
+    {
+      "address": 2186278336,
+      "name": "sub_824FF5C0",
+      "own_samples": 72,
+      "own_percent": 1.1032791909285933
+    },
+    {
+      "address": 2182366600,
+      "name": "sub_82144588",
+      "own_samples": 68,
+      "own_percent": 1.0419859025436715
+    },
+    {
+      "address": 2186229944,
+      "name": "sub_824F38B8",
+      "own_samples": 43,
+      "own_percent": 0.65890285013791
+    },
+    {
+      "address": 2182176168,
+      "name": "sub_82115DA8",
+      "own_samples": 41,
+      "own_percent": 0.628256205945449
+    },
+    {
+      "address": 2186777152,
+      "name": "sub_82579240",
+      "own_samples": 41,
+      "own_percent": 0.628256205945449
+    },
+    {
+      "address": 2186236232,
+      "name": "sub_824F5148",
+      "own_samples": 41,
+      "own_percent": 0.628256205945449
+    },
+    {
+      "address": 2186326136,
+      "name": "sub_8250B078",
+      "own_samples": 37,
+      "own_percent": 0.5669629175605271
+    },
+    {
+      "address": 2186773864,
+      "name": "sub_82578568",
+      "own_samples": 36,
+      "own_percent": 0.5516395954642966
+    },
+    {
+      "address": 2186150088,
+      "name": "sub_824E00C8",
+      "own_samples": 36,
+      "own_percent": 0.5516395954642966
+    },
+    {
+      "address": 2185977728,
+      "name": "sub_824B5F80",
+      "own_samples": 31,
+      "own_percent": 0.4750229849831443
+    },
+    {
+      "address": 2186746104,
+      "name": "sub_825718F8",
+      "own_samples": 30,
+      "own_percent": 0.4596996628869139
+    },
+    {
+      "address": 2182497208,
+      "name": "sub_821643B8",
+      "own_samples": 28,
+      "own_percent": 0.42905301869445295
+    },
+    {
+      "address": 2182441448,
+      "name": "sub_821569E8",
+      "own_samples": 27,
+      "own_percent": 0.4137296965982225
+    },
+    {
+      "address": 2186290416,
+      "name": "sub_825024F0",
+      "own_samples": 23,
+      "own_percent": 0.35243640821330063
+    },
+    {
+      "address": 2186146264,
+      "name": "sub_824DF1D8",
+      "own_samples": 23,
+      "own_percent": 0.35243640821330063
+    },
+    {
+      "address": 2182359784,
+      "name": "sub_82142AE8",
+      "own_samples": 21,
+      "own_percent": 0.3217897640208397
+    },
+    {
+      "address": 2182357296,
+      "name": "sub_82142130",
+      "own_samples": 21,
+      "own_percent": 0.3217897640208397
+    },
+    {
+      "address": 2182429672,
+      "name": "sub_82153BE8",
+      "own_samples": 19,
+      "own_percent": 0.2911431198283788
+    },
+    {
+      "address": 2186233120,
+      "name": "sub_824F4520",
+      "own_samples": 19,
+      "own_percent": 0.2911431198283788
+    },
+    {
+      "address": 2187148688,
+      "name": "sub_825D3D90",
+      "own_samples": 18,
+      "own_percent": 0.2758197977321483
+    },
+    {
+      "address": 2186285168,
+      "name": "sub_82501070",
+      "own_samples": 18,
+      "own_percent": 0.2758197977321483
+    },
+    {
+      "address": 2182424864,
+      "name": "sub_82152920",
+      "own_samples": 17,
+      "own_percent": 0.2604964756359179
+    },
+    {
+      "address": 2185991680,
+      "name": "sub_824B9600",
+      "own_samples": 17,
+      "own_percent": 0.2604964756359179
+    },
+    {
+      "address": 2182438856,
+      "name": "sub_82155FC8",
+      "own_samples": 16,
+      "own_percent": 0.2451731535396874
+    },
+    {
+      "address": 2182434184,
+      "name": "sub_82154D88",
+      "own_samples": 16,
+      "own_percent": 0.2451731535396874
+    },
+    {
+      "address": 2187305632,
+      "name": "sub_825FA2A0",
+      "own_samples": 16,
+      "own_percent": 0.2451731535396874
+    }
+  ],
+  "runtime_top30": [
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x82fec",
+      "own_samples": 345,
+      "own_percent": 5.28654612319951
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::RecordDraw(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool)",
+      "own_samples": 273,
+      "own_percent": 4.183266932270916
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0xd1630",
+      "own_samples": 227,
+      "own_percent": 3.4783941158443152
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::(anonymous namespace)::Triangulate(unsigned int, std::vector<unsigned int, std::allocator<unsigned int>> const&, std::vector<unsigned short, std::allocator<unsigned short>>&)::$_0::operator()(unsigned int, unsigned int, unsigned int) const",
+      "own_samples": 178,
+      "own_percent": 2.727551333129022
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::(anonymous namespace)::Triangulate(unsigned int, std::vector<unsigned int, std::allocator<unsigned int>> const&, std::vector<unsigned short, std::allocator<unsigned short>>&)",
+      "own_samples": 177,
+      "own_percent": 2.712228011032792
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0xc52cc",
+      "own_samples": 84,
+      "own_percent": 1.2871590560833588
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x7f600",
+      "own_samples": 84,
+      "own_percent": 1.2871590560833588
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0xd178c",
+      "own_samples": 82,
+      "own_percent": 1.256512411890898
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0xd61d0",
+      "own_samples": 62,
+      "own_percent": 0.9500459699662887
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x7a210",
+      "own_samples": 61,
+      "own_percent": 0.9347226478700582
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::(anonymous namespace)::ReplayDraw(nier::render::(anonymous namespace)::Frame const&, nier::render::(anonymous namespace)::Cmd const&, nier::render::(anonymous namespace)::Redirect const&)",
+      "own_samples": 60,
+      "own_percent": 0.9193993257738278
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x94658",
+      "own_samples": 54,
+      "own_percent": 0.827459393196445
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0xd140c",
+      "own_samples": 43,
+      "own_percent": 0.65890285013791
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x936d4",
+      "own_samples": 42,
+      "own_percent": 0.6435795280416794
+    },
+    {
+      "module": "librexruntime.so",
+      "symbol": "rex::thread::TimerQueue::TimerThreadMain(std::stop_token)",
+      "own_samples": 41,
+      "own_percent": 0.628256205945449
+    },
+    {
+      "module": "nier",
+      "symbol": "std::_Hashtable<nier::render::buffers::Key, std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>, std::allocator<std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>>, std::__detail::_Select1st, std::equal_to<nier::render::buffers::Key>, nier::render::buffers::KeyHash, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>>::__location_type std::_Hashtable<nier::render::buffers::Key, std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>, std::allocator<std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>>, std::__detail::_Select1st, std::equal_to<nier::render::buffers::Key>, nier::render::buffers::KeyHash, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>>::_M_locate_tr<nier::render::buffers::Key>(nier::render::buffers::Key const&) const",
+      "own_samples": 39,
+      "own_percent": 0.5976095617529881
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::(anonymous namespace)::RenderThread()",
+      "own_samples": 33,
+      "own_percent": 0.5056696291756053
+    },
+    {
+      "module": "libMali.m450.so",
+      "symbol": "libMali.m450.so+0xb2570",
+      "own_samples": 31,
+      "own_percent": 0.4750229849831443
+    },
+    {
+      "module": "librexruntime.so",
+      "symbol": "rex::thread::PosixConditionBase::WaitMultiple(std::vector<rex::thread::PosixConditionBase*, std::allocator<rex::thread::PosixConditionBase*>>&&, bool, std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+      "own_samples": 31,
+      "own_percent": 0.4750229849831443
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::(anonymous namespace)::Frame::Clear()",
+      "own_samples": 24,
+      "own_percent": 0.36775973030953113
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x93600",
+      "own_samples": 23,
+      "own_percent": 0.35243640821330063
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x7dfd8",
+      "own_samples": 23,
+      "own_percent": 0.35243640821330063
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::(anonymous namespace)::Load(unsigned int, unsigned char const* (*)(unsigned int, unsigned int), bool)",
+      "own_samples": 23,
+      "own_percent": 0.35243640821330063
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x93618",
+      "own_samples": 21,
+      "own_percent": 0.3217897640208397
+    },
+    {
+      "module": "[vdso]",
+      "symbol": "[vdso]+0x410",
+      "own_samples": 20,
+      "own_percent": 0.30646644192460926
+    },
+    {
+      "module": "nier",
+      "symbol": "T* std::construct_at<nier::render::(anonymous namespace)::Cmd, nier::render::(anonymous namespace)::Cmd const&>(T*, T0&&...)",
+      "own_samples": 18,
+      "own_percent": 0.2758197977321483
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x936c8",
+      "own_samples": 17,
+      "own_percent": 0.2604964756359179
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x82fe8",
+      "own_samples": 16,
+      "own_percent": 0.2451731535396874
+    },
+    {
+      "module": "libc.so.6",
+      "symbol": "libc.so.6+0x78214",
+      "own_samples": 16,
+      "own_percent": 0.2451731535396874
+    },
+    {
+      "module": "nier",
+      "symbol": "nier::render::(anonymous namespace)::SnapshotInputs(nier::render::(anonymous namespace)::Cmd&, unsigned char const*, long, unsigned int, unsigned char const*, unsigned int)",
+      "own_samples": 16,
+      "own_percent": 0.2451731535396874
+    }
+  ],
+  "threads": [
+    {
+      "tid": 59442,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 18.3824,
+      "samples": 1534,
+      "cpu_sample_percent": 23.50597609561753,
+      "top_guest": [
+        {
+          "address": 2186777152,
+          "name": "sub_82579240",
+          "own_samples": 41,
+          "own_percent": 2.6727509778357237
+        },
+        {
+          "address": 2186773864,
+          "name": "sub_82578568",
+          "own_samples": 36,
+          "own_percent": 2.346805736636245
+        },
+        {
+          "address": 2186746104,
+          "name": "sub_825718F8",
+          "own_samples": 30,
+          "own_percent": 1.955671447196871
+        },
+        {
+          "address": 2187305632,
+          "name": "sub_825FA2A0",
+          "own_samples": 16,
+          "own_percent": 1.0430247718383312
+        },
+        {
+          "address": 2187145232,
+          "name": "sub_825D3010",
+          "own_samples": 12,
+          "own_percent": 0.7822685788787483
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "nier",
+          "symbol": "nier::render::RecordDraw(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, bool)",
+          "samples": 273
+        },
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::Triangulate(unsigned int, std::vector<unsigned int, std::allocator<unsigned int>> const&, std::vector<unsigned short, std::allocator<unsigned short>>&)::$_0::operator()(unsigned int, unsigned int, unsigned int) const",
+          "samples": 178
+        },
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::Triangulate(unsigned int, std::vector<unsigned int, std::allocator<unsigned int>> const&, std::vector<unsigned short, std::allocator<unsigned short>>&)",
+          "samples": 177
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x94658",
+          "samples": 51
+        },
+        {
+          "module": "nier",
+          "symbol": "std::_Hashtable<nier::render::buffers::Key, std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>, std::allocator<std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>>, std::__detail::_Select1st, std::equal_to<nier::render::buffers::Key>, nier::render::buffers::KeyHash, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>>::__location_type std::_Hashtable<nier::render::buffers::Key, std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>, std::allocator<std::pair<nier::render::buffers::Key const, nier::render::buffers::Cache::Entry>>, std::__detail::_Select1st, std::equal_to<nier::render::buffers::Key>, nier::render::buffers::KeyHash, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>>::_M_locate_tr<nier::render::buffers::Key>(nier::render::buffers::Key const&) const",
+          "samples": 39
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x936d4",
+          "samples": 32
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x93600",
+          "samples": 23
+        },
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::Load(unsigned int, unsigned char const* (*)(unsigned int, unsigned int), bool)",
+          "samples": 23
+        }
+      ]
+    },
+    {
+      "tid": 59452,
+      "name": "XThread356BF0A0",
+      "cpu_seconds_observed": 18.7008,
+      "samples": 1383,
+      "cpu_sample_percent": 21.19215445908673,
+      "top_guest": [
+        {
+          "address": 2186239552,
+          "name": "sub_824F5E40",
+          "own_samples": 284,
+          "own_percent": 20.535068691250903
+        },
+        {
+          "address": 2186239728,
+          "name": "sub_824F5EF0",
+          "own_samples": 163,
+          "own_percent": 11.78597252349964
+        },
+        {
+          "address": 2186149944,
+          "name": "sub_824E0038",
+          "own_samples": 102,
+          "own_percent": 7.375271149674621
+        },
+        {
+          "address": 2186278336,
+          "name": "sub_824FF5C0",
+          "own_samples": 72,
+          "own_percent": 5.206073752711497
+        },
+        {
+          "address": 2187145232,
+          "name": "sub_825D3010",
+          "own_samples": 57,
+          "own_percent": 4.1214750542299345
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a210",
+          "samples": 3
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::RtlEnterCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)",
+          "samples": 3
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "void rex::ppc::HostToGuestFunction<&rex::kernel::xboxkrnl::KeGetCurrentProcessType_entry()>(PPCContext&, unsigned char*)",
+          "samples": 3
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "void rex::ppc::HostToGuestFunction<&rex::kernel::xboxkrnl::RtlLeaveCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)>(PPCContext&, unsigned char*)",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::GetCurrentThread()",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x737bf0",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::Delay(unsigned int, unsigned int, unsigned long)",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59459,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 10.0252,
+      "samples": 776,
+      "cpu_sample_percent": 11.890897946674839,
+      "top_guest": [],
+      "top_runtime": [
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::ReplayDraw(nier::render::(anonymous namespace)::Frame const&, nier::render::(anonymous namespace)::Cmd const&, nier::render::(anonymous namespace)::Redirect const&)",
+          "samples": 60
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xd61d0",
+          "samples": 46
+        },
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::RenderThread()",
+          "samples": 33
+        },
+        {
+          "module": "libMali.m450.so",
+          "symbol": "libMali.m450.so+0xb2570",
+          "samples": 31
+        },
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::Frame::Clear()",
+          "samples": 24
+        },
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::TrimBufferObjects(bool)",
+          "samples": 15
+        },
+        {
+          "module": "libMali.m450.so",
+          "symbol": "libMali.m450.so+0xc25b4",
+          "samples": 12
+        },
+        {
+          "module": "nier",
+          "symbol": "nier::render::(anonymous namespace)::BindSnapshot(unsigned int, std::shared_ptr<nier::render::buffers::Payload const> const&)",
+          "samples": 12
+        }
+      ]
+    },
+    {
+      "tid": 59420,
+      "name": "nier",
+      "cpu_seconds_observed": 8.56385,
+      "samples": 554,
+      "cpu_sample_percent": 8.489120441311677,
+      "top_guest": [],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xd1630",
+          "samples": 227
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xd178c",
+          "samples": 82
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xc52cc",
+          "samples": 54
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xd140c",
+          "samples": 43
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::TimerQueue::TimerThreadMain(std::stop_token)",
+          "samples": 41
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 23
+        },
+        {
+          "module": "[vdso]",
+          "symbol": "[vdso]+0x410",
+          "samples": 9
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xd40d8",
+          "samples": 4
+        }
+      ]
+    },
+    {
+      "tid": 59455,
+      "name": "XThread3268F0A0",
+      "cpu_seconds_observed": 6.43715,
+      "samples": 505,
+      "cpu_sample_percent": 7.738277658596384,
+      "top_guest": [
+        {
+          "address": 2182366600,
+          "name": "sub_82144588",
+          "own_samples": 68,
+          "own_percent": 13.465346534653465
+        },
+        {
+          "address": 2182497208,
+          "name": "sub_821643B8",
+          "own_samples": 28,
+          "own_percent": 5.544554455445544
+        },
+        {
+          "address": 2182441448,
+          "name": "sub_821569E8",
+          "own_samples": 27,
+          "own_percent": 5.346534653465347
+        },
+        {
+          "address": 2182359784,
+          "name": "sub_82142AE8",
+          "own_samples": 21,
+          "own_percent": 4.158415841584159
+        },
+        {
+          "address": 2182357296,
+          "name": "sub_82142130",
+          "own_samples": 21,
+          "own_percent": 4.158415841584159
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x733078",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f740",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7dfd8",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::util::ObjectTable::LookupObject(unsigned int, bool)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a210",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59422,
+      "name": "Audio Worker (F",
+      "cpu_seconds_observed": 4.63487,
+      "samples": 315,
+      "cpu_sample_percent": 4.826846460312596,
+      "top_guest": [
+        {
+          "address": 2185977728,
+          "name": "sub_824B5F80",
+          "own_samples": 31,
+          "own_percent": 9.841269841269842
+        },
+        {
+          "address": 2187139036,
+          "name": "sub_825D17DC",
+          "own_samples": 2,
+          "own_percent": 0.6349206349206349
+        },
+        {
+          "address": 2185978184,
+          "name": "sub_824B6148",
+          "own_samples": 1,
+          "own_percent": 0.31746031746031744
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 48
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::WaitMultiple(std::vector<rex::thread::PosixConditionBase*, std::allocator<rex::thread::PosixConditionBase*>>&&, bool, std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 25
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7dfd8",
+          "samples": 10
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::WaitMultiple(rex::thread::WaitHandle**, unsigned long, bool, bool, std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 8
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7885c",
+          "samples": 6
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::SubscribeWaitSet(rex::thread::PosixConditionBase::WaitSet*)",
+          "samples": 6
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a210",
+          "samples": 5
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixCondition<rex::thread::Semaphore>::signaled() const",
+          "samples": 5
+        }
+      ]
+    },
+    {
+      "tid": 59419,
+      "name": "nier",
+      "cpu_seconds_observed": 4.41723,
+      "samples": 274,
+      "cpu_sample_percent": 4.198590254367147,
+      "top_guest": [],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 102
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7dfd8",
+          "samples": 7
+        },
+        {
+          "module": "libSDL3.so.0.5.0",
+          "symbol": "libSDL3.so.0.5.0+0x1e9bc0",
+          "samples": 5
+        },
+        {
+          "module": "libSDL3.so.0.5.0",
+          "symbol": "libSDL3.so.0.5.0+0x1f0a48",
+          "samples": 4
+        },
+        {
+          "module": "libSDL3.so.0.5.0",
+          "symbol": "libSDL3.so.0.5.0+0x1f4dcc",
+          "samples": 4
+        },
+        {
+          "module": "libSDL3.so.0.5.0",
+          "symbol": "libSDL3.so.0.5.0+0x1f05f0",
+          "samples": 4
+        },
+        {
+          "module": "libSDL3.so.0.5.0",
+          "symbol": "libSDL3.so.0.5.0+0xae4a8",
+          "samples": 3
+        },
+        {
+          "module": "libSDL3.so.0.5.0",
+          "symbol": "libSDL3.so.0.5.0+0x1a97c8",
+          "samples": 3
+        }
+      ]
+    },
+    {
+      "tid": 59447,
+      "name": "XThread3BEFF0A0",
+      "cpu_seconds_observed": 4.22195,
+      "samples": 254,
+      "cpu_sample_percent": 3.8921238124425375,
+      "top_guest": [
+        {
+          "address": 2185991680,
+          "name": "sub_824B9600",
+          "own_samples": 17,
+          "own_percent": 6.692913385826771
+        },
+        {
+          "address": 2186658712,
+          "name": "sub_8255C398",
+          "own_samples": 10,
+          "own_percent": 3.937007874015748
+        },
+        {
+          "address": 2186093920,
+          "name": "sub_824D2560",
+          "own_samples": 9,
+          "own_percent": 3.543307086614173
+        },
+        {
+          "address": 2187145232,
+          "name": "sub_825D3010",
+          "own_samples": 8,
+          "own_percent": 3.1496062992125986
+        },
+        {
+          "address": 2185964368,
+          "name": "sub_824B2B50",
+          "own_samples": 7,
+          "own_percent": 2.7559055118110236
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a210",
+          "samples": 11
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::KeWaitForMultipleObjects_entry(unsigned int, rex::MappedPtr<rex::endian_store<unsigned int, (std::endian)4321>>, unsigned int, unsigned int, unsigned int, unsigned int, rex::MappedPtr<rex::endian_store<unsigned long, (std::endian)4321>>, rex::MappedPtr<void>)",
+          "samples": 6
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::WaitMultiple(std::vector<rex::thread::PosixConditionBase*, std::allocator<rex::thread::PosixConditionBase*>>&&, bool, std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 6
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::GetLoggerRaw(rex::LogCategoryId)",
+          "samples": 4
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "void rex::ppc::HostToGuestFunction<&rex::kernel::xboxkrnl::RtlLeaveCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)>(PPCContext&, unsigned char*)",
+          "samples": 4
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 3
+        },
+        {
+          "module": "[vdso]",
+          "symbol": "[vdso]+0x410",
+          "samples": 3
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7dfd8",
+          "samples": 3
+        }
+      ]
+    },
+    {
+      "tid": 59423,
+      "name": "GPU Commands (F",
+      "cpu_seconds_observed": 3.52966,
+      "samples": 238,
+      "cpu_sample_percent": 3.64695065890285,
+      "top_guest": [
+        {
+          "address": 2186781872,
+          "name": "sub_8257A4B0",
+          "own_samples": 1,
+          "own_percent": 0.42016806722689076
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 58
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 50
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xc52cc",
+          "samples": 30
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixCondition<rex::thread::Thread>::DispatchQueuedUserCallbacks()",
+          "samples": 7
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "bool std::condition_variable::wait_for<long, std::ratio<1l, 1000l>, rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l>>)::'lambda'()>(std::unique_lock<std::mutex>&, std::chrono::duration<long, std::ratio<1l, 1000l>> const&, rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l>>)::'lambda'())",
+          "samples": 6
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 5
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x729cd0",
+          "samples": 4
+        },
+        {
+          "module": "librexgpu-null.so",
+          "symbol": "librexgpu-null.so+0x50408",
+          "samples": 3
+        }
+      ]
+    },
+    {
+      "tid": 59457,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 1.82926,
+      "samples": 118,
+      "cpu_sample_percent": 1.8081520073551947,
+      "top_guest": [],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xd61d0",
+          "samples": 13
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x8680c",
+          "samples": 6
+        },
+        {
+          "module": "libMali.m450.so",
+          "symbol": "libMali.m450.so+0xbd958",
+          "samples": 5
+        },
+        {
+          "module": "libMali.m450.so",
+          "symbol": "libMali.m450.so+0xbcbd0",
+          "samples": 4
+        },
+        {
+          "module": "libMali.m450.so",
+          "symbol": "libMali.m450.so+0xac9d0",
+          "samples": 3
+        },
+        {
+          "module": "libMali.m450.so",
+          "symbol": "libMali.m450.so+0x75eec",
+          "samples": 3
+        },
+        {
+          "module": "libMali.m450.so",
+          "symbol": "libMali.m450.so+0xac9e4",
+          "samples": 3
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x89bb8",
+          "samples": 3
+        }
+      ]
+    },
+    {
+      "tid": 59436,
+      "name": "XThread46FAF0A0",
+      "cpu_seconds_observed": 1.77791,
+      "samples": 112,
+      "cpu_sample_percent": 1.7162120747778118,
+      "top_guest": [
+        {
+          "address": 2186383128,
+          "name": "sub_82518F18",
+          "own_samples": 6,
+          "own_percent": 5.357142857142857
+        },
+        {
+          "address": 2182217336,
+          "name": "sub_8211FE78",
+          "own_samples": 4,
+          "own_percent": 3.5714285714285716
+        },
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_samples": 3,
+          "own_percent": 2.6785714285714284
+        },
+        {
+          "address": 2186654640,
+          "name": "sub_8255B3B0",
+          "own_samples": 2,
+          "own_percent": 1.7857142857142858
+        },
+        {
+          "address": 2186354424,
+          "name": "sub_82511EF8",
+          "own_samples": 2,
+          "own_percent": 1.7857142857142858
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a210",
+          "samples": 36
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 13
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "__aarch64_ldadd4_acq_rel",
+          "samples": 4
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XEvent::Set(unsigned int, bool)",
+          "samples": 4
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixEvent::Set()",
+          "samples": 3
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x732738",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x733b88",
+          "samples": 1
+        },
+        {
+          "module": "ld-linux-aarch64.so.1",
+          "symbol": "ld-linux-aarch64.so.1+0x14084",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59424,
+      "name": "GPU VSync (F800",
+      "cpu_seconds_observed": 1.42115,
+      "samples": 67,
+      "cpu_sample_percent": 1.026662580447441,
+      "top_guest": [
+        {
+          "address": 2187139116,
+          "name": "sub_825D182C",
+          "own_samples": 1,
+          "own_percent": 1.492537313432836
+        },
+        {
+          "address": 2187139036,
+          "name": "sub_825D17DC",
+          "own_samples": 1,
+          "own_percent": 1.492537313432836
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 29
+        },
+        {
+          "module": "[vdso]",
+          "symbol": "[vdso]+0x410",
+          "samples": 8
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::Sleep(std::chrono::duration<long, std::ratio<1l, 1000000l>>)",
+          "samples": 4
+        },
+        {
+          "module": "librexgpu-null.so",
+          "symbol": "librexgpu-null.so+0x4c784",
+          "samples": 2
+        },
+        {
+          "module": "librexgpu-null.so",
+          "symbol": "librexgpu-null.so+0x4c798",
+          "samples": 2
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x78214",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::chrono::Clock::host_tick_count_platform()",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::runtime::FunctionDispatcher::ExecuteInterrupt(rex::runtime::ThreadState*, unsigned int, unsigned long*, unsigned long)",
+          "samples": 2
+        }
+      ]
+    },
+    {
+      "tid": 59429,
+      "name": "XThread527DF0A0",
+      "cpu_seconds_observed": 0.991802,
+      "samples": 56,
+      "cpu_sample_percent": 0.8581060373889059,
+      "top_guest": [
+        {
+          "address": 2186316704,
+          "name": "sub_82508BA0",
+          "own_samples": 2,
+          "own_percent": 3.5714285714285716
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_samples": 2,
+          "own_percent": 3.5714285714285716
+        },
+        {
+          "address": 2186686520,
+          "name": "sub_82563038",
+          "own_samples": 2,
+          "own_percent": 3.5714285714285716
+        },
+        {
+          "address": 2187139112,
+          "name": "sub_825D1828",
+          "own_samples": 2,
+          "own_percent": 3.5714285714285716
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_samples": 1,
+          "own_percent": 1.7857142857142858
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 10
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 8
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 3
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::NtWaitForSingleObjectEx_entry(unsigned int, unsigned int, unsigned int, rex::MappedPtr<rex::endian_store<unsigned long, (std::endian)4321>>)",
+          "samples": 2
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7885c",
+          "samples": 2
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fe8",
+          "samples": 2
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb0fd8",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f680",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59427,
+      "name": "Main XThread (F",
+      "cpu_seconds_observed": 0.763392,
+      "samples": 50,
+      "cpu_sample_percent": 0.7661661048115231,
+      "top_guest": [
+        {
+          "address": 2182132856,
+          "name": "sub_8210B478",
+          "own_samples": 2,
+          "own_percent": 4.0
+        },
+        {
+          "address": 2186905320,
+          "name": "sub_825986E8",
+          "own_samples": 2,
+          "own_percent": 4.0
+        },
+        {
+          "address": 2182107032,
+          "name": "sub_82104F98",
+          "own_samples": 2,
+          "own_percent": 4.0
+        },
+        {
+          "address": 2185096960,
+          "name": "sub_823DEF00",
+          "own_samples": 2,
+          "own_percent": 4.0
+        },
+        {
+          "address": 2182126664,
+          "name": "sub_82109C48",
+          "own_samples": 1,
+          "own_percent": 2.0
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::input::InputSystem::RefreshDevices()",
+          "samples": 2
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x89bb8",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "__aarch64_ldadd4_acq_rel",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a210",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fe8",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::xeNtSetEvent(unsigned int, rex::endian_store<unsigned int, (std::endian)4321>*)",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59430,
+      "name": "XThread517CF0A0",
+      "cpu_seconds_observed": 0.746775,
+      "samples": 46,
+      "cpu_sample_percent": 0.7048728164266013,
+      "top_guest": [
+        {
+          "address": 2187139112,
+          "name": "sub_825D1828",
+          "own_samples": 2,
+          "own_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_samples": 2,
+          "own_percent": 4.3478260869565215
+        },
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_samples": 1,
+          "own_percent": 2.1739130434782608
+        },
+        {
+          "address": 2186654704,
+          "name": "sub_8255B3F0",
+          "own_samples": 1,
+          "own_percent": 2.1739130434782608
+        },
+        {
+          "address": 2186316992,
+          "name": "sub_82508CC0",
+          "own_samples": 1,
+          "own_percent": 2.1739130434782608
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 6
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::CheckTitleTermination()",
+          "samples": 4
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 3
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 2
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x78218",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::Wait(rex::thread::WaitHandle*, bool, std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 2
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb0fd8",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x732c68",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59445,
+      "name": "XThread3DF1F0A0",
+      "cpu_seconds_observed": 0.793087,
+      "samples": 44,
+      "cpu_sample_percent": 0.6742261722341404,
+      "top_guest": [
+        {
+          "address": 2187148688,
+          "name": "sub_825D3D90",
+          "own_samples": 3,
+          "own_percent": 6.818181818181818
+        },
+        {
+          "address": 2186264136,
+          "name": "sub_824FBE48",
+          "own_samples": 3,
+          "own_percent": 6.818181818181818
+        },
+        {
+          "address": 2186271376,
+          "name": "sub_824FDA90",
+          "own_samples": 2,
+          "own_percent": 4.545454545454546
+        },
+        {
+          "address": 2186192208,
+          "name": "sub_824EA550",
+          "own_samples": 2,
+          "own_percent": 4.545454545454546
+        },
+        {
+          "address": 2186193808,
+          "name": "sub_824EAB90",
+          "own_samples": 2,
+          "own_percent": 4.545454545454546
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 5
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 2
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7aa0c",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XObject::Release()",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::kernel_state()",
+          "samples": 1
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb46c4",
+          "samples": 1
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb1000",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XObject::GetNativeObject(rex::system::KernelState*, void*, int)",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59431,
+      "name": "XThread4BFFF0A0",
+      "cpu_seconds_observed": 0.640033,
+      "samples": 37,
+      "cpu_sample_percent": 0.5669629175605271,
+      "top_guest": [
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_samples": 3,
+          "own_percent": 8.108108108108109
+        },
+        {
+          "address": 2187139032,
+          "name": "sub_825D17D8",
+          "own_samples": 1,
+          "own_percent": 2.7027027027027026
+        },
+        {
+          "address": 2187139112,
+          "name": "sub_825D1828",
+          "own_samples": 1,
+          "own_percent": 2.7027027027027026
+        },
+        {
+          "address": 2186686520,
+          "name": "sub_82563038",
+          "own_samples": 1,
+          "own_percent": 2.7027027027027026
+        },
+        {
+          "address": 2186654704,
+          "name": "sub_8255B3F0",
+          "own_samples": 1,
+          "own_percent": 2.7027027027027026
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 6
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 5
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fe8",
+          "samples": 4
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::NtWaitForSingleObjectEx_entry(unsigned int, unsigned int, unsigned int, rex::MappedPtr<rex::endian_store<unsigned long, (std::endian)4321>>)",
+          "samples": 4
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x72a2e8",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "__aarch64_ldadd4_acq_rel",
+          "samples": 1
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb0fd8",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "void rex::ppc::HostToGuestFunction<&rex::kernel::xboxkrnl::NtClearEvent_entry(unsigned int)>(PPCContext&, unsigned char*)",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59434,
+      "name": "XThread48FCF0A0",
+      "cpu_seconds_observed": 0.470334,
+      "samples": 29,
+      "cpu_sample_percent": 0.44437634079068344,
+      "top_guest": [
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_samples": 2,
+          "own_percent": 6.896551724137931
+        },
+        {
+          "address": 2186385400,
+          "name": "sub_825197F8",
+          "own_samples": 2,
+          "own_percent": 6.896551724137931
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_samples": 1,
+          "own_percent": 3.4482758620689653
+        },
+        {
+          "address": 2186385752,
+          "name": "sub_82519958",
+          "own_samples": 1,
+          "own_percent": 3.4482758620689653
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 7
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 3
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb367c",
+          "samples": 2
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb36c0",
+          "samples": 1
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb4310",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a670",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XObject::Wait(unsigned int, unsigned int, unsigned int, unsigned long*)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x8e2d4",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59432,
+      "name": "XThread4AFEF0A0",
+      "cpu_seconds_observed": 0.52376,
+      "samples": 29,
+      "cpu_sample_percent": 0.44437634079068344,
+      "top_guest": [
+        {
+          "address": 2186676288,
+          "name": "sub_82560840",
+          "own_samples": 1,
+          "own_percent": 3.4482758620689653
+        },
+        {
+          "address": 2187139032,
+          "name": "sub_825D17D8",
+          "own_samples": 1,
+          "own_percent": 3.4482758620689653
+        },
+        {
+          "address": 2186323136,
+          "name": "sub_8250A4C0",
+          "own_samples": 1,
+          "own_percent": 3.4482758620689653
+        },
+        {
+          "address": 2186385400,
+          "name": "sub_825197F8",
+          "own_samples": 1,
+          "own_percent": 3.4482758620689653
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 7
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 6
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb0ff8",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::xeNtClearEvent(unsigned int)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f680",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x8e250",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x738050",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a9b4",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59433,
+      "name": "XThread49FDF0A0",
+      "cpu_seconds_observed": 0.496642,
+      "samples": 25,
+      "cpu_sample_percent": 0.38308305240576157,
+      "top_guest": [
+        {
+          "address": 2186385752,
+          "name": "sub_82519958",
+          "own_samples": 1,
+          "own_percent": 4.0
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 8
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7cf14",
+          "samples": 4
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::RtlEnterCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)",
+          "samples": 2
+        },
+        {
+          "module": "libstdc++.so.6.0.36",
+          "symbol": "libstdc++.so.6.0.36+0xb0e5c",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "__imp__RtlEnterCriticalSection",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x78218",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::Wait(std::chrono::duration<long, std::ratio<1l, 1000l>>)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x787f4",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59443,
+      "name": "XThread3FF3F0A0",
+      "cpu_seconds_observed": 0.289839,
+      "samples": 16,
+      "cpu_sample_percent": 0.2451731535396874,
+      "top_guest": [
+        {
+          "address": 2182101536,
+          "name": "sub_82103A20",
+          "own_samples": 3,
+          "own_percent": 18.75
+        },
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_samples": 1,
+          "own_percent": 6.25
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 7
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::GetCurrentThread()",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::RtlEnterCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x738228",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "__imp__KeDelayExecutionThread",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "void rex::ppc::HostToGuestFunction<&rex::kernel::xboxkrnl::KeDelayExecutionThread_entry(unsigned int, unsigned int, rex::MappedPtr<rex::endian_store<unsigned long, (std::endian)4321>>)>(PPCContext&, unsigned char*)",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59446,
+      "name": "XThread3CF0F0A0",
+      "cpu_seconds_observed": 0.26159,
+      "samples": 16,
+      "cpu_sample_percent": 0.2451731535396874,
+      "top_guest": [
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_samples": 1,
+          "own_percent": 6.25
+        },
+        {
+          "address": 2186323512,
+          "name": "sub_8250A638",
+          "own_samples": 1,
+          "own_percent": 6.25
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7a210",
+          "samples": 3
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::Delay(unsigned int, unsigned int, unsigned long)",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "__aarch64_ldadd4_acq_rel",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x732a90",
+          "samples": 1
+        },
+        {
+          "module": "nier",
+          "symbol": "nier+0x169e578",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XObject::kernel_state() const",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::thread::PosixConditionBase::LockMutex()",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59444,
+      "name": "XThread3EF2F0A0",
+      "cpu_seconds_observed": 0.292372,
+      "samples": 16,
+      "cpu_sample_percent": 0.2451731535396874,
+      "top_guest": [
+        {
+          "address": 2182101536,
+          "name": "sub_82103A20",
+          "own_samples": 3,
+          "own_percent": 18.75
+        },
+        {
+          "address": 2186679736,
+          "name": "sub_825615B8",
+          "own_samples": 1,
+          "own_percent": 6.25
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XObject::kernel_state() const",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x738228",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x732c60",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::RtlEnterCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x78218",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XThread::Delay(unsigned int, unsigned int, unsigned long)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fc0",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59441,
+      "name": "XThread41F5F0A0",
+      "cpu_seconds_observed": 0.237527,
+      "samples": 15,
+      "cpu_sample_percent": 0.22984983144345694,
+      "top_guest": [
+        {
+          "address": 2187351880,
+          "name": "sub_82605748",
+          "own_samples": 5,
+          "own_percent": 33.333333333333336
+        },
+        {
+          "address": 2187372448,
+          "name": "sub_8260A7A0",
+          "own_samples": 3,
+          "own_percent": 20.0
+        },
+        {
+          "address": 2187352064,
+          "name": "sub_82605800",
+          "own_samples": 2,
+          "own_percent": 13.333333333333334
+        },
+        {
+          "address": 2187371408,
+          "name": "sub_8260A390",
+          "own_samples": 1,
+          "own_percent": 6.666666666666667
+        },
+        {
+          "address": 2187347024,
+          "name": "sub_82604450",
+          "own_samples": 1,
+          "own_percent": 6.666666666666667
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::NtWaitForSingleObjectEx_entry(unsigned int, unsigned int, unsigned int, rex::MappedPtr<rex::endian_store<unsigned long, (std::endian)4321>>)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "librexruntime.so+0x7383c0",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59439,
+      "name": "XThread43F7F0A0",
+      "cpu_seconds_observed": 0.201513,
+      "samples": 12,
+      "cpu_sample_percent": 0.18387986515476556,
+      "top_guest": [],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f600",
+          "samples": 3
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 2
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "void rex::ppc::HostToGuestFunction<&rex::kernel::xboxkrnl::RtlLeaveCriticalSection_entry(rex::MappedPtr<rex::kernel::xboxkrnl::X_RTL_CRITICAL_SECTION>)>(PPCContext&, unsigned char*)",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x7f2dc",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::chrono::Clock::ScaleGuestDurationMillis(unsigned int)",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::kernel::xboxkrnl::xeKeWaitForSingleObject(void*, unsigned int, unsigned int, unsigned int, unsigned long*)",
+          "samples": 1
+        },
+        {
+          "module": "librexruntime.so",
+          "symbol": "rex::system::XObject::kernel_state() const",
+          "samples": 1
+        },
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x8e284",
+          "samples": 1
+        }
+      ]
+    },
+    {
+      "tid": 59456,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 0.0779377,
+      "samples": 3,
+      "cpu_sample_percent": 0.04596996628869139,
+      "top_guest": [],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0xd61d0",
+          "samples": 3
+        }
+      ]
+    },
+    {
+      "tid": 59453,
+      "name": "XThread346AF0A0",
+      "cpu_seconds_observed": 0.0621352,
+      "samples": 2,
+      "cpu_sample_percent": 0.030646644192460926,
+      "top_guest": [
+        {
+          "address": 2186217312,
+          "name": "sub_824F0760",
+          "own_samples": 1,
+          "own_percent": 50.0
+        }
+      ],
+      "top_runtime": [
+        {
+          "module": "libc.so.6",
+          "symbol": "libc.so.6+0x82fec",
+          "samples": 1
+        }
+      ]
+    }
+  ],
+  "blocked_threads": [
+    {
+      "tid": 59448,
+      "name": "PulseMainloop",
+      "cpu_seconds_observed": 3.39436,
+      "sigprof_blocked_last_scan": true
+    },
+    {
+      "tid": 59449,
+      "name": "PulseHotplug",
+      "cpu_seconds_observed": 0.68406,
+      "sigprof_blocked_last_scan": true
+    },
+    {
+      "tid": 59451,
+      "name": "SDLAudioP15",
+      "cpu_seconds_observed": 2.42565,
+      "sigprof_blocked_last_scan": true
+    },
+    {
+      "tid": 59458,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": true
+    }
+  ],
+  "limitations": [
+    "Own-PC sampling only, no inclusive stack cost.",
+    "CPU-clock signal delivery may coalesce; overruns and table drops are explicit.",
+    "Threads created during collection are registered within about 250 ms; shorter-lived threads can be missed.",
+    "Kernel CPU time is sampled at interrupted/resumed userspace PC; no kernel stacks.",
+    "This profile does not measure or certify FPS."
+  ],
+  "scene": "Pr\u00f3logo 3D no .164, 157\u2013170 draws; identifica\u00e7\u00e3o pelo coordenador",
+  "frame_time_ms_reported_by_coordinator": [
+    362,
+    546
+  ],
+  "thread_group_method": "CPU clocks observed, divided by total process CPU. Group roles inferred from names + sampled functions; Audio includes guest DSP and Pulse/SDL, Render includes capture/driver/GPU protocol.",
+  "thread_groups": [
+    {
+      "group": "render",
+      "cpu_seconds": 35.187670000000004,
+      "percent_process_cpu": 35.36868693975768
+    },
+    {
+      "group": "audio",
+      "cpu_seconds": 34.06169,
+      "percent_process_cpu": 34.23691452855715
+    },
+    {
+      "group": "game_workers",
+      "cpu_seconds": 15.063798900000002,
+      "percent_process_cpu": 15.141292032622966
+    },
+    {
+      "group": "timers",
+      "cpu_seconds": 8.56385,
+      "percent_process_cpu": 8.607905259116157
+    },
+    {
+      "group": "frontend_sdl",
+      "cpu_seconds": 4.41723,
+      "percent_process_cpu": 4.4399536829493345
+    }
+  ],
+  "unattributed_cpu_seconds": 2.1939610999999957,
+  "unattributed_cpu_percent": 2.2052475569967047,
+  "classified_threads": [
+    {
+      "tid": 59419,
+      "name": "nier",
+      "cpu_seconds_observed": 4.41723,
+      "sigprof_blocked_last_scan": false,
+      "group": "frontend_sdl"
+    },
+    {
+      "tid": 59420,
+      "name": "nier",
+      "cpu_seconds_observed": 8.56385,
+      "sigprof_blocked_last_scan": false,
+      "group": "timers"
+    },
+    {
+      "tid": 59421,
+      "name": "XMA Decoder (F8",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59422,
+      "name": "Audio Worker (F",
+      "cpu_seconds_observed": 4.63487,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59423,
+      "name": "GPU Commands (F",
+      "cpu_seconds_observed": 3.52966,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59424,
+      "name": "GPU VSync (F800",
+      "cpu_seconds_observed": 1.42115,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59425,
+      "name": "Kernel Dispatch",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59427,
+      "name": "Main XThread (F",
+      "cpu_seconds_observed": 0.763392,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59428,
+      "name": "nier",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "frontend_sdl"
+    },
+    {
+      "tid": 59429,
+      "name": "XThread527DF0A0",
+      "cpu_seconds_observed": 0.991802,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59430,
+      "name": "XThread517CF0A0",
+      "cpu_seconds_observed": 0.746775,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59431,
+      "name": "XThread4BFFF0A0",
+      "cpu_seconds_observed": 0.640033,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59432,
+      "name": "XThread4AFEF0A0",
+      "cpu_seconds_observed": 0.52376,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59433,
+      "name": "XThread49FDF0A0",
+      "cpu_seconds_observed": 0.496642,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59434,
+      "name": "XThread48FCF0A0",
+      "cpu_seconds_observed": 0.470334,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59435,
+      "name": "XThread47FBF0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59436,
+      "name": "XThread46FAF0A0",
+      "cpu_seconds_observed": 1.77791,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59437,
+      "name": "XThread45F9F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59438,
+      "name": "XThread44F8F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59439,
+      "name": "XThread43F7F0A0",
+      "cpu_seconds_observed": 0.201513,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59440,
+      "name": "XThread42F6F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59441,
+      "name": "XThread41F5F0A0",
+      "cpu_seconds_observed": 0.237527,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59442,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 18.3824,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59443,
+      "name": "XThread3FF3F0A0",
+      "cpu_seconds_observed": 0.289839,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59444,
+      "name": "XThread3EF2F0A0",
+      "cpu_seconds_observed": 0.292372,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59445,
+      "name": "XThread3DF1F0A0",
+      "cpu_seconds_observed": 0.793087,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59446,
+      "name": "XThread3CF0F0A0",
+      "cpu_seconds_observed": 0.26159,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59447,
+      "name": "XThread3BEFF0A0",
+      "cpu_seconds_observed": 4.22195,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59448,
+      "name": "PulseMainloop",
+      "cpu_seconds_observed": 3.39436,
+      "sigprof_blocked_last_scan": true,
+      "group": "audio"
+    },
+    {
+      "tid": 59449,
+      "name": "PulseHotplug",
+      "cpu_seconds_observed": 0.68406,
+      "sigprof_blocked_last_scan": true,
+      "group": "audio"
+    },
+    {
+      "tid": 59451,
+      "name": "SDLAudioP15",
+      "cpu_seconds_observed": 2.42565,
+      "sigprof_blocked_last_scan": true,
+      "group": "audio"
+    },
+    {
+      "tid": 59452,
+      "name": "XThread356BF0A0",
+      "cpu_seconds_observed": 18.7008,
+      "sigprof_blocked_last_scan": false,
+      "group": "audio"
+    },
+    {
+      "tid": 59453,
+      "name": "XThread346AF0A0",
+      "cpu_seconds_observed": 0.0621352,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59454,
+      "name": "XThread3369F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59455,
+      "name": "XThread3268F0A0",
+      "cpu_seconds_observed": 6.43715,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59456,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 0.0779377,
+      "sigprof_blocked_last_scan": false,
+      "group": "game_workers"
+    },
+    {
+      "tid": 59457,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 1.82926,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    },
+    {
+      "tid": 59458,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 0,
+      "sigprof_blocked_last_scan": true,
+      "group": "render"
+    },
+    {
+      "tid": 59459,
+      "name": "XThread40F4F0A0",
+      "cpu_seconds_observed": 10.0252,
+      "sigprof_blocked_last_scan": false,
+      "group": "render"
+    }
+  ]
+}
