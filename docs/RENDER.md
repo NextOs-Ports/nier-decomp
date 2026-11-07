@@ -168,9 +168,18 @@ O roteiro aceita `Ns:botão` (segundos desde o 1º quadro). Diagnósticos:
 
 **Atenção:** o build do CMake recopia o `librexruntime.so` do SDK por cima do diretório do binário. A DLL do X1 precisa ser copiada de novo depois de cada build.
 
+**Atualização 06:55.**
+- **PC (`1c618bc`):** o prólogo 3D inteiro sai sem travar: cidade, "Summer 2049", corredores, sala e livro. Prova: `nier-build/c1/provas/f1-pc-prologo-3d-sequencia.png`. Causa do travamento intermitente na entrada do 3D: ponteiro pendurado para o estado copiado no blob (realocado pelos `Append`) → SIGSEGV repetido pelo tratador do runtime. As fetch constants agora são copiadas antes.
+- Composição: a tela resolvida alimenta desenhos não-UP e também UP quando a origem recebeu 3D no quadro. Menus de UI pura voltaram limpos. A primeira tela de gameplay depois do prólogo ainda sai estourada em branco (pendência 1b).
+- **Mali (.164), duas rodadas autorizadas de 295 s:**
+  - F3: roteiro por quadro, ficou na dificuldade/nome.
+  - F4: roteiro por relógio, parou no diálogo "You have not selected a gamer profile… Continue without signing in?", que só existe no aparelho (sem perfil conectado no runtime ARM).
+  - Medido nos menus: 23–37 ms/quadro, lógica 100,09% (Δt real), RSS 387–511 MB, até 76 °C, 0 shaders falhando. A cena 3D na Mali segue sem medição.
+
 **Pendências.**
+1b. Primeira tela de gameplay estourada em branco (composição/pós-processamento).
 1. Faixas brancas nos menus desde que a composição passou a usar a tela resolvida (fundo do menu = tela anterior). O ClearF do 9328 ainda não foi localizado; a limpeza por quadro é heurística.
 2. Texturas de profundidade amostradas (formato 22) saem brancas: Resolve de profundidade ainda não é implementado.
 3. 2 PS escrevem profundidade (sem `gl_FragDepth` na Mali).
 4. Texturas de cenário claras demais: conferir formatos e ETC1.
-5. Medir a cena 3D na Mali com roteiro por tempo (`Ns:`) ou save depois do prólogo.
+5. Medir a cena 3D na Mali com roteiro por tempo (`Ns:`, `nier-build/c1/roteiro-f4.txt`), depois que o X1 deixar o perfil conectado no aparelho como no PC.
