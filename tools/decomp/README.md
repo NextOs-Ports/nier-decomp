@@ -88,3 +88,27 @@ pela fixture principal.
 `shader_cache.cpp` reconstrói `82579100`, preservando a reserva atômica/global
 lock e as sentinelas de versão. O caminho de atualização de descritores continua
 chamando a rotina guest existente.
+
+## Descritores e BeginVertices (D1-C6)
+
+`vertex_fetch.cpp` (`82578568`) monta até 32 descritores em array local, preserva
+a sequência de comparações/trocas e combina fetches contíguos. Entradas maiores
+que a área temporária observada na rotina original mantêm a rota de compatibilidade
+traduzida. As fixtures cobrem descritor vazio, formato encontrado, grupos com
+ordenação e combinação. Isso não modifica os dados ou shaders do renderizador.
+
+`82571070`, em `draw_packets.cpp`, compartilha a descarga de estado dos Draws,
+reserva o buffer de vértices e prepara os pacotes de desenho imediato. O jogo
+continua usando o alocador GPU real. No comparador isolado esse serviço requer
+estado do kernel; a fixture abaixo fornece o mesmo retorno aos dois lados e
+registra os argumentos r3-r5 completos na memória comparada:
+
+```sh
+python3 tools/decomp/verify_begin_vertices.py BUILD PRIVATE_PE OUT.json --trials 10000
+```
+
+O runner compila `fixtures/gpu_allocator.cpp` apenas no build de `nierverify`,
+usa `--wrap=sub_82573670` e restaura os flags/link normais em `finally`. Nenhuma
+fixture é compilada nos alvos do jogo host/ARM64. As provas de jogo usam o
+alocador real; sucesso, falha, ponteiro estendido, fila indireta, bitsets pendentes
+e atualização de shader têm evidências separadas no lote.
