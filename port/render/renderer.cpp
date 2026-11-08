@@ -1655,12 +1655,12 @@ void TrimClusters() {  // entre quadros: malhas cujos dados saíram do cache ou 
   }
 }
 // Devolve true se desenhou (ou cortou tudo) pelos agrupamentos.
-uint64_t g_clWhy[8] = {};  // recusas: 0 classe/up, 1 tira, 2 sem MVP, 3 pequeno, 4 IB não residente, 5 VB não residente, 6 sem malha
+uint64_t g_clWhy[8] = {}; std::map<uint64_t, uint64_t> g_clNoMvp;  // recusas: 0 classe/up, 1 tira, 2 sem MVP, 3 pequeno, 4 IB não residente, 5 VB não residente, 6 sem malha
 bool TryClusterDraw(const Cmd& c, const Program& p, const uint8_t* state) {
   if (!ClusterOn()) return false;
   if (c.up || g_drawClassCurrent != 0) { ++g_clWhy[0]; return false; }
   if (c.mode != GL_TRIANGLES && c.mode != GL_TRIANGLE_STRIP) { ++g_clWhy[1]; return false; }
-  if (!p.cull.ok) { ++g_clWhy[2]; return false; }
+  if (!p.cull.ok) { ++g_clWhy[2]; if (DiagOsso()) { g_clNoMvp[c.vs->key] += c.vertexCount; } return false; }
   if (c.indexCount < 3000) { ++g_clWhy[3]; return false; }
   if (!c.residentIndices || !c.indexData) { ++g_clWhy[4]; return false; }
   for (uint32_t i = 0; i < c.inputCount; ++i) if (!(c.residentInputs & (1u << i)) || !c.vertexData[i] || g_transientUsed[i] || g_drawRemap[i]) { ++g_clWhy[5]; return false; }
@@ -2492,6 +2492,9 @@ void RenderThread() {
                        g_clDraws / double(W), g_clVertsIn / double(W), g_clVertsDrawn / double(W), g_clVertsIn ? 100.0 * double(g_clVertsDrawn) / double(g_clVertsIn) : 0.0, g_clCalls / double(W), g_clusters.size());
           std::fprintf(stderr, "[nier-agrupamento] recusas/quadro: classe %.1f tira %.1f semMVP %.1f pequeno %.1f IB %.1f VB %.1f malha %.1f\n", g_clWhy[0] / double(W), g_clWhy[1] / double(W), g_clWhy[2] / double(W), g_clWhy[3] / double(W), g_clWhy[4] / double(W), g_clWhy[5] / double(W), g_clWhy[6] / double(W));
           for (auto& w : g_clWhy) w = 0;
+          if (!g_clNoMvp.empty()) { std::vector<std::pair<uint64_t, uint64_t>> v(g_clNoMvp.begin(), g_clNoMvp.end()); std::sort(v.begin(), v.end(), [](auto& a, auto& b) { return a.second > b.second; });
+            std::string t; char b[64]; for (size_t i = 0; i < v.size() && i < 6; ++i) { std::snprintf(b, sizeof b, " %016llX:%.0fv", (unsigned long long)v[i].first, v[i].second / double(W)); t += b; }
+            std::fprintf(stderr, "[nier-agrupamento] cenário sem MVP reconhecido (vértices/quadro):%s\n", t.c_str()); g_clNoMvp.clear(); }
           g_clDraws = g_clVertsIn = g_clVertsDrawn = g_clCalls = 0;
           std::fprintf(stderr, "[nier-exposicao] PC0 material %.4g %.4g %.4g | cópia de volta %u na janela, nível %u endereço %08X A,R,G,B %u %u %u %u | tarja %u desenhos, cor do vértice %.3g %.3g %.3g %.3g, textura 1x1 fmt %u texel RGBA %u %u %u %u%s\n",
                        g_expPc0[0], g_expPc0[1], g_expPc0[2], g_expRbCount, g_expRbLevel, g_expRbAddr, g_expRb[0], g_expRb[1], g_expRb[2], g_expRb[3],
