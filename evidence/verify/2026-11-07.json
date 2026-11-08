@@ -63764,6 +63764,38 @@
    "time_pass": true
   },
   {
+   "name": "sub_82571508",
+   "address": "0x82571508",
+   "size": 1004,
+   "source": "src/decomp/d3d/draw_packets.cpp",
+   "trials": 10000,
+   "equal": 10000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 43.0,
+   "decomp_ns": 16.5,
+   "time_ratio": 0.383,
+   "time_pass": true
+  },
+  {
+   "name": "sub_825718F8",
+   "address": "0x825718F8",
+   "size": 1100,
+   "source": "src/decomp/d3d/draw_packets.cpp",
+   "trials": 10000,
+   "equal": 10000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 46.3,
+   "decomp_ns": 20.1,
+   "time_ratio": 0.434,
+   "time_pass": true
+  },
+  {
    "name": "sub_82572180",
    "address": "0x82572180",
    "size": 16,
@@ -63889,6 +63921,22 @@
    "orig_ns": 51.5,
    "decomp_ns": 40.4,
    "time_ratio": 0.784,
+   "time_pass": true
+  },
+  {
+   "name": "sub_82579240",
+   "address": "0x82579240",
+   "size": 2416,
+   "source": "src/decomp/d3d/shader_state.cpp",
+   "trials": 10000,
+   "equal": 10000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 126.6,
+   "decomp_ns": 58.2,
+   "time_ratio": 0.459,
    "time_pass": true
   },
   {

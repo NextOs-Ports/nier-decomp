@@ -200322,21 +200322,29 @@
    "address": 2186745096,
    "size": 1004,
    "name": "sub_82571508",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 1004,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/draw_packets.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186746104,
    "size": 1100,
    "name": "sub_825718F8",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 1100,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/draw_packets.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186747208,
@@ -201254,11 +201262,15 @@
    "address": 2186777152,
    "size": 2416,
    "name": "sub_82579240",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 2416,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/shader_state.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186779568,
