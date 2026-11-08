@@ -1,3 +1,30 @@
+# Estado para continuação — 07/11/2026 22:15 (fim da rodada da tarde/noite)
+
+## Onde estamos
+- **Imagem até a gameplay: FECHADA, PC ≈ Mali-450 (.164).** Prólogo com cor (sala nevada, prateleiras, destroços), Nier inteiro e texturizado, HUD, tutorial "Controls", tarjas de cutscene fiéis (preto 30% do próprio jogo). Prova: `nier-build/c1/provas/i3-pc-vs-164-gameplay.png`, `marco1-164-*.png`.
+- **FPS na gameplay do .164: 3-7 quadros/s** (lógica a 100% do tempo real; o jogo usa Δt real). Frameskip existe (`NIER_FRAMESKIP=auto|2|3|4`), padrão desligado: no NieR mais updates não aumentam o desenhado.
+- **Decomp:** 3216 funções verificadas e ligadas no jogo (≈3,16%), incluindo as quentes da gameplay (partículas 82144588, 82154D88, 821569E8, cache/estado de shader, Draw indexado/não indexado pela ponte de ganchos). D1-C6 (82578568, BeginVertices 82571070) em prova no fim da rodada.
+
+## Correções de imagem desta rodada (causas reais)
+1. Quadrado num quarto da tela: Resolve ignorava o nível de mip (r8) → nível próprio (7cb5f63).
+2. Corpo do personagem sumindo: tradutor aplicava o bit de negação só à constante nas ops escalares (clip(alpha-0.5) virava kill total) — corrigido no tradutor privado compartilhado (sha 12d5d8a3).
+3. Gameplay branca: o jogo lê pela CPU o mip 8 (2x2) da cadeia de luminância (825A3668, ponteiro FEC21000, bytes A,R,G,B, pixels 0/1/4/5) para a autoexposição; no port a memória ficava zero → PC0 ~1200. Correção: cópia de volta do Resolve pequeno para a memória do guest **no físico certo** (faixa virtual 0xE0000000+ tem +0x1000, PhysicalOf). C1 42850fc. Origem achada pelo D1 (messages/D1-exposicao-origem.json) e GDB do X1 (X1-GDB-exposure.json).
+4. Reduções liam sempre 512²: LOD constante por desenho (X1 81902e5).
+5. Gamma Xenos das texturas (X1 36efd81); alpha preservado nos Resolve (9fe02aa); Resolve 1/2/4 px (3d17107); endereços de textura/VB com PhysicalOf (X1 215d237).
+6. Textura half (fmt 29, até 325): HDR8 = um RGBA8 com sqrt + escala por textura (X1, fechando no fim da rodada).
+
+## FPS: a régua é o BANCO DE REPLAY (não abrir o jogo para medir)
+- `NIER_FRAME_DUMP=<dir> NIER_FRAME_DUMP_AT=<s>` grava um quadro; `nier_replay_bench frame.bin` reproduz em laço por modo (8 s/modo). Quadro da gameplay: `nier-build/c1/k1-dump/dump/frame.bin` (84 MB; no .164 vai em /tmp, o cartão tem ~77 MB livres).
+- **.164 (BENCH1/BENCH2 em nier-team/messages):** base 176-183 ms | sem-cenário 23 | sem-personagens 74 | PS chapado 70 | tesoura 74 | texturas 1x1 142 | personagens: ~102 ms, dos quais ~75 PIXEL e **~56 só do discard** (alpha-test), ~27 vértice+skin+envio. O agrupamento do cenário (C1-J1) deu só 5-10 ms; LOD por distância não ajuda.
+- **Próximo:** (1) C1: discard dos personagens (variante sem discard onde alpha=1; blend no cabelo/roupa como preset Mali); (2) X1: PS leves dos personagens e do cenário; (3) captura ~30 ms/update; (4) D1 segue a lista quente (messages/D1-quentes-gameplay.json).
+
+## Infra
+- Equipe por D-Bus no Konsole `org.kde.konsole-1687`: coord aba 3, X1 Codex aba 4, D1 Codex aba 5, C1 Claude aba 6 (`nier-team/bin/mandar.sh`, `avisar-coord.sh`, REGRAS-COMUNS.md).
+- Aparelho: `nier-ab/run_ab.py` (NFS do jogo; descobre o IP do PC sozinho — o PC trocou .239→.218 no Wi-Fi). Corte duro 280 s do processo. ES mascarado.
+- Regra do dono: imagem até a gameplay antes de FPS; aparelho só em marco visível ou no banco; decomp sem parar.
+
+---
+
 # Estado para continuação — 07/11/2026, fim da rodada de 6 horas
 
 ## Resumo
