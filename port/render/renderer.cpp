@@ -530,7 +530,7 @@ float g_barColor[4] = {0, 0, 0, 0}; uint8_t g_barTexel[4] = {0, 0, 0, 0}; uint32
 int g_abMode = 0;
 // 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices),
 // 8 LOD por distância (NIER_LOD_DIST ou 60)
-const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento"};
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento", "sem-personagens"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -1731,6 +1731,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   bool diag = false;
   if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
+  if (g_abMode == 10 && (skinConst > 0 || relBase >= 0)) return;  // AB: personagens (skinning na CPU) fora
   Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask));
   if (!c.up && g_drawClassCurrent == 0 && !c.ps->constMap.empty() && c.ps->constMap[0] == 0) { const uint8_t* pc = Field(state, kPixelConstants); g_expPc0[0] = BEF(pc); g_expPc0[1] = BEF(pc + 4); g_expPc0[2] = BEF(pc + 8); }
   if (c.up && BE32(Field(state, kBlendControl)) == 0x00010706 && c.ps->textureMask == 1 && c.inputCount >= 3) {
@@ -2390,7 +2391,7 @@ void RenderThread() {
     static Clock::time_point abStart{}; static bool abOn = false;
     if (abCycle) {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
-      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 10 : 0;
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 11 : 0;
     }
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
