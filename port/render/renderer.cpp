@@ -85,8 +85,11 @@ uint32_t PhysicalOf(uint32_t address) {
   if(address<0x80000000u)return address;
   return (address&0x1FFFFFFFu)+(address>=0xE0000000u?0x1000u:0u);
 }
+// C1-K1 banco de replay: páginas de 4 KB da memória física lidas pela thread GL durante o quadro gravado
+thread_local std::set<uint32_t>* t_recPages = nullptr;
 const uint8_t* Physical(uint32_t address, uint32_t size) {
   address = PhysicalOf(address);
+  if (t_recPages && size && uint64_t(address) + size <= 0x20000000ull) for (uint32_t pg = address >> 12; pg <= (address + size - 1) >> 12; ++pg) t_recPages->insert(pg);
   return g_mem.physicalBase && uint64_t(address) + size <= 0x20000000ull ? g_mem.physicalBase + address : nullptr;
 }
 
@@ -2336,13 +2339,189 @@ void PresentToWindow() {
   else SDL_GL_SwapWindow(g_window);
 }
 
-void RenderThread() {
-  if (UsingPbuffer()) {
-    if (!eglMakeCurrent(g_eglDisplay, g_eglSurface, g_eglSurface, g_eglContext)) { std::fprintf(stderr, "[nier-gl] eglMakeCurrent falhou\n"); return; }
-  } else {
-    if (!SDL_GL_MakeCurrent(g_window, g_context)) { std::fprintf(stderr, "[nier-gl] contexto: %s\n", SDL_GetError()); return; }
-    SDL_GL_SetSwapInterval(1);
+
+// ---------------------------------------------------------------- C1-K1 banco de replay (gravação/leitura)
+// NIER_FRAME_DUMP=<dir>: grava UM quadro (o primeiro com >= NIER_FRAME_DUMP_DRAWS desenhos 3D depois de
+// NIER_FRAME_DUMP_AT segundos do 1º quadro; padrões 50 e 0) em <dir>/frame.bin: comandos, estado, shaders
+// traduzidos, buffers, jobs de skinning prontos e as páginas da memória física que o replay leu. O cache de
+// texturas é esvaziado antes desse quadro para que toda textura seja lida (e registrada). nier_replay_bench reproduz.
+struct DumpWriter {
+  FILE* f = nullptr;
+  void raw(const void* p, size_t n) { std::fwrite(p, 1, n, f); }
+  template<class T> void pod(const T& v) { raw(&v, sizeof v); }
+  void str(const std::string& v) { uint64_t n = v.size(); pod(n); raw(v.data(), n); }
+  template<class T> void vec(const std::vector<T>& v) { uint64_t n = v.size(); pod(n); if (n) raw(v.data(), n * sizeof(T)); }
+};
+struct DumpReader {
+  const uint8_t* p = nullptr; const uint8_t* end = nullptr; bool ok = true;
+  void raw(void* d, size_t n) { if (size_t(end - p) < n) { ok = false; std::memset(d, 0, n); return; } std::memcpy(d, p, n); p += n; }
+  template<class T> T pod() { T v{}; raw(&v, sizeof v); return v; }
+  std::string str() { uint64_t n = pod<uint64_t>(); if (n > size_t(end - p)) { ok = false; return {}; } std::string v(reinterpret_cast<const char*>(p), n); p += n; return v; }
+  template<class T> std::vector<T> vec() { uint64_t n = pod<uint64_t>(); std::vector<T> v; if (n * sizeof(T) > size_t(end - p)) { ok = false; return v; } v.resize(n); if (n) raw(v.data(), n * sizeof(T)); return v; }
+};
+constexpr uint32_t kDumpMagic = 0x4E524431;  // "NRD1"
+std::set<uint32_t> g_dumpPages;
+bool g_dumpDone = false;
+bool FrameDumpWanted(const Frame& work) {
+  static const char* dir = std::getenv("NIER_FRAME_DUMP");
+  if (!dir || g_dumpDone) return false;
+  static Clock::time_point start = Clock::now();
+  static double at = std::getenv("NIER_FRAME_DUMP_AT") ? std::atof(std::getenv("NIER_FRAME_DUMP_AT")) : 0.0;
+  static size_t minDraws = std::getenv("NIER_FRAME_DUMP_DRAWS") ? size_t(std::atoi(std::getenv("NIER_FRAME_DUMP_DRAWS"))) : 50;
+  if (std::chrono::duration<double>(Clock::now() - start).count() < at) return false;
+  size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d;
+  return d >= minDraws;
+}
+void BeginDump() {
+  for (auto& [k, t] : g_textures) if (t.id) glDeleteTextures(1, &t.id);
+  g_textures.clear(); for (auto& t : g_gl.tex) t = ~0u;
+  g_dumpPages.clear(); t_recPages = &g_dumpPages;
+}
+void EndDump(const Frame& work) {
+  t_recPages = nullptr; g_dumpDone = true;
+  std::string path = std::string(std::getenv("NIER_FRAME_DUMP")) + "/frame.bin";
+  DumpWriter w; w.f = std::fopen(path.c_str(), "wb");
+  if (!w.f) { std::fprintf(stderr, "[nier-dump] não abriu %s\n", path.c_str()); return; }
+  w.pod(kDumpMagic); w.pod(g_config.renderWidth); w.pod(g_config.renderHeight);
+  // shaders
+  std::map<uint64_t, const GuestShader*> shaders;
+  std::map<uint64_t, buffers::Ref> payloads;
+  for (const auto& c : work.cmds) {
+    if (c.vs) shaders[c.vs->key ^ 1] = c.vs;
+    if (c.ps) shaders[c.ps->key ^ 2] = c.ps;
+    for (uint32_t i = 0; i < kMaxInputs; ++i) if (c.vertexData[i]) payloads[c.vertexData[i]->serial] = c.vertexData[i];
+    if (c.indexData) payloads[c.indexData->serial] = c.indexData;
   }
+  w.pod(uint64_t(shaders.size()));
+  for (auto& [k, sh] : shaders) {
+    w.pod(k); w.pod(sh->ok); w.pod(sh->pixel); w.pod(sh->key); w.str(sh->source); w.str(sh->error);
+    w.vec(sh->inputs); w.vec(sh->literals); w.pod(sh->textureMask); w.raw(sh->booleanMask, sizeof sh->booleanMask);
+    w.pod(sh->inputMask); w.pod(sh->outputMask); w.pod(sh->relativeConstants); w.vec(sh->constMap);
+  }
+  w.pod(uint64_t(payloads.size()));
+  for (auto& [serial, d] : payloads) {
+    w.pod(serial); w.pod(d->sample); w.pod(d->input); w.pod(d->endian); w.pod(d->count); w.pod(d->layout); w.vec(d->raw); w.vec(d->bytes);
+  }
+  w.vec(work.blob); w.pod(work.presentInterval);
+  w.pod(uint64_t(work.cmds.size()));
+  for (const auto& c : work.cmds) {
+    w.pod(c.kind); w.pod(uint64_t(c.vs ? c.vs->key ^ 1 : 0)); w.pod(uint64_t(c.ps ? c.ps->key ^ 2 : 0)); w.str(c.skipReason ? c.skipReason : "");
+    w.pod(c.state); w.pod(c.indices); w.pod(c.fetch); w.raw(c.inputs, sizeof c.inputs);
+    for (uint32_t i = 0; i < kMaxInputs; ++i) w.pod(uint64_t(c.vertexData[i] ? c.vertexData[i]->serial : 0));
+    w.pod(uint64_t(c.indexData ? c.indexData->serial : 0));
+    w.pod(c.indexAddress); w.raw(c.streamInputs, sizeof c.streamInputs); w.pod(c.streamIndices); w.pod(c.residentInputs); w.pod(c.residentIndices);
+    w.pod(c.inputCount); w.pod(c.vertexCount); w.pod(c.indexCount); w.pod(c.flags); w.pod(c.argb); w.raw(c.rect, sizeof c.rect); w.pod(c.hasRect);
+    w.pod(c.up); w.pod(c.prim); w.pod(c.mode); w.pod(c.skinJob); w.pod(c.level);
+  }
+  w.pod(uint64_t(work.skinJobs.size()));
+  for (const auto& j : work.skinJobs) {
+    WaitSkinJob(*j);
+    w.pod(j->ok); w.pod(uint64_t(j->nOuts)); w.pod(j->vertices); w.pod(j->ms);
+    for (size_t k = 0; k < j->nOuts; ++k) { w.pod(j->outs[k].first); w.vec(j->outs[k].second); }
+  }
+  w.pod(uint64_t(g_dumpPages.size()));
+  for (uint32_t pg : g_dumpPages) { w.pod(pg); w.raw(g_mem.physicalBase + (size_t(pg) << 12), 4096); }
+  long bytes = std::ftell(w.f); std::fclose(w.f);
+  std::fprintf(stderr, "[nier-dump] quadro gravado em %s: %zu comandos, %zu shaders, %zu buffers, %zu jobs de skinning, %zu páginas (%.1f MB)\n",
+               path.c_str(), work.cmds.size(), shaders.size(), payloads.size(), work.skinJobs.size(), g_dumpPages.size(), bytes / 1048576.0);
+}
+// Leitura (nier_replay_bench). Memória física: g_mem.physicalBase já reservado pelo chamador.
+bool LoadFrameDump(const char* path, Frame& frame) {
+  FILE* f = std::fopen(path, "rb"); if (!f) return false;
+  std::fseek(f, 0, SEEK_END); long n = std::ftell(f); std::fseek(f, 0, SEEK_SET);
+  static std::vector<uint8_t> data; data.resize(size_t(n)); if (std::fread(data.data(), 1, data.size(), f) != data.size()) { std::fclose(f); return false; } std::fclose(f);
+  DumpReader r; r.p = data.data(); r.end = data.data() + data.size();
+  if (r.pod<uint32_t>() != kDumpMagic) return false;
+  g_config.renderWidth = r.pod<int>(); g_config.renderHeight = r.pod<int>();
+  std::map<uint64_t, const GuestShader*> shaders;
+  for (uint64_t k = 0, ns = r.pod<uint64_t>(); k < ns && r.ok; ++k) {
+    auto* sh = new GuestShader;
+    uint64_t key = r.pod<uint64_t>(); sh->ok = r.pod<bool>(); sh->pixel = r.pod<bool>(); sh->key = r.pod<uint64_t>(); sh->source = r.str(); sh->error = r.str();
+    sh->inputs = r.vec<VertexInput>(); sh->literals = r.vec<float>(); sh->textureMask = r.pod<uint32_t>(); r.raw(sh->booleanMask, sizeof sh->booleanMask);
+    sh->inputMask = r.pod<uint8_t>(); sh->outputMask = r.pod<uint8_t>(); sh->relativeConstants = r.pod<bool>(); sh->constMap = r.vec<uint16_t>();
+    shaders[key] = sh;
+  }
+  std::map<uint64_t, buffers::Ref> payloads;
+  for (uint64_t k = 0, np = r.pod<uint64_t>(); k < np && r.ok; ++k) {
+    auto d = std::make_shared<buffers::Payload>();
+    d->serial = r.pod<uint64_t>(); d->sample = r.pod<uint64_t>(); d->input = r.pod<VertexInput>(); d->endian = r.pod<uint32_t>(); d->count = r.pod<uint32_t>();
+    d->layout = r.pod<buffers::Layout>(); d->raw = r.vec<uint8_t>(); d->bytes = r.vec<uint8_t>(); d->cacheable.store(true);
+    payloads[d->serial] = d;
+  }
+  frame.blob = r.vec<uint8_t>(); frame.presentInterval = r.pod<uint32_t>();
+  static std::vector<std::string> reasons;
+  for (uint64_t k = 0, nc = r.pod<uint64_t>(); k < nc && r.ok; ++k) {
+    Cmd c{r.pod<Kind>()};
+    uint64_t vk = r.pod<uint64_t>(), pk = r.pod<uint64_t>(); std::string why = r.str();
+    c.vs = vk ? shaders[vk] : nullptr; c.ps = pk ? shaders[pk] : nullptr;
+    if (!why.empty()) { reasons.push_back(why); c.skipReason = strdup(why.c_str()); }
+    c.state = r.pod<size_t>(); c.indices = r.pod<size_t>(); c.fetch = r.pod<size_t>(); r.raw(c.inputs, sizeof c.inputs);
+    for (uint32_t i = 0; i < kMaxInputs; ++i) { uint64_t sr = r.pod<uint64_t>(); if (sr) c.vertexData[i] = payloads[sr]; }
+    { uint64_t sr = r.pod<uint64_t>(); if (sr) c.indexData = payloads[sr]; }
+    c.indexAddress = r.pod<uint64_t>(); r.raw(c.streamInputs, sizeof c.streamInputs); c.streamIndices = r.pod<size_t>(); c.residentInputs = r.pod<uint32_t>(); c.residentIndices = r.pod<bool>();
+    c.inputCount = r.pod<uint32_t>(); c.vertexCount = r.pod<uint32_t>(); c.indexCount = r.pod<uint32_t>(); c.flags = r.pod<uint32_t>(); c.argb = r.pod<uint32_t>(); r.raw(c.rect, sizeof c.rect); c.hasRect = r.pod<bool>();
+    c.up = r.pod<bool>(); c.prim = r.pod<uint8_t>(); c.mode = r.pod<GLenum>(); c.skinJob = r.pod<int>(); c.level = r.pod<uint8_t>();
+    frame.cmds.push_back(c);
+  }
+  for (uint64_t k = 0, nj = r.pod<uint64_t>(); k < nj && r.ok; ++k) {
+    auto j = std::make_shared<SkinJob>();
+    j->ok = r.pod<bool>(); uint64_t no = r.pod<uint64_t>(); j->vertices = r.pod<uint32_t>(); j->ms = r.pod<double>();
+    for (uint64_t o = 0; o < no; ++o) { int in = r.pod<int>(); auto v = r.vec<float>(); j->outs.push_back({in, std::move(v)}); }
+    j->nOuts = j->outs.size(); j->done.store(true);
+    frame.skinJobs.push_back(j);
+  }
+  uint64_t np = r.pod<uint64_t>();
+  for (uint64_t k = 0; k < np && r.ok; ++k) { uint32_t pg = r.pod<uint32_t>(); r.raw(g_mem.physicalBase + (size_t(pg) << 12), 4096); }
+  std::fprintf(stderr, "[nier-bench] dump %s: %zu comandos, %zu shaders, %zu buffers, %zu jobs, %llu páginas, interno %dx%d%s\n", path, frame.cmds.size(), shaders.size(), payloads.size(), frame.skinJobs.size(), (unsigned long long)np, g_config.renderWidth, g_config.renderHeight, r.ok ? "" : " (TRUNCADO)");
+  return r.ok;
+}
+uint32_t ReplayFrameCore(Frame& work) {
+  g_mainTarget = 0;
+  uint32_t frameDraws = 0;
+  g_frameSampled.clear();
+  for (const Cmd& c : work.cmds) {
+    if (c.kind != Kind::Draw || !c.ps) continue;
+    const uint8_t* st = work.blob.data() + c.state;
+    for (int t = 0; t < 32; ++t)
+      if (c.ps->textureMask & (1u << t)) {
+        auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t));
+        g_frameSampled.insert(TexKey(tf));
+      }
+  }
+  PrepareFrameStreams(work);
+  PlanDirectPasses(work);
+  for (size_t oi = 0; oi < g_order.size(); ++oi) {
+    size_t i = g_order[oi];
+    const Cmd& c = work.cmds[i];
+    if (c.kind == Kind::Resolve && g_abMode == 3) continue;
+    if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
+    else if (c.kind == Kind::Skip) Skip(c.skipReason);
+    else {
+      uint8_t cls = g_drawClass[i];
+      if (cls == 2 && g_skipPrepass) { ++g_skippedPrepass; continue; }
+      if (cls == 1 && g_skipShadow) { ++g_skippedShadow; continue; }
+      if (cls == 4 && g_skipShadow) {
+        // recepção de sombra sem mapa de sombra: o destino (máscara) fica branco = tudo iluminado
+        ++g_skippedReceive;
+        const Redirect& rd = g_redirects[i];
+        if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
+        continue;
+      }
+      if ((g_abMode == 1 && cls == 3) || (g_abMode == 2 && cls == 0)) continue;
+      static uint32_t abHalf = 0;
+      if (g_abMode == 11 && cls == 0 && !c.up && (++abHalf & 1)) continue;  // AB: metade dos desenhos de cenário
+      if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
+      g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
+      g_drawClassCurrent = cls;
+      ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
+    }
+  }
+  g_copiesSkipped += uint32_t(g_pendingCopies.size());
+  g_pendingCopies.clear();
+  return frameDraws;
+}
+// Inicialização GL da thread de render (também usada pelo nier_replay_bench).
+void RenderInitGl() {
   CreateBlit();
   InitStreamBuffers();
   const char* extensions = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
@@ -2377,6 +2556,15 @@ void RenderThread() {
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
                g_config.renderWidth, g_config.renderHeight, vsUniforms, fsUniforms, int(g_depth24));
+}
+void RenderThread() {
+  if (UsingPbuffer()) {
+    if (!eglMakeCurrent(g_eglDisplay, g_eglSurface, g_eglSurface, g_eglContext)) { std::fprintf(stderr, "[nier-gl] eglMakeCurrent falhou\n"); return; }
+  } else {
+    if (!SDL_GL_MakeCurrent(g_window, g_context)) { std::fprintf(stderr, "[nier-gl] contexto: %s\n", SDL_GetError()); return; }
+    SDL_GL_SetSwapInterval(1);
+  }
+  RenderInitGl();
   Frame work;
   auto last = Clock::now();
   for (;;) {
@@ -2389,18 +2577,6 @@ void RenderThread() {
       work.skinJobs.swap(g_inflight.skinJobs); g_inflight.skinJobs.clear();
       work.presentInterval = g_inflight.presentInterval;
     }
-    g_mainTarget = 0;
-    uint32_t frameDraws = 0;
-    g_frameSampled.clear();
-    for (const Cmd& c : work.cmds) {
-      if (c.kind != Kind::Draw || !c.ps) continue;
-      const uint8_t* st = work.blob.data() + c.state;
-      for (int t = 0; t < 32; ++t)
-        if (c.ps->textureMask & (1u << t)) {
-          auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t));
-          g_frameSampled.insert(TexKey(tf));
-        }
-    }
     auto tr = Clock::now();
     static bool abCycle = std::getenv("NIER_AB_CYCLE") != nullptr;
     static int abPeriod = std::getenv("NIER_AB_PERIOD") ? std::max(2, std::atoi(std::getenv("NIER_AB_PERIOD"))) : 6;
@@ -2409,36 +2585,10 @@ void RenderThread() {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
       g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 13 : 0;
     }
-    PrepareFrameStreams(work);
-    PlanDirectPasses(work);
-    for (size_t oi = 0; oi < g_order.size(); ++oi) {
-      size_t i = g_order[oi];
-      const Cmd& c = work.cmds[i];
-      if (c.kind == Kind::Resolve && g_abMode == 3) continue;
-      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
-      else if (c.kind == Kind::Skip) Skip(c.skipReason);
-      else {
-        uint8_t cls = g_drawClass[i];
-        if (cls == 2 && g_skipPrepass) { ++g_skippedPrepass; continue; }
-        if (cls == 1 && g_skipShadow) { ++g_skippedShadow; continue; }
-        if (cls == 4 && g_skipShadow) {
-          // recepção de sombra sem mapa de sombra: o destino (máscara) fica branco = tudo iluminado
-          ++g_skippedReceive;
-          const Redirect& rd = g_redirects[i];
-          if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
-          continue;
-        }
-        if ((g_abMode == 1 && cls == 3) || (g_abMode == 2 && cls == 0)) continue;
-        static uint32_t abHalf = 0;
-        if (g_abMode == 11 && cls == 0 && !c.up && (++abHalf & 1)) continue;  // AB: metade dos desenhos de cenário
-        if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
-        g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
-        g_drawClassCurrent = cls;
-        ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
-      }
-    }
-    g_copiesSkipped += uint32_t(g_pendingCopies.size());
-    g_pendingCopies.clear();
+    bool dumping = FrameDumpWanted(work);
+    if (dumping) BeginDump();
+    uint32_t frameDraws = ReplayFrameCore(work);
+    if (dumping) EndDump(work);
     AuditBufferImage(work);
     if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }  // LEVE_OK: perfil opt-in (NIER_GL_PROFILE) para medir a GPU
     auto tp = Clock::now();
