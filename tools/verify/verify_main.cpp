@@ -465,6 +465,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < trials && err.empty(); ++i) {
       fill_scratch(s, rng); fill_vtables(s); fill_scratch(t, rng); fill_scratch(st, rng);
       PPCContext in{};
+      in.fpscr.InitHost();  // Mesma política de exceções FP do runtime; csr=0 cria SIGFPE espúrio.
       for (int n = 0; n < 32; ++n) gpr(in, n)->u64 = rng();
       for (int n = 0; n < 32; ++n) fpr(in, n)->f64 = (double)((int64_t)(rng() % 20000) - 10000) / 16.0;
       in.r1.u64 = kSp; in.r13.u64 = kTls + 0x100; in.lr = 0x82000000;
@@ -508,6 +509,17 @@ int main(int argc, char** argv) {
       if (trace) fprintf(stderr, "TRACE original: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\nTRACE reconstruída\n", a.faulted, (unsigned long long)a.fault, a.calls.size(), (unsigned long long)a.ctx.r3.u64);
       State b = run(e.decomp, in, s, t, st);
       if (trace) {
+        if (const char* memory = getenv("NIER_TRACE_SCRATCH")) {
+          const uint32_t address = uint32_t(strtoul(memory, nullptr, 0));
+          if (address >= kScratch && address + 128 <= kScratch + kScratchSize) {
+            for (int side = 0; side < 2; ++side) {
+              const auto& bytes = side ? b.scratch : a.scratch;
+              fprintf(stderr, "TRACE %s scratch 0x%08x:", side ? "reconstruída" : "original", address);
+              for (int j = 0; j < 128; ++j) fprintf(stderr, "%s%02x", j % 4 ? "" : " ", bytes[address-kScratch+j]);
+              fprintf(stderr, "\n");
+            }
+          }
+        }
         fprintf(stderr, "TRACE reconstruída: faulted=%d fault=0x%llx calls=%zu r3=0x%llx\n", b.faulted, (unsigned long long)b.fault, b.calls.size(), (unsigned long long)b.ctx.r3.u64);
         for (int side = 0; side < 2; ++side) {
           const State& st = side ? b : a;

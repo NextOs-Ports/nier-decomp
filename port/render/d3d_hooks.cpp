@@ -24,6 +24,18 @@ REX_EXTERN(__imp__sub_82585888);  // Resolve
 REX_EXTERN(__imp__sub_8257AB38);  // Swap
 REX_EXTERN(__imp__sub_8256BB90);  // SetRenderState(94) = intervalo de apresentação
 
+// Backend nativo opcional: o hook mantém captura/estado; OFF usa a tradução.
+extern "C" void nier_native_sub_82571508(PPCContext&, uint8_t*) __attribute__((weak));
+extern "C" void nier_native_sub_825718F8(PPCContext&, uint8_t*) __attribute__((weak));
+extern "C" void nier_native_sub_82571070(PPCContext&, uint8_t*) __attribute__((weak));
+extern "C" void nier_native_sub_82585888(PPCContext&, uint8_t*) __attribute__((weak));
+extern "C" void nier_native_sub_8257AB38(PPCContext&, uint8_t*) __attribute__((weak));
+extern "C" void nier_native_sub_8256BB90(PPCContext&, uint8_t*) __attribute__((weak));
+#define NIER_FORWARD_GUEST(name) do { \
+  if (nier_native_##name) nier_native_##name(ctx, base); \
+  else __imp__##name(ctx, base); \
+} while (0)
+
 namespace {
 const uint8_t* ReadVirtual(uint32_t address, uint32_t size) {
   if (!address || uint64_t(address) + size > 0x100000000ull) return nullptr;
@@ -51,20 +63,20 @@ bool Bypass() { return Ready() && nier::render::Settings().bypassGuestPM4; }
 REX_HOOK_RAW(sub_82571508) {
   if (Ready()) nier::render::RecordDraw(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, 0, ctx.r6.u32, false);
   if (Bypass()) return;
-  __imp__sub_82571508(ctx, base);
+  NIER_FORWARD_GUEST(sub_82571508);
 }
 
 REX_HOOK_RAW(sub_825718F8) {
   if (Ready()) nier::render::RecordDraw(ctx.r3.u32, ctx.r4.u32, ctx.r5.u32, ctx.r6.u32, ctx.r7.u32, true);
   if (Bypass()) return;
-  __imp__sub_825718F8(ctx, base);
+  NIER_FORWARD_GUEST(sub_825718F8);
 }
 
 // BeginVertices(dev, prim, vertexCount, stride): devolve em r3 o espaço onde o jogo escreve os vértices
 // (o rastro de 07/11 mostrou r7 sem dados). Grava o desenho depois que o jogo preencher o bloco.
 REX_HOOK_RAW(sub_82571070) {
   uint32_t device = ctx.r3.u32, prim = ctx.r4.u32, count = ctx.r5.u32, stride = ctx.r6.u32;
-  __imp__sub_82571070(ctx, base);
+  NIER_FORWARD_GUEST(sub_82571070);
   if (Ready()) nier::render::RecordBeginVertices(device, prim, count, stride, ctx.r3.u32);
 }
 
@@ -81,15 +93,15 @@ REX_HOOK_RAW(sub_82585888) {
     }
     nier::render::RecordResolve(ctx.r3.u32, ctx.r4.u32, r ? rect : nullptr, ctx.r6.u32, argb, ctx.r8.u32);
   }
-  __imp__sub_82585888(ctx, base);
+  NIER_FORWARD_GUEST(sub_82585888);
 }
 
 REX_HOOK_RAW(sub_8257AB38) {
-  __imp__sub_8257AB38(ctx, base);
+  NIER_FORWARD_GUEST(sub_8257AB38);
   if (Ready()) nier::render::Present();
 }
 
 REX_HOOK_RAW(sub_8256BB90) {
   nier::render::RecordPresentInterval(ctx.r4.u32);
-  __imp__sub_8256BB90(ctx, base);
+  NIER_FORWARD_GUEST(sub_8256BB90);
 }

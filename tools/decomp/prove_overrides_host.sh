@@ -10,7 +10,7 @@ pcm_so=${NIER_PCM_SO:-/mnt/ARQUIVOS/HOME-FELIPE/ports_compile/nier-build/x1/wait
 [ -f "$pcm_so" ] || { echo "interposer de PCM ausente: $pcm_so" >&2; exit 2; }
 mkdir -p "$out"
 export NIER_INPUT_SCRIPT
-NIER_INPUT_SCRIPT=$(cat "$root/tools/render/roteiro-3d.txt")
+NIER_INPUT_SCRIPT=${NIER_INPUT_SCRIPT:-$(cat "$root/tools/render/roteiro-3d.txt")}
 export NIER_GLES2_CAPTURE_EVERY=15 SDL_VIDEO_DRIVER=offscreen MESA_GLES_VERSION_OVERRIDE=2.0
 run_one() {   # nome build
   local name=$1 build=$2
