@@ -6,6 +6,7 @@ DECLARE_REX_FUNC(sub_82578418); DECLARE_REX_FUNC(sub_82579240);
 DECLARE_REX_FUNC(sub_82577CE8); DECLARE_REX_FUNC(sub_82578080);
 DECLARE_REX_FUNC(sub_825782C0); DECLARE_REX_FUNC(sub_82578140);
 DECLARE_REX_FUNC(sub_825744F8); DECLARE_REX_FUNC(sub_82573888);
+DECLARE_REX_FUNC(sub_82573670);
 namespace {
 uint32_t physical(uint32_t address,uint32_t mask=0x1FFFFFFFu){return (address&mask)+(((address>>20)+512u)&0x1000u);}
 void constants(PPCContext& ctx,uint8_t* base,PPCFunc* fn,uint64_t device,uint64_t mask,uint32_t key,uint32_t offset){
@@ -86,6 +87,43 @@ template<bool Indexed> void draw(PPCContext& ctx,uint8_t* base){
 }
 NIER_DECOMP(sub_825718F8){draw<true>(ctx,base);}
 NIER_DECOMP(sub_82571508){draw<false>(ctx,base);}
+NIER_DECOMP(sub_82571070){
+    const uint64_t argument=ctx.r3.u64;
+    const uint32_t device=ctx.r3.u32,primitive=ctx.r4.u32,count=ctx.r5.u32,stride=ctx.r6.u32;
+    GuestFrame frame(ctx,base,176);
+    const uint32_t previous=ld8(base,device+12704),format=(stride>>2)&255u,words=(count*stride)>>2;
+    st8(base,device+12704,uint8_t(format));
+    if(format!=ld8(base,device+12008)&&ld32(base,device+12872))st64(base,device+16,ld64(base,device+16)|0x80000u);
+    st64(base,device+24,ld64(base,device+24)&~1ull);
+    flush_state(ctx,base,argument);
+    uint32_t cursor=ld32(base,device+48);
+    st8(base,device+12704,uint8_t(previous));
+    if(cursor>ld32(base,device+56)){ctx.r3.u64=argument;call_guest(ctx,base,sub_825744F8);cursor=ctx.r3.u32;}
+    ctx.r3.u64=argument;ctx.r4.u64=words;ctx.r5.u64=16;call_guest(ctx,base,sub_82573670);
+    const uint64_t buffer_arg=ctx.r3.u64;
+    const uint32_t buffer=uint32_t(buffer_arg);
+    if(!buffer){st32(base,device+48,cursor);ctx.r3.u64=0;return;}
+    auto emit=[&](uint32_t value){cursor+=4;st32(base,cursor,value);};
+    emit(8450);emit(0);emit(0x548BA);emit(1);emit(0);emit(1);emit(0);
+    emit(physical(buffer)|3u);emit(0x10000002u|((words<<2)&0x3FFFFFCu));
+    emit(0x25000);emit(0);emit(0);emit(0);
+    const uint32_t mode=ld8(base,device+12363);
+    const uint32_t flags=(ld8(base,device+12298+mode)|(mode?256u:0u))&319u;
+    const uint32_t draw_word=(count<<16)|(primitive&63u)|128u;
+    if(!(ld8(base,device+10940)&1)){emit(0xC0012201);emit(flags);emit(draw_word);}
+    else{
+        uint32_t record=ld32(base,device+13436);
+        ctx.r3.u64=argument+13424;
+        if(record+16>ld32(base,device+13440)){call_guest(ctx,base,sub_82573888);record=ctx.r3.u32;}
+        st32(base,record,cursor);st32(base,device+13436,record+16);
+        emit(0xC0006000);emit(0xFFFFFFFF);emit(0xC0012201);emit(flags);emit(draw_word);
+        emit(0xC0006000);emit(0x80000000);emit(0xC0015A01);emit(26);
+        emit(physical(record+4,0x1FFFFFFEu)|1u);emit(0xC0004601);emit(25);
+    }
+    st64(base,device+24,ld64(base,device+24)|1u);
+    st32(base,device+13652,cursor);st32(base,device+13656,buffer);st32(base,device+13664,words);
+    ctx.r3.u64=buffer_arg;
+}
 #define DRAW_STATE "r3=const:0x40010000 r4=range:1..6 r5=range:0..1000 r6=range:0..60000 r7=range:0..60000 " \
     "@r3.0=const:0 @r3.4=const:0 @r3.8=const:0 @r3.12=const:0 @r3.16=const:0 @r3.20=const:0 " \
     "@r3.24=const:0 @r3.28=const:0 @r3.32=const:0 @r3.36=const:0 " \
@@ -95,3 +133,9 @@ NIER_DECOMP(sub_82571508){draw<false>(ctx,base);}
 NIER_VERIFY_SPEC(sub_825718F8,0x825718F8,DRAW_STATE);
 NIER_VERIFY_SPEC(sub_82571508,0x82571508,DRAW_STATE);
 #undef DRAW_STATE
+NIER_VERIFY_SPEC(sub_82571070,0x82571070,
+    "r3=const:0x40010000 r4=range:1..6 r5=range:0..1000 r6=range:4..64 "
+    "@r3.0=const:0 @r3.4=const:0 @r3.8=const:0 @r3.12=const:0 @r3.16=const:0 @r3.20=const:0 "
+    "@r3.24=const:0 @r3.28=const:0 @r3.32=const:0 @r3.36=const:0 @r3.12872=const:0 "
+    "@r3.48=const:0x40040000 @r3.52=const:0x40048000 @r3.56=const:0x40048000 "
+    "@r3.10940=const:0 @r3.13436=const:0x40050000 @r3.13440=const:0x40058000 @r3.0x60010=const:0 @r3.0x60014=const:0");
