@@ -12,6 +12,7 @@
 #include "nier_d3d.h"
 #include "xenos_texture.h"
 #include "texture_gamma.h"
+#include "texture_hdr8.h"
 #include "constant_lod.h"
 #include "vertex_cache.h"
 
@@ -476,7 +477,7 @@ Target& CurrentTarget(const uint8_t* state, bool forDraw = true) {
 // Conferência de mudança com recuo (regime ≤ 1 ms/quadro na Mali): textura que não muda é conferida a cada
 // 2, 4, … 64 quadros; a que já mudou alguma vez, no máximo a cada 8 (texto novo aparece em < 0,3 s a 30 fps);
 // a que muda sempre (planos de vídeo) volta a ser conferida todo quadro.
-struct Texture { GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; GLenum glFormat = 0; uint64_t nextCheck = 0; uint32_t stable = 0; };
+struct Texture { std::array<float,4> hdrGain{},hdrBias{}; GLuint id = 0; uint64_t signature = 0; uint32_t uploads = 0; uint64_t checkedFrame = ~0ull; GLenum glFormat = 0; uint64_t nextCheck = 0; uint32_t stable = 0; };
 std::unordered_map<uint64_t, Texture> g_textures;
 std::vector<uint8_t> g_pixels;
 GLuint g_white = 0;
@@ -602,6 +603,29 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
       std::fprintf(stderr, "[nier-k8] %ux%u diferenças %zu\n", t.width, t.height, bad);
     }
   }
+  if(t.format==xenos::k16161616Expand) {
+    std::vector<float> values;Hdr8Image planes;
+    bool pot=(t.width&(t.width-1))==0&&(t.height&(t.height-1))==0;
+    if(!ReadHdrHalf(Physical,t,values)||!PackHdr8(t.width,t.height,std::move(values),planes,g_config.mipmaps&&pot)) {Skip("HDR8 não representável");return tex.id?tex.id:White();}
+    auto tu=Clock::now();g_decodeMs+=std::chrono::duration<double,std::milli>(tu-td).count();
+    bool fresh=!tex.id;
+    if(!tex.id)glGenTextures(1,&tex.id);
+    ActiveUnit(std::max(g_gl.unit,0));glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+    const GLint wrap[]={GL_REPEAT,GL_MIRRORED_REPEAT,GL_CLAMP_TO_EDGE};
+    {glBindTexture(GL_TEXTURE_2D,tex.id);g_gl.tex[g_gl.unit]=tex.id;
+      for(size_t level=0;level<planes.levels.size();++level){auto& mip=planes.levels[level];const auto& bytes=mip.pixels;
+        if(fresh)glTexImage2D(GL_TEXTURE_2D,level,GL_RGBA,mip.width,mip.height,0,GL_RGBA,GL_UNSIGNED_BYTE,bytes.data());
+        else glTexSubImage2D(GL_TEXTURE_2D,level,0,0,mip.width,mip.height,GL_RGBA,GL_UNSIGNED_BYTE,bytes.data());
+      }
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,planes.levels.size()>1?GL_LINEAR_MIPMAP_NEAREST:GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,(pot||t.clampX>=2)?wrap[std::min(t.clampX,2u)]:GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,(pot||t.clampY>=2)?wrap[std::min(t.clampY,2u)]:GL_CLAMP_TO_EDGE);
+    }
+    tex.hdrGain=planes.gain;tex.hdrBias=planes.bias;tex.glFormat=GL_RGBA;++tex.uploads;tex.signature=sig;
+    if(fresh)std::fprintf(stderr,"[nier-hdr8] %08X %ux%u gain %g %g %g %g bias %g %g %g %g mips%zu\n",t.base,t.width,t.height,planes.gain[0],planes.gain[1],planes.gain[2],planes.gain[3],planes.bias[0],planes.bias[1],planes.bias[2],planes.bias[3],planes.levels.size());
+    g_uploadMs+=std::chrono::duration<double,std::milli>(Clock::now()-tu).count();return tex.id;
+  }
   if (!la && !lum && !xenos::DecodeLevel0(Physical, t, g_pixels)) { Skip("decodificação de textura (branco)"); return tex.id ? tex.id : White(); }
   if (const char* dump = std::getenv("NIER_DUMP_TEXTURES"); dump && !la && !lum && tex.uploads < 3) {  // diagnóstico
     char name[160];
@@ -684,7 +708,9 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
 
 // ---- programas
 struct CullInfo { bool ok = false; int row[4] = {-1, -1, -1, -1}; int posInput = -1; };
+struct HdrUniform { bool active=false;GLint gain=-1,bias=-1;std::array<float,4> lastGain{-1,-1,-1,-1},lastBias{}; };
 struct Program {
+  std::vector<HdrUniform> hdr;
   ConstantLod lod;
   GLuint id = 0;
   GLint vc = -1, pc = -1, alphaFunc = -1, alphaRef = -1, wideScale = -1;
@@ -746,8 +772,8 @@ std::string EmulateVertexTextures(const std::string& src, const GuestShader* vs,
   }
   return out;
 }
-struct ProgramKey { uint64_t shader, gamma; bool operator==(const ProgramKey&) const = default; };
-struct ProgramHash { size_t operator()(const ProgramKey& k) const { return k.shader ^ (k.gamma * 0x9E3779B97F4A7C15ull); } };
+struct ProgramKey { uint64_t shader, gamma; uint32_t hdr; bool operator==(const ProgramKey&) const = default; };
+struct ProgramHash { size_t operator()(const ProgramKey& k) const { return k.shader ^ (k.gamma * 0x9E3779B97F4A7C15ull) ^ (uint64_t(k.hdr)*0xD6E8FEB86659FD93ull); } };
 std::unordered_map<ProgramKey, Program, ProgramHash> g_programs;
 
 // Variante sem alpha test (alphaTest = false): o bloco "bool pass … if (!pass) discard;" sai do PS. Na Mali-450 um
@@ -864,8 +890,8 @@ std::string RelSkinSource(const std::string& src, int base) {
   out.append(src, last, std::string::npos);
   return out;
 }
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0, bool noDiscard = false) {
-  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0) + (noDiscard ? (1ull << 62) : 0), gammaChannels};
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0, uint32_t hdrChannels = 0, bool noDiscard = false) {
+  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0) + (noDiscard ? (1ull << 62) : 0), gammaChannels, hdrChannels};
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
@@ -875,7 +901,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::snprintf(vn, sizeof vn, "%016llX_vs", (unsigned long long)vs->key);
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
-  std::string psSource = ScalarizeRegisters(TextureGammaVariant(alphaTest ? ps->source : StripAlphaTest(ps->source), ps->textureMask, gammaChannels));
+  std::string psSource = ScalarizeRegisters(HdrTextureVariant(TextureGammaVariant(alphaTest ? ps->source : StripAlphaTest(ps->source), ps->textureMask, gammaChannels),ps->textureMask,hdrChannels));
   if (noDiscard) for (size_t at = 0; (at = psSource.find("discard;", at)) != std::string::npos;) psSource.replace(at, 8, ";       ");  // AB: sem discard
   std::vector<std::pair<int, int>> vtfSlots;
   static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
@@ -943,6 +969,13 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
       p.samplers.push_back({t, glGetUniformLocation(p.id, ("nx_size" + n).c_str())});
       ++unit;
     }
+  p.hdr.resize(p.samplers.size());
+  for(size_t i=0;i<p.samplers.size();++i)if(hdrChannels&(1u<<i)){
+    std::string n=std::to_string(p.samplers[i].first);
+    p.hdr[i].gain=glGetUniformLocation(p.id,("nx_hdrScale"+n).c_str()); // LEVE_OK: first program link only
+    p.hdr[i].bias=glGetUniformLocation(p.id,("nx_hdrBias"+n).c_str()); // LEVE_OK: first program link only
+    p.hdr[i].active=p.hdr[i].gain>=0||p.hdr[i].bias>=0;
+  }
   if (p.wideScale >= 0) glUniform1f(p.wideScale, 1.0f);
   for (auto [t, k] : vtfSlots) {
     std::string n = std::to_string(t);
@@ -1775,7 +1808,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
   const bool personagem = skinConst > 0 || relBase >= 0;
   if (g_abMode == 10 && personagem) return;  // AB: personagens (skinning na CPU) fora
-  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4 || (g_abMode == 13 && personagem)) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask), g_abMode == 14 && personagem);
+  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4 || (g_abMode == 13 && personagem)) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask), HdrTextureChannels(Field(state, kFetchConstants), c.ps->textureMask), g_abMode == 14 && personagem);
   if (!c.up && g_drawClassCurrent == 0 && !c.ps->constMap.empty() && c.ps->constMap[0] == 0) { const uint8_t* pc = Field(state, kPixelConstants); g_expPc0[0] = BEF(pc); g_expPc0[1] = BEF(pc + 4); g_expPc0[2] = BEF(pc + 8); }
   if (c.up && BE32(Field(state, kBlendControl)) == 0x00010706 && c.ps->textureMask == 1 && c.inputCount >= 3) {
     auto t0 = xenos::DecodeFetch(Field(state, kFetchConstants));
@@ -1823,6 +1856,12 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
     }
     GLuint id = (BE32(fetch) & 3) == 2 && g_abMode != 12 ? TextureFor(sampled, !c.up || resolvedInUi) : White();  // AB 12: textura 1x1
     BindTexture(unit, id);
+    if(size_t(unit)<p->hdr.size()&&p->hdr[unit].active){
+      auto found=g_textures.find(TexKey(sampled)^(uint64_t(sampled.format)<<58));
+      if(found!=g_textures.end()){auto& tex=found->second;auto& u=p->hdr[unit];
+        if(u.lastGain!=tex.hdrGain||u.lastBias!=tex.hdrBias){std::array<float,4> gain,bias;for(unsigned c=0;c<4;++c){gain[c]=std::sqrt(tex.hdrGain[c]*0.25f);bias[c]=tex.hdrBias[c]*0.25f;}glUniform4fv(u.gain,1,gain.data());glUniform4fv(u.bias,1,bias.data());u.lastGain=tex.hdrGain;u.lastBias=tex.hdrBias;}
+      }
+    }
     if (sizeLoc >= 0) {
       std::pair<float, float> sz{float(t.width), float(t.height)};
       if (p->lastSizes[unit] != sz) { p->lastSizes[unit] = sz; glUniform2f(sizeLoc, sz.first, sz.second); }

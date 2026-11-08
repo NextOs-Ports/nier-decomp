@@ -2,6 +2,7 @@
 """Symbolize private ARM/x86 sampler JSON on the PC; no perf required on target."""
 import argparse,bisect,collections,hashlib,json,re,struct,subprocess
 from pathlib import Path
+from symbol_names import canonical_guest_symbol
 ap=argparse.ArgumentParser(description=__doc__)
 ap.add_argument('profile',type=Path)
 ap.add_argument('--elf',type=Path,action='append',required=True)
@@ -67,7 +68,7 @@ for row in profile['pcs']:
         module=Path(mapping[3]).name;elf=elfs.get(module)
         symbol=elf.symbol(pc,mapping) if elf else f'{module}+0x{pc-mapping[0]+mapping[2]:x}'
     else:module='unmapped';symbol=f'0x{pc:x}'
-    normalized=symbol.removeprefix('__imp__');match=re.fullmatch(r'sub_([0-9a-fA-F]{8})(?:\..*)?',normalized)
+    normalized=canonical_guest_symbol(symbol);match=re.fullmatch(r'sub_([0-9a-fA-F]{8})(?:\..*)?',normalized)
     address=int(match[1],16) if match else guest_names.get(normalized)
     if module=='nier' and address is not None:
         guest[address]+=count;thread_guest[tid][address]+=count
