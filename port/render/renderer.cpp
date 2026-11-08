@@ -533,7 +533,7 @@ float g_barColor[4] = {0, 0, 0, 0}; uint8_t g_barTexel[4] = {0, 0, 0, 0}; uint32
 int g_abMode = 0;
 // 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices),
 // 8 LOD por distância (NIER_LOD_DIST ou 60)
-const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento", "sem-personagens", "cenario-metade-desenhos", "texturas-1x1"};
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento", "sem-personagens", "cenario-metade-desenhos", "texturas-1x1", "personagens-ps-chapado", "personagens-sem-discard", "personagens-tesoura", "personagens-sem-envio"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -864,8 +864,8 @@ std::string RelSkinSource(const std::string& src, int base) {
   out.append(src, last, std::string::npos);
   return out;
 }
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0) {
-  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0), gammaChannels};
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0, bool noDiscard = false) {
+  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0) + (noDiscard ? (1ull << 62) : 0), gammaChannels};
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
@@ -876,6 +876,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
   std::string psSource = ScalarizeRegisters(TextureGammaVariant(alphaTest ? ps->source : StripAlphaTest(ps->source), ps->textureMask, gammaChannels));
+  if (noDiscard) for (size_t at = 0; (at = psSource.find("discard;", at)) != std::string::npos;) psSource.replace(at, 8, ";       ");  // AB: sem discard
   std::vector<std::pair<int, int>> vtfSlots;
   static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
   std::string vsBase = relBase >= 0 ? RelSkinSource(vs->source, relBase) : vs->source;
@@ -1750,8 +1751,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   bool diag = false;
   if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
-  if (g_abMode == 10 && (skinConst > 0 || relBase >= 0)) return;  // AB: personagens (skinning na CPU) fora
-  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask));
+  const bool personagem = skinConst > 0 || relBase >= 0;
+  if (g_abMode == 10 && personagem) return;  // AB: personagens (skinning na CPU) fora
+  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4 || (g_abMode == 13 && personagem)) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask), g_abMode == 14 && personagem);
   if (!c.up && g_drawClassCurrent == 0 && !c.ps->constMap.empty() && c.ps->constMap[0] == 0) { const uint8_t* pc = Field(state, kPixelConstants); g_expPc0[0] = BEF(pc); g_expPc0[1] = BEF(pc + 4); g_expPc0[2] = BEF(pc + 8); }
   if (c.up && BE32(Field(state, kBlendControl)) == 0x00010706 && c.ps->textureMask == 1 && c.inputCount >= 3) {
     auto t0 = xenos::DecodeFetch(Field(state, kFetchConstants));
@@ -1818,7 +1820,10 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
         GLuint& vbo = g_transient[g_frames.load() % 3][i];
         if (!vbo) glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo); streamBound = false;
-        glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(g_skinOut[i]->size() * 4), g_skinOut[i]->data(), GL_STREAM_DRAW);
+        static std::map<GLuint, size_t> abSent;  // AB 16: sem reenviar (VBO do envio anterior, mesmo tamanho)
+        if (!(g_abMode == 16 && abSent[vbo] == g_skinOut[i]->size()))
+          glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(g_skinOut[i]->size() * 4), g_skinOut[i]->data(), GL_STREAM_DRAW);
+        abSent[vbo] = g_skinOut[i]->size();
         glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, nullptr);
         continue;
       }
@@ -1888,12 +1893,13 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
   static bool diagVtx = std::getenv("NIER_DIAG_VTX") != nullptr;  // vértices por VS (custo da GP: faixa x VS)
   if (diagVtx) { g_vtxByVs[c.vs->key].first += c.vertexCount; g_vtxByVs[c.vs->key].second += c.indexCount; g_vtxOps[c.vs->key] = p->vsOps; }
-  if (g_abMode == 5) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
+  const bool abScissor = g_abMode == 5 || (g_abMode == 15 && (skinConst > 0 || relBase >= 0));
+  if (abScissor) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
   GLsizei abCount = GLsizei(c.indexCount);
   if (g_abMode == 7 && g_drawClassCurrent == 0 && c.mode == GL_TRIANGLES) abCount = GLsizei((c.indexCount / 2) / 3 * 3);
   if (!clustered && !(g_abMode == 6 && g_drawClassCurrent == 0))
     glDrawElements(c.mode, abCount, GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
-  if (g_abMode == 5) glDisable(GL_SCISSOR_TEST);
+  if (abScissor) glDisable(GL_SCISSOR_TEST);
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -2583,7 +2589,7 @@ void RenderThread() {
     static Clock::time_point abStart{}; static bool abOn = false;
     if (abCycle) {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
-      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 13 : 0;
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 17 : 0;
     }
     bool dumping = FrameDumpWanted(work);
     if (dumping) BeginDump();

@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
   RenderInitGl();
   std::vector<int> modes;
   if (const char* m = std::getenv("NIER_BENCH_MODES")) { for (const char* p = m; *p;) { modes.push_back(std::atoi(p)); while (*p && *p != ',') ++p; if (*p) ++p; } }
-  else for (int k = 0; k < 13; ++k) modes.push_back(k);
+  else for (int k = 0; k < 17; ++k) modes.push_back(k);
   modes.push_back(0);  // base de novo no fim: deriva/aquecimento
   const double seconds = std::getenv("NIER_BENCH_SECONDS") ? std::atof(std::getenv("NIER_BENCH_SECONDS")) : 8.0;
   auto cpuNow = [] { timespec ts; clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts); return double(ts.tv_sec) * 1e3 + ts.tv_nsec / 1e6; };
