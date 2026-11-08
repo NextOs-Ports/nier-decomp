@@ -63764,6 +63764,22 @@
    "time_pass": true
   },
   {
+   "name": "sub_82571070",
+   "address": "0x82571070",
+   "size": 1172,
+   "source": "src/decomp/d3d/draw_packets.cpp",
+   "trials": 10000,
+   "equal": 10000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 29.2,
+   "decomp_ns": 13.6,
+   "time_ratio": 0.467,
+   "time_pass": true
+  },
+  {
    "name": "sub_82571508",
    "address": "0x82571508",
    "size": 1004,
@@ -63905,6 +63921,22 @@
    "orig_ns": 276.0,
    "decomp_ns": 83.5,
    "time_ratio": 0.303,
+   "time_pass": true
+  },
+  {
+   "name": "sub_82578568",
+   "address": "0x82578568",
+   "size": 1572,
+   "source": "src/decomp/d3d/vertex_fetch.cpp",
+   "trials": 10000,
+   "equal": 10000,
+   "both_faulted": 0,
+   "pass": true,
+   "error": "",
+   "time_inputs": 64,
+   "orig_ns": 522.3,
+   "decomp_ns": 195.1,
+   "time_ratio": 0.373,
    "time_pass": true
   },
   {

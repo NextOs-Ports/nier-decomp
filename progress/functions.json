@@ -200312,11 +200312,15 @@
    "address": 2186743920,
    "size": 1172,
    "name": "sub_82571070",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 1172,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/draw_packets.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186745096,
@@ -201188,11 +201192,15 @@
    "address": 2186773864,
    "size": 1572,
    "name": "sub_82578568",
-   "status": "recompiled",
+   "status": "verified",
    "original_extent_before_partition": 1572,
    "boundary_origin": "pdata",
    "library": null,
-   "library_evidence": null
+   "library_evidence": null,
+   "source": "src/decomp/d3d/vertex_fetch.cpp",
+   "evidence": [
+    "evidence/verify/2026-11-07.json"
+   ]
   },
   {
    "address": 2186775440,
