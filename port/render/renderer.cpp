@@ -2053,7 +2053,7 @@ void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFet
   const uint32_t span = std::max(4096u, alignedW * alignedH * 4);
   // endereço do fetch está na faixa virtual 0xE0000000+ (o ponteiro do Lock da CPU é o mesmo, FEC21000): o físico
   // tem +0x1000 nessa faixa (PhysicalOf, mesma regra dos index buffers). Sem isso a CPU lia 4 KB adiante (zeros).
-  uint8_t* dst = const_cast<uint8_t*>(Physical(PhysicalOf(addr), span));
+  uint8_t* dst = const_cast<uint8_t*>(Physical(addr, span));  // Physical já aplica PhysicalOf (25d293b do X1)
   if (!dst) return;
   for (uint32_t y = 0; y < t.height; ++y) {
     int32_t rowBase = xenos::TiledOuter(int32_t(y), int32_t(alignedW), 2);
