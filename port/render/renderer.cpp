@@ -530,7 +530,7 @@ float g_barColor[4] = {0, 0, 0, 0}; uint8_t g_barTexel[4] = {0, 0, 0, 0}; uint32
 int g_abMode = 0;
 // 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices),
 // 8 LOD por distância (NIER_LOD_DIST ou 60)
-const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento", "sem-personagens"};
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento", "sem-personagens", "cenario-metade-desenhos", "texturas-1x1"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -1778,7 +1778,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
       float lod=BEF(Field(state,kVertexConstants+16*p->lod.index+4*p->lod.component));
       if(std::isfinite(lod)&&lod>=0&&lod<=15&&std::fabs(lod-std::round(lod))<0.001f){unsigned level=unsigned(std::round(lod));auto view=t;view.width=std::max(1u,t.width>>level);view.height=std::max(1u,t.height>>level);if(g_resolved.count(TexKey(view)))sampled=view;}
     }
-    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(sampled, !c.up || resolvedInUi) : White();
+    GLuint id = (BE32(fetch) & 3) == 2 && g_abMode != 12 ? TextureFor(sampled, !c.up || resolvedInUi) : White();  // AB 12: textura 1x1
     BindTexture(unit, id);
     if (sizeLoc >= 0) {
       std::pair<float, float> sz{float(t.width), float(t.height)};
@@ -2391,7 +2391,7 @@ void RenderThread() {
     static Clock::time_point abStart{}; static bool abOn = false;
     if (abCycle) {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
-      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 11 : 0;
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 13 : 0;
     }
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
@@ -2413,6 +2413,8 @@ void RenderThread() {
           continue;
         }
         if ((g_abMode == 1 && cls == 3) || (g_abMode == 2 && cls == 0)) continue;
+        static uint32_t abHalf = 0;
+        if (g_abMode == 11 && cls == 0 && !c.up && (++abHalf & 1)) continue;  // AB: metade dos desenhos de cenário
         if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
         g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
         g_drawClassCurrent = cls;
