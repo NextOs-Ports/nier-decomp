@@ -85,8 +85,11 @@ uint32_t PhysicalOf(uint32_t address) {
   if(address<0x80000000u)return address;
   return (address&0x1FFFFFFFu)+(address>=0xE0000000u?0x1000u:0u);
 }
+// C1-K1 banco de replay: páginas de 4 KB da memória física lidas pela thread GL durante o quadro gravado
+thread_local std::set<uint32_t>* t_recPages = nullptr;
 const uint8_t* Physical(uint32_t address, uint32_t size) {
   address = PhysicalOf(address);
+  if (t_recPages && size && uint64_t(address) + size <= 0x20000000ull) for (uint32_t pg = address >> 12; pg <= (address + size - 1) >> 12; ++pg) t_recPages->insert(pg);
   return g_mem.physicalBase && uint64_t(address) + size <= 0x20000000ull ? g_mem.physicalBase + address : nullptr;
 }
 
@@ -521,13 +524,16 @@ double g_textureMs = 0, g_sigMs = 0, g_decodeMs = 0, g_uploadMs = 0, g_replayMs 
 // 1 = sem pulo. Pular é seguro para a lógica: o renderizador não devolve nada à memória do guest; alvos/Resolve
 // ficam do último quadro desenhado.
 std::atomic<bool> g_frameskipAuto{false};
+// C1-I2: linha [nier-exposicao] sempre ligada (janela de log): PC0 de material, última cópia de volta, tarja (cor do vértice e texel)
+float g_expPc0[3] = {0, 0, 0}; uint8_t g_expRb[4] = {0, 0, 0, 0}; uint32_t g_expRbLevel = 0, g_expRbAddr = 0, g_expRbCount = 0;
+float g_barColor[4] = {0, 0, 0, 0}; uint8_t g_barTexel[4] = {0, 0, 0, 0}; uint32_t g_barFmt = 0, g_barCount = 0; bool g_barDecoded = false;
 // C1-H7 NIER_AB_CYCLE=1: numa abertura só, a partir da 1ª cena 3D troca de modo a cada NIER_AB_PERIOD s (padrão 6) e
 // registra o custo do quadro na thread GL por modo. Imagem errada de propósito (diagnóstico).
 // 0 base, 1 sem pós/UP (cls 3), 2 sem cenário (cls 0), 3 sem Resolve, 4 PS chapado, 5 tesoura 1x1 (sem preenchimento)
 int g_abMode = 0;
 // 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices),
 // 8 LOD por distância (NIER_LOD_DIST ou 60)
-const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia"};
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento", "sem-personagens", "cenario-metade-desenhos", "texturas-1x1", "personagens-ps-chapado", "personagens-sem-discard", "personagens-tesoura", "personagens-sem-envio"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -638,9 +644,25 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   g_gl.tex[g_gl.unit] = tex.id;
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   const uint8_t* upload = (la || lum) ? lumAlpha.data() : g_pixels.data();
-  GLenum glFormat = lum ? GL_LUMINANCE : la ? GL_LUMINANCE_ALPHA : GL_RGBA;
-  if (fresh || tex.glFormat != glFormat) glTexImage2D(GL_TEXTURE_2D, 0, GLint(glFormat), GLsizei(t.width), GLsizei(t.height), 0, glFormat, GL_UNSIGNED_BYTE, upload);
-  else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GLsizei(t.width), GLsizei(t.height), glFormat, GL_UNSIGNED_BYTE, upload);
+  GLenum glFormat = lum ? GL_LUMINANCE : la ? GL_LUMINANCE_ALPHA : GL_RGBA, glType = GL_UNSIGNED_BYTE;
+  // C1-J2 NIER_TEX565=1: textura opaca (alpha 255 em todos os texels) vai como RGB565 — metade da banda de amostragem
+  // na Mali-450 (DXT1 decodificado ocupava 4x a banda original em RGBA8).
+  static bool tex565 = std::getenv("NIER_TEX565") && std::atoi(std::getenv("NIER_TEX565")) != 0;
+  thread_local std::vector<uint16_t> px565;
+  if (tex565 && glFormat == GL_RGBA && t.width * t.height >= 64 * 64) {
+    const size_t n = size_t(t.width) * t.height;
+    bool opaque = true;
+    for (size_t i = 0; i < n && opaque; ++i) opaque = g_pixels[i * 4 + 3] == 255;
+    if (opaque) {
+      px565.resize(n);
+      for (size_t i = 0; i < n; ++i) { const uint8_t* q = &g_pixels[i * 4]; px565[i] = uint16_t(((q[0] >> 3) << 11) | ((q[1] >> 2) << 5) | (q[2] >> 3)); }
+      glFormat = GL_RGB; glType = GL_UNSIGNED_SHORT_5_6_5; upload = reinterpret_cast<const uint8_t*>(px565.data());
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+    }
+  }
+  if (fresh || tex.glFormat != glFormat) glTexImage2D(GL_TEXTURE_2D, 0, GLint(glFormat), GLsizei(t.width), GLsizei(t.height), 0, glFormat, glType, upload);
+  else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GLsizei(t.width), GLsizei(t.height), glFormat, glType, upload);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   tex.glFormat = glFormat;
   ++tex.uploads;
   g_uploadMs += std::chrono::duration<double, std::milli>(Clock::now() - tu).count();
@@ -842,8 +864,8 @@ std::string RelSkinSource(const std::string& src, int base) {
   out.append(src, last, std::string::npos);
   return out;
 }
-Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0) {
-  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0), gammaChannels};
+Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = false, bool alphaTest = true, int skinConst = 0, int relBase = -1, uint64_t gammaChannels = 0, bool noDiscard = false) {
+  ProgramKey key{(vs->key * 0x9E3779B97F4A7C15ull ^ ps->key) + (flat ? 1 : 0) + (alphaTest ? 0 : 2) + (uint64_t(skinConst) << 3) + (relBase >= 0 ? 4 : 0) + (noDiscard ? (1ull << 62) : 0), gammaChannels};
   auto it = g_programs.find(key);
   if (it != g_programs.end()) return it->second.id ? &it->second : nullptr;
   Program& p = g_programs[key];
@@ -854,6 +876,7 @@ Program* ProgramFor(const GuestShader* vs, const GuestShader* ps, bool flat = fa
   std::snprintf(pn, sizeof pn, "%016llX_ps%s", (unsigned long long)ps->key, alphaTest ? "" : "_na");
   static const char* flatPs = "#version 100\nprecision mediump float;\nvoid main(){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
   std::string psSource = ScalarizeRegisters(TextureGammaVariant(alphaTest ? ps->source : StripAlphaTest(ps->source), ps->textureMask, gammaChannels));
+  if (noDiscard) for (size_t at = 0; (at = psSource.find("discard;", at)) != std::string::npos;) psSource.replace(at, 8, ";       ");  // AB: sem discard
   std::vector<std::pair<int, int>> vtfSlots;
   static bool noVtf = std::getenv("NIER_NO_VTF") != nullptr;  // A/B na Mali: textura no VS devolve 0 (sem índice dinâmico de uniformes)
   std::string vsBase = relBase >= 0 ? RelSkinSource(vs->source, relBase) : vs->source;
@@ -1157,7 +1180,8 @@ std::shared_ptr<const std::vector<float>> FloatsFor(const buffers::Ref& data, ui
 }
 // VBOs transitórios para os streams deformados (anel por quadro × atributo)
 GLuint g_transient[3][kMaxInputs] = {};
-const std::vector<float>* g_skinOut[kMaxInputs] = {};  // stream deformado deste desenho (dono: o job do worker)
+const std::vector<float>* g_skinOut[kMaxInputs] = {};
+const std::vector<int8_t>* g_skinPacked[kMaxInputs] = {};  // C1-K3: direção empacotada (byte normalizado x4) deste desenho  // stream deformado deste desenho (dono: o job do worker)
 // C1-H4: skinning na CPU começa NA CAPTURA (thread do jogo): ao gravar o desenho, a paleta é copiada naquele instante
 // e o job vai para um pool de NIER_SKIN_THREADS (padrão 2) threads; malha+paleta iguais no mesmo quadro (mapa de sombra,
 // passe reduzido, passe principal) reaproveitam o mesmo job. A thread GL só encontra pronto e envia o VBO.
@@ -1168,8 +1192,10 @@ struct SkinJob {
   uint32_t palWidth = 0, palEndian = 0;
   int relBase = 0, relBones = 0;
   std::vector<std::pair<int, std::vector<float>>> outs; size_t nOuts = 0;
+  std::vector<std::vector<int8_t>> packed;  // C1-K3: direções (normal/tangente) em byte normalizado x4 (outs[k] fica vazio)
   double ms = 0; uint32_t vertices = 0; bool ok = false;
   std::atomic<bool> done{false};
+  std::vector<bool> points;  // por saída: posição (true) ou direção (false)
   std::vector<float>& Out(int input, size_t floats) {
     if (nOuts == outs.size()) outs.emplace_back();
     auto& o = outs[nOuts++]; o.first = input; o.second.resize(floats); return o.second;
@@ -1222,6 +1248,7 @@ bool CpuSkinCompute(SkinJob& j) {
   for (int i : posIn) { auto src = FloatsFor(c.vertexData[i], n); if (!src) return false; srcs.push_back(src); outs.push_back(i); points.push_back(true); }
   for (int i : dirIn) { auto src = FloatsFor(c.vertexData[i], n); if (!src) continue; srcs.push_back(src); outs.push_back(i); points.push_back(false); }
   std::vector<float*> dst; for (int i : outs) dst.push_back(j.Out(i, size_t(n) * 4).data());
+  j.points = points;
   const float* W = wgt->data(); const float* I = idx->data();
   // colunas da 3x4 de cada osso (lane 3 = 0): saída = C0*x + C1*y + C2*z (+ C3 se ponto), 4 FMAs, sem soma horizontal
   thread_local v4f cols[256][4];
@@ -1307,6 +1334,7 @@ bool RelSkinCompute(SkinJob& j) {
   for (int i : posIn) { auto h = FloatsFor(c.vertexData[i], n); if (!h) return false; holders.push_back(h); srcs.push_back(h->data()); outs.push_back(i); points.push_back(true); }
   for (int i : dirIn) { auto h = FloatsFor(c.vertexData[i], n); if (!h) continue; holders.push_back(h); srcs.push_back(h->data()); outs.push_back(i); points.push_back(false); }
   std::vector<float*> dst; for (int i : outs) dst.push_back(j.Out(i, size_t(n) * 4).data());
+  j.points = points;
   // colunas por osso (ver CpuSkinCompute): 4 FMAs por stream, sem soma horizontal
   thread_local v4f cols[256][4]; thread_local uint8_t haveCols[256];
   std::memset(haveCols, 0, sizeof haveCols);
@@ -1339,6 +1367,19 @@ bool RelSkinCompute(SkinJob& j) {
 // Pool de threads do skinning
 std::mutex g_skinMx; std::condition_variable g_skinCv, g_skinDoneCv;
 std::deque<std::shared_ptr<SkinJob>> g_skinQueue;
+// C1-K3: direções do skinning vão como byte normalizado x4 (4 B em vez de 16 B por vértice): menos envio e menos
+// banda de vértice na GP. NIER_SKIN_FLOAT_DIR=1 volta ao float4.
+void PackSkinDirections(SkinJob& j, const std::vector<bool>& points) {
+  static bool off = std::getenv("NIER_SKIN_FLOAT_DIR") != nullptr;
+  j.packed.resize(j.nOuts);
+  for (size_t k = 0; k < j.nOuts; ++k) {
+    j.packed[k].clear();
+    if (off || k >= points.size() || points[k]) continue;
+    const auto& f = j.outs[k].second;
+    auto& b = j.packed[k]; b.resize(f.size());
+    for (size_t e = 0; e < f.size(); ++e) { float v = std::clamp(f[e], -1.0f, 1.0f) * 127.0f; b[e] = int8_t(v < 0 ? v - 0.5f : v + 0.5f); }
+  }
+}
 void SkinWorker() {
   // prioridade abaixo da thread GL e do jogo (NIER_SKIN_NICE, padrão 5): a thread GL não pode perder núcleo para o skin
   static int nice = std::getenv("NIER_SKIN_NICE") ? std::atoi(std::getenv("NIER_SKIN_NICE")) : 5;
@@ -1352,6 +1393,7 @@ void SkinWorker() {
     }
     auto t0 = Clock::now();
     j->ok = j->kind == 1 ? CpuSkinCompute(*j) : RelSkinCompute(*j);
+    if (j->ok) PackSkinDirections(*j, j->points);
     j->ms = Ms(t0, Clock::now());
     { std::lock_guard<std::mutex> lk(g_skinMx); j->done.store(true, std::memory_order_release); }
     g_skinDoneCv.notify_all();
@@ -1370,7 +1412,10 @@ void ConsumeSkinJob(const Frame& f, const Cmd& c) {
   SkinJob& j = *f.skinJobs[size_t(c.skinJob)];
   WaitSkinJob(j);
   if (!j.ok) return;
-  for (size_t k = 0; k < j.nOuts; ++k) { g_skinOut[j.outs[k].first] = &j.outs[k].second; g_transientUsed[j.outs[k].first] = true; }
+  for (size_t k = 0; k < j.nOuts; ++k) {
+    g_skinOut[j.outs[k].first] = &j.outs[k].second; g_transientUsed[j.outs[k].first] = true;
+    g_skinPacked[j.outs[k].first] = (k < j.packed.size() && !j.packed[k].empty()) ? &j.packed[k] : nullptr;
+  }
   if (j.vertices) { g_skinMs += j.ms; g_skinnedVertices += j.vertices; ++g_skinnedDraws; j.vertices = 0; }
 }
 void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_t* state) {
@@ -1457,6 +1502,7 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
 // Descarte no CPU: AABB do VBO de posição (1x por serial) × MVP do desenho (constantes do estado). Fora do
 // frustum (os 8 cantos atrás do mesmo plano) ou < 2 px na tela (todos os cantos à frente) = não desenha.
 uint64_t g_lodHist[8] = {}, g_lodCulledIdx = 0;
+std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> g_vtxByVs; std::unordered_map<uint64_t, int> g_vtxOps;
 bool CullDraw(const Frame& f, const Cmd& c) {
   static bool off = std::getenv("NIER_NO_CULL_AABB") != nullptr;
   if (off || !c.vs || !c.ps) return false;
@@ -1534,6 +1580,173 @@ bool CullDraw(const Frame& f, const Cmd& c) {
 }
 struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; bool skip = false; };
 uint32_t g_bloomSkips = 0;
+// C1-J1 agrupamentos por malha estática (GP da Utgard sombreia a FAIXA de vértices de cada chamada): a malha do
+// cenário vira grupos de até kClusterVerts vértices contíguos num VBO reordenado (duplicatas na borda), cada um com
+// caixa; por quadro só os grupos dentro do frustum (e da distância NIER_LOD_DIST, se ligada) são desenhados, os
+// consecutivos numa chamada só. Sem perda visual. NIER_NO_CLUSTER=1 desliga; padrão na Mali e NIER_MALI_LIKE.
+struct ClusterMesh {
+  bool ok = false;
+  std::vector<GLuint> vbo; std::vector<buffers::Layout> layout;
+  GLuint ibo = 0;
+  struct Cl { uint32_t first, count; float lo[3], hi[3]; uint32_t verts; };
+  std::vector<Cl> cl;
+  std::vector<std::weak_ptr<const buffers::Payload>> refs;
+  uint64_t used = 0;
+};
+std::unordered_map<uint64_t, ClusterMesh> g_clusters;
+uint64_t g_clVertsIn = 0, g_clVertsDrawn = 0, g_clDraws = 0, g_clCalls = 0;
+bool MvpRows(const Cmd& c, const CullInfo& cull, const uint8_t* state, float m[4][4]) {
+  size_t literals = c.vs->literals.size() / 4;
+  for (int r = 0; r < 4; ++r) {
+    int k = cull.row[r];
+    if (k < 0 || size_t(k) >= c.vs->constMap.size()) return false;
+    size_t reg = c.vs->constMap[k];
+    if (reg >= 256 - literals) return false;
+    for (int cc = 0; cc < 4; ++cc) m[r][cc] = BEF(Field(state, kVertexConstants + reg * 16 + 4 * cc));
+  }
+  return true;
+}
+bool ClusterOn() {
+  static int on = -1;
+  if (on < 0) on = std::getenv("NIER_NO_CLUSTER") ? 0 : (g_mali || std::getenv("NIER_MALI_LIKE") || std::getenv("NIER_CLUSTER")) ? 1 : 0;
+  return on == 1;
+}
+const ClusterMesh* ClusterFor(const Cmd& c, const Program& p) {
+  uint64_t key = c.indexData->serial * 0x9E3779B97F4A7C15ull;
+  for (uint32_t i = 0; i < c.inputCount; ++i) key = (key ^ c.vertexData[i]->serial) * 1099511628211ull;
+  auto [it, inserted] = g_clusters.try_emplace(key);
+  ClusterMesh& m = it->second;
+  m.used = g_frames.load();
+  if (!inserted) return m.ok ? &m : nullptr;
+  static const uint32_t kClusterVerts = std::getenv("NIER_CLUSTER_VERTS") ? uint32_t(std::atoi(std::getenv("NIER_CLUSTER_VERTS"))) : 384;
+  const auto& idxBytes = c.indexData->bytes;
+  if (idxBytes.size() < size_t(c.indexCount) * 2) return nullptr;
+  const uint16_t* src = reinterpret_cast<const uint16_t*>(idxBytes.data());
+  std::vector<uint16_t> list;  // tira (com emendas degeneradas) -> lista, sentido alternado
+  if (c.mode == GL_TRIANGLE_STRIP) {
+    list.reserve(size_t(c.indexCount) * 3);
+    for (uint32_t k = 2; k < c.indexCount; ++k) {
+      uint16_t a = src[k - 2], b = src[k - 1], d = src[k];
+      if (a == b || b == d || a == d) continue;
+      if (k & 1) { list.push_back(b); list.push_back(a); list.push_back(d); } else { list.push_back(a); list.push_back(b); list.push_back(d); }
+    }
+  } else list.assign(src, src + c.indexCount);
+  const uint16_t* idx = list.data();
+  const uint32_t ni = uint32_t(list.size());
+  if (ni % 3) return nullptr;
+  auto pos = FloatsFor(c.vertexData[p.cull.posInput], c.vertexCount);
+  if (!pos) return nullptr;
+  std::vector<uint32_t> order; order.reserve(ni);  // vértices originais na ordem do VBO novo
+  std::vector<uint16_t> newIdx; newIdx.reserve(ni);
+  std::vector<int32_t> local(c.vertexCount, -1);
+  std::vector<uint32_t> touched;
+  ClusterMesh::Cl cur{0, 0, {1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, 0};
+  uint32_t curBase = 0;
+  auto close = [&] {
+    cur.verts = uint32_t(touched.size());
+    if (cur.count) m.cl.push_back(cur);
+    for (uint32_t v : touched) local[v] = -1;
+    touched.clear();
+    cur = ClusterMesh::Cl{uint32_t(newIdx.size()), 0, {1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, 0};
+    curBase = uint32_t(order.size());
+  };
+  for (uint32_t t = 0; t < ni; t += 3) {
+    uint32_t need = 0;
+    for (int k = 0; k < 3; ++k) if (idx[t + k] >= c.vertexCount) return nullptr; else if (local[idx[t + k]] < 0) ++need;
+    if (touched.size() + need > kClusterVerts) close();
+    for (int k = 0; k < 3; ++k) {
+      uint32_t v = idx[t + k];
+      if (local[v] < 0) {
+        local[v] = int32_t(order.size() - curBase); touched.push_back(v); order.push_back(v);
+        const float* q = &(*pos)[size_t(v) * 4];
+        for (int a = 0; a < 3; ++a) { cur.lo[a] = std::min(cur.lo[a], q[a]); cur.hi[a] = std::max(cur.hi[a], q[a]); }
+      }
+      newIdx.push_back(uint16_t(curBase + uint32_t(local[v])));
+      if (order.size() > 65535) return nullptr;
+    }
+    cur.count += 3;
+  }
+  close();
+  if (m.cl.size() < 2) return nullptr;  // malha pequena: sem ganho
+  m.vbo.resize(c.inputCount); m.layout.resize(c.inputCount);
+  std::vector<uint8_t> tmp;
+  for (uint32_t i = 0; i < c.inputCount; ++i) {
+    const auto& d = *c.vertexData[i];
+    size_t e = d.layout.bytes;
+    if (d.bytes.size() < size_t(c.vertexCount) * e) { m.vbo.clear(); return nullptr; }
+    tmp.resize(order.size() * e);
+    for (size_t k = 0; k < order.size(); ++k) std::memcpy(&tmp[k * e], &d.bytes[size_t(order[k]) * e], e);
+    glGenBuffers(1, &m.vbo[i]); glBindBuffer(GL_ARRAY_BUFFER, m.vbo[i]);
+    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(tmp.size()), tmp.data(), GL_STATIC_DRAW);
+    m.layout[i] = d.layout;
+    m.refs.push_back(c.vertexData[i]);
+  }
+  glGenBuffers(1, &m.ibo); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.ibo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(newIdx.size() * 2), newIdx.data(), GL_STATIC_DRAW);
+  m.refs.push_back(c.indexData);
+  g_gl.fixedValid = g_gl.fixedValid;  // estado fixo intacto; buffers religados no desenho
+  m.ok = true;
+  return &m;
+}
+void TrimClusters() {  // entre quadros: malhas cujos dados saíram do cache ou sem uso há 120 quadros
+  for (auto it = g_clusters.begin(); it != g_clusters.end();) {
+    bool dead = g_frames.load() - it->second.used > 120;
+    for (auto& r : it->second.refs) if (r.expired()) dead = true;
+    if (dead) { for (GLuint b : it->second.vbo) glDeleteBuffers(1, &b); if (it->second.ibo) glDeleteBuffers(1, &it->second.ibo); it = g_clusters.erase(it); }
+    else ++it;
+  }
+}
+// Devolve true se desenhou (ou cortou tudo) pelos agrupamentos.
+uint64_t g_clWhy[8] = {}; std::map<uint64_t, uint64_t> g_clNoMvp;  // recusas: 0 classe/up, 1 tira, 2 sem MVP, 3 pequeno, 4 IB não residente, 5 VB não residente, 6 sem malha
+bool TryClusterDraw(const Cmd& c, const Program& p, const uint8_t* state) {
+  if (!ClusterOn()) return false;
+  if (c.up || g_drawClassCurrent != 0) { ++g_clWhy[0]; return false; }
+  if (c.mode != GL_TRIANGLES && c.mode != GL_TRIANGLE_STRIP) { ++g_clWhy[1]; return false; }
+  if (!p.cull.ok) { ++g_clWhy[2]; if (DiagOsso()) { g_clNoMvp[c.vs->key] += c.vertexCount; } return false; }
+  if (c.indexCount < 3000) { ++g_clWhy[3]; return false; }
+  if (!c.residentIndices || !c.indexData) { ++g_clWhy[4]; return false; }
+  for (uint32_t i = 0; i < c.inputCount; ++i) if (!(c.residentInputs & (1u << i)) || !c.vertexData[i] || g_transientUsed[i] || g_drawRemap[i]) { ++g_clWhy[5]; return false; }
+  if (p.cull.posInput < 0 || uint32_t(p.cull.posInput) >= c.inputCount) return false;
+  float mvp[4][4];
+  if (!MvpRows(c, p.cull, state, mvp)) return false;
+  const ClusterMesh* m = ClusterFor(c, p);
+  if (!m) { ++g_clWhy[6]; return false; }
+  // distância de corte dos grupos (autorizada pelo dono): padrão 80 com os agrupamentos (cidade da abertura sem
+  // diferença visível no PC); NIER_LOD_DIST=0 desliga, outro valor troca
+  static float lodDist = std::getenv("NIER_LOD_DIST") ? float(std::atof(std::getenv("NIER_LOD_DIST"))) : 80.0f;
+  for (uint32_t i = 0; i < c.inputCount; ++i) {
+    glBindBuffer(GL_ARRAY_BUFFER, m->vbo[i]);
+    const auto& l = m->layout[i];
+    glVertexAttribPointer(i, l.components, l.type, l.normalized ? GL_TRUE : GL_FALSE, l.bytes, nullptr);
+  }
+  SetAttribs(c.inputCount);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->ibo);
+  g_clVertsIn += c.vertexCount; ++g_clDraws;
+  uint32_t runFirst = 0, runCount = 0;
+  auto flush = [&] {
+    if (!runCount) return;
+    if (!(g_abMode == 6)) glDrawElements(GL_TRIANGLES, GLsizei(runCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(size_t(runFirst) * 2));
+    ++g_clCalls; runCount = 0;
+  };
+  for (const auto& k : m->cl) {
+    int out[6] = {}; float minW = 1e30f;
+    for (int i = 0; i < 8; ++i) {
+      float v[4] = {(i & 1) ? k.hi[0] : k.lo[0], (i & 2) ? k.hi[1] : k.lo[1], (i & 4) ? k.hi[2] : k.lo[2], 1.0f}, cl[4];
+      for (int r = 0; r < 4; ++r) cl[r] = mvp[r][0] * v[0] + mvp[r][1] * v[1] + mvp[r][2] * v[2] + mvp[r][3] * v[3];
+      float w = cl[3]; minW = std::min(minW, w);
+      if (cl[0] < -w) ++out[0]; if (cl[0] > w) ++out[1]; if (cl[1] < -w) ++out[2]; if (cl[1] > w) ++out[3]; if (cl[2] < 0) ++out[4]; if (cl[2] > w) ++out[5];
+    }
+    bool culled = false;
+    for (int q = 0; q < 6; ++q) if (out[q] == 8) culled = true;
+    if (lodDist > 0 && minW > lodDist) culled = true;
+    if (culled) { flush(); continue; }
+    if (runCount && runFirst + runCount != k.first) flush();
+    if (!runCount) runFirst = k.first;
+    runCount += k.count; g_clVertsDrawn += k.verts;
+  }
+  flush();
+  return true;
+}
 void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
@@ -1560,7 +1773,21 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   bool diag = false;
   if (diagVs) { char b[20]; std::snprintf(b, sizeof b, "%016llX", (unsigned long long)c.vs->key); diag = std::strncmp(b, diagVs, std::strlen(diagVs)) == 0; if (!diag && !c.up) return; }
   static bool diagFlat = !std::getenv("NIER_DIAG_PS"), diagDepth = std::getenv("NIER_DIAG_DEPTH") != nullptr;
-  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask));
+  const bool personagem = skinConst > 0 || relBase >= 0;
+  if (g_abMode == 10 && personagem) return;  // AB: personagens (skinning na CPU) fora
+  Program* p = ProgramFor(c.vs, c.ps, (flat3d || (diag && diagFlat) || g_abMode == 4 || (g_abMode == 13 && personagem)) && !c.up, keepAlphaTest || (colorControl & 8), skinConst, relBase, TextureGammaChannels(Field(state, kFetchConstants), c.ps->textureMask), g_abMode == 14 && personagem);
+  if (!c.up && g_drawClassCurrent == 0 && !c.ps->constMap.empty() && c.ps->constMap[0] == 0) { const uint8_t* pc = Field(state, kPixelConstants); g_expPc0[0] = BEF(pc); g_expPc0[1] = BEF(pc + 4); g_expPc0[2] = BEF(pc + 8); }
+  if (c.up && BE32(Field(state, kBlendControl)) == 0x00010706 && c.ps->textureMask == 1 && c.inputCount >= 3) {
+    auto t0 = xenos::DecodeFetch(Field(state, kFetchConstants));
+    if (t0.width == 1 && t0.height == 1) {
+      ++g_barCount; g_barFmt = t0.format;
+      const float* v = reinterpret_cast<const float*>(f.blob.data() + c.inputs[2]);
+      if (c.inputs[2]) for (int k = 0; k < 4; ++k) g_barColor[k] = v[k];
+      thread_local std::vector<uint8_t> px1;
+      g_barDecoded = xenos::DecodeLevel0(Physical, t0, px1) && px1.size() >= 4;
+      if (g_barDecoded) std::memcpy(g_barTexel, px1.data(), 4);
+    }
+  }
   { static bool diagRes = std::getenv("NIER_DIAG_RESOLVE") != nullptr;  // PC0 (exposição) dos PS que o leem, a cada 300 quadros
     if (diagRes && g_frames.load() % 300 == 0) { static uint64_t lastF = ~0ull; static int n = 0; if (lastF != g_frames.load()) { lastF = g_frames.load(); n = 0; }
       const uint8_t* pc = Field(state, kPixelConstants);
@@ -1594,7 +1821,7 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
       float lod=BEF(Field(state,kVertexConstants+16*p->lod.index+4*p->lod.component));
       if(std::isfinite(lod)&&lod>=0&&lod<=15&&std::fabs(lod-std::round(lod))<0.001f){unsigned level=unsigned(std::round(lod));auto view=t;view.width=std::max(1u,t.width>>level);view.height=std::max(1u,t.height>>level);if(g_resolved.count(TexKey(view)))sampled=view;}
     }
-    GLuint id = (BE32(fetch) & 3) == 2 ? TextureFor(sampled, !c.up || resolvedInUi) : White();
+    GLuint id = (BE32(fetch) & 3) == 2 && g_abMode != 12 ? TextureFor(sampled, !c.up || resolvedInUi) : White();  // AB 12: textura 1x1
     BindTexture(unit, id);
     if (sizeLoc >= 0) {
       std::pair<float, float> sz{float(t.width), float(t.height)};
@@ -1605,7 +1832,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t2 = Clock::now();
   g_pState += Ms(t1, t2);
   size_t indexOffset = 0;
-  if (!ReferenceBuffers() && !g_bufferAuditReference) {
+  bool clustered = !ReferenceBuffers() && !g_bufferAuditReference && g_abMode != 6 && g_abMode != 7 && g_abMode != 9 && TryClusterDraw(c, *p, state);
+  if (clustered) {
+  } else if (!ReferenceBuffers() && !g_bufferAuditReference) {
     const auto& stream = g_streamSlots[g_frames.load() % g_streamSlots.size()];
     bool streamBound = false;
     for (uint32_t i = 0; i < c.inputCount; ++i) {
@@ -1613,8 +1842,14 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
         GLuint& vbo = g_transient[g_frames.load() % 3][i];
         if (!vbo) glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo); streamBound = false;
-        glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(g_skinOut[i]->size() * 4), g_skinOut[i]->data(), GL_STREAM_DRAW);
-        glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, nullptr);
+        static std::map<GLuint, size_t> abSent;  // AB 16: sem reenviar (VBO do envio anterior, mesmo tamanho)
+        const auto* pk = g_skinPacked[i];
+        size_t bytes = pk ? pk->size() : g_skinOut[i]->size() * 4;
+        if (!(g_abMode == 16 && abSent[vbo] == bytes))
+          glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(bytes), pk ? static_cast<const void*>(pk->data()) : static_cast<const void*>(g_skinOut[i]->data()), GL_STREAM_DRAW);
+        abSent[vbo] = bytes;
+        if (pk) glVertexAttribPointer(i, 4, GL_BYTE, GL_TRUE, 4, nullptr);
+        else glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 16, nullptr);
         continue;
       }
       const auto& data = g_drawRemap[i] ? g_drawRemap[i] : c.vertexData[i];
@@ -1681,12 +1916,15 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   if (p->dynIndex) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
   if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
-  if (g_abMode == 5) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
+  static bool diagVtx = std::getenv("NIER_DIAG_VTX") != nullptr;  // vértices por VS (custo da GP: faixa x VS)
+  if (diagVtx) { g_vtxByVs[c.vs->key].first += c.vertexCount; g_vtxByVs[c.vs->key].second += c.indexCount; g_vtxOps[c.vs->key] = p->vsOps; }
+  const bool abScissor = g_abMode == 5 || (g_abMode == 15 && (skinConst > 0 || relBase >= 0));
+  if (abScissor) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
   GLsizei abCount = GLsizei(c.indexCount);
   if (g_abMode == 7 && g_drawClassCurrent == 0 && c.mode == GL_TRIANGLES) abCount = GLsizei((c.indexCount / 2) / 3 * 3);
-  if (!(g_abMode == 6 && g_drawClassCurrent == 0))
+  if (!clustered && !(g_abMode == 6 && g_drawClassCurrent == 0))
     glDrawElements(c.mode, abCount, GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
-  if (g_abMode == 5) glDisable(GL_SCISSOR_TEST);
+  if (abScissor) glDisable(GL_SCISSOR_TEST);
   g_pDraw += Ms(t3, Clock::now());
 }
 
@@ -1866,7 +2104,7 @@ void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFet
   const uint32_t span = std::max(4096u, alignedW * alignedH * 4);
   // endereço do fetch está na faixa virtual 0xE0000000+ (o ponteiro do Lock da CPU é o mesmo, FEC21000): o físico
   // tem +0x1000 nessa faixa (PhysicalOf, mesma regra dos index buffers). Sem isso a CPU lia 4 KB adiante (zeros).
-  uint8_t* dst = const_cast<uint8_t*>(Physical(PhysicalOf(addr), span));
+  uint8_t* dst = const_cast<uint8_t*>(Physical(addr, span));  // Physical já aplica PhysicalOf (25d293b do X1)
   if (!dst) return;
   for (uint32_t y = 0; y < t.height; ++y) {
     int32_t rowBase = xenos::TiledOuter(int32_t(y), int32_t(alignedW), 2);
@@ -1882,6 +2120,7 @@ void ReadbackSmallResolve(const Cmd& c, uint64_t srcKey, const xenos::TextureFet
       std::memcpy(dst + off, e, 4);
     }
   }
+  g_expRbLevel = level; g_expRbAddr = addr; ++g_expRbCount; { const uint8_t* p0 = &px[0]; g_expRb[0] = p0[3]; g_expRb[1] = p0[0]; g_expRb[2] = p0[1]; g_expRb[3] = p0[2]; }
   static bool diag = std::getenv("NIER_DIAG_RESOLVE") != nullptr;
   if (diag) { static uint64_t n = 0; if (n++ < 40 || n % 200 == 0) std::fprintf(stderr, "[nier-readback] nível %u %ux%u endereço %08X gl %dx%d texel0 RGBA %u %u %u %u\n", level, t.width, t.height, addr, tg->w, tg->h, px[0], px[1], px[2], px[3]); }
 }
@@ -2131,13 +2370,192 @@ void PresentToWindow() {
   else SDL_GL_SwapWindow(g_window);
 }
 
-void RenderThread() {
-  if (UsingPbuffer()) {
-    if (!eglMakeCurrent(g_eglDisplay, g_eglSurface, g_eglSurface, g_eglContext)) { std::fprintf(stderr, "[nier-gl] eglMakeCurrent falhou\n"); return; }
-  } else {
-    if (!SDL_GL_MakeCurrent(g_window, g_context)) { std::fprintf(stderr, "[nier-gl] contexto: %s\n", SDL_GetError()); return; }
-    SDL_GL_SetSwapInterval(1);
+
+// ---------------------------------------------------------------- C1-K1 banco de replay (gravação/leitura)
+// NIER_FRAME_DUMP=<dir>: grava UM quadro (o primeiro com >= NIER_FRAME_DUMP_DRAWS desenhos 3D depois de
+// NIER_FRAME_DUMP_AT segundos do 1º quadro; padrões 50 e 0) em <dir>/frame.bin: comandos, estado, shaders
+// traduzidos, buffers, jobs de skinning prontos e as páginas da memória física que o replay leu. O cache de
+// texturas é esvaziado antes desse quadro para que toda textura seja lida (e registrada). nier_replay_bench reproduz.
+struct DumpWriter {
+  FILE* f = nullptr;
+  void raw(const void* p, size_t n) { std::fwrite(p, 1, n, f); }
+  template<class T> void pod(const T& v) { raw(&v, sizeof v); }
+  void str(const std::string& v) { uint64_t n = v.size(); pod(n); raw(v.data(), n); }
+  template<class T> void vec(const std::vector<T>& v) { uint64_t n = v.size(); pod(n); if (n) raw(v.data(), n * sizeof(T)); }
+};
+struct DumpReader {
+  const uint8_t* p = nullptr; const uint8_t* end = nullptr; bool ok = true;
+  void raw(void* d, size_t n) { if (size_t(end - p) < n) { ok = false; std::memset(d, 0, n); return; } std::memcpy(d, p, n); p += n; }
+  template<class T> T pod() { T v{}; raw(&v, sizeof v); return v; }
+  std::string str() { uint64_t n = pod<uint64_t>(); if (n > size_t(end - p)) { ok = false; return {}; } std::string v(reinterpret_cast<const char*>(p), n); p += n; return v; }
+  template<class T> std::vector<T> vec() { uint64_t n = pod<uint64_t>(); std::vector<T> v; if (n * sizeof(T) > size_t(end - p)) { ok = false; return v; } v.resize(n); if (n) raw(v.data(), n * sizeof(T)); return v; }
+};
+constexpr uint32_t kDumpMagic = 0x4E524432, kDumpMagicV1 = 0x4E524431;  // "NRD2" (v2: saídas do skinning com posição/direção)
+std::set<uint32_t> g_dumpPages;
+bool g_dumpDone = false;
+bool FrameDumpWanted(const Frame& work) {
+  static const char* dir = std::getenv("NIER_FRAME_DUMP");
+  if (!dir || g_dumpDone) return false;
+  static Clock::time_point start = Clock::now();
+  static double at = std::getenv("NIER_FRAME_DUMP_AT") ? std::atof(std::getenv("NIER_FRAME_DUMP_AT")) : 0.0;
+  static size_t minDraws = std::getenv("NIER_FRAME_DUMP_DRAWS") ? size_t(std::atoi(std::getenv("NIER_FRAME_DUMP_DRAWS"))) : 50;
+  if (std::chrono::duration<double>(Clock::now() - start).count() < at) return false;
+  size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d;
+  return d >= minDraws;
+}
+void BeginDump() {
+  for (auto& [k, t] : g_textures) if (t.id) glDeleteTextures(1, &t.id);
+  g_textures.clear(); for (auto& t : g_gl.tex) t = ~0u;
+  g_dumpPages.clear(); t_recPages = &g_dumpPages;
+}
+void EndDump(const Frame& work) {
+  t_recPages = nullptr; g_dumpDone = true;
+  std::string path = std::string(std::getenv("NIER_FRAME_DUMP")) + "/frame.bin";
+  DumpWriter w; w.f = std::fopen(path.c_str(), "wb");
+  if (!w.f) { std::fprintf(stderr, "[nier-dump] não abriu %s\n", path.c_str()); return; }
+  w.pod(kDumpMagic); w.pod(g_config.renderWidth); w.pod(g_config.renderHeight);
+  // shaders
+  std::map<uint64_t, const GuestShader*> shaders;
+  std::map<uint64_t, buffers::Ref> payloads;
+  for (const auto& c : work.cmds) {
+    if (c.vs) shaders[c.vs->key ^ 1] = c.vs;
+    if (c.ps) shaders[c.ps->key ^ 2] = c.ps;
+    for (uint32_t i = 0; i < kMaxInputs; ++i) if (c.vertexData[i]) payloads[c.vertexData[i]->serial] = c.vertexData[i];
+    if (c.indexData) payloads[c.indexData->serial] = c.indexData;
   }
+  w.pod(uint64_t(shaders.size()));
+  for (auto& [k, sh] : shaders) {
+    w.pod(k); w.pod(sh->ok); w.pod(sh->pixel); w.pod(sh->key); w.str(sh->source); w.str(sh->error);
+    w.vec(sh->inputs); w.vec(sh->literals); w.pod(sh->textureMask); w.raw(sh->booleanMask, sizeof sh->booleanMask);
+    w.pod(sh->inputMask); w.pod(sh->outputMask); w.pod(sh->relativeConstants); w.vec(sh->constMap);
+  }
+  w.pod(uint64_t(payloads.size()));
+  for (auto& [serial, d] : payloads) {
+    w.pod(serial); w.pod(d->sample); w.pod(d->input); w.pod(d->endian); w.pod(d->count); w.pod(d->layout); w.vec(d->raw); w.vec(d->bytes);
+  }
+  w.vec(work.blob); w.pod(work.presentInterval);
+  w.pod(uint64_t(work.cmds.size()));
+  for (const auto& c : work.cmds) {
+    w.pod(c.kind); w.pod(uint64_t(c.vs ? c.vs->key ^ 1 : 0)); w.pod(uint64_t(c.ps ? c.ps->key ^ 2 : 0)); w.str(c.skipReason ? c.skipReason : "");
+    w.pod(c.state); w.pod(c.indices); w.pod(c.fetch); w.raw(c.inputs, sizeof c.inputs);
+    for (uint32_t i = 0; i < kMaxInputs; ++i) w.pod(uint64_t(c.vertexData[i] ? c.vertexData[i]->serial : 0));
+    w.pod(uint64_t(c.indexData ? c.indexData->serial : 0));
+    w.pod(c.indexAddress); w.raw(c.streamInputs, sizeof c.streamInputs); w.pod(c.streamIndices); w.pod(c.residentInputs); w.pod(c.residentIndices);
+    w.pod(c.inputCount); w.pod(c.vertexCount); w.pod(c.indexCount); w.pod(c.flags); w.pod(c.argb); w.raw(c.rect, sizeof c.rect); w.pod(c.hasRect);
+    w.pod(c.up); w.pod(c.prim); w.pod(c.mode); w.pod(c.skinJob); w.pod(c.level);
+  }
+  w.pod(uint64_t(work.skinJobs.size()));
+  for (const auto& j : work.skinJobs) {
+    WaitSkinJob(*j);
+    w.pod(j->ok); w.pod(uint64_t(j->nOuts)); w.pod(j->vertices); w.pod(j->ms);
+    for (size_t k = 0; k < j->nOuts; ++k) { w.pod(j->outs[k].first); w.vec(j->outs[k].second); w.pod(uint8_t(k < j->points.size() && j->points[k])); }
+  }
+  w.pod(uint64_t(g_dumpPages.size()));
+  for (uint32_t pg : g_dumpPages) { w.pod(pg); w.raw(g_mem.physicalBase + (size_t(pg) << 12), 4096); }
+  long bytes = std::ftell(w.f); std::fclose(w.f);
+  std::fprintf(stderr, "[nier-dump] quadro gravado em %s: %zu comandos, %zu shaders, %zu buffers, %zu jobs de skinning, %zu páginas (%.1f MB)\n",
+               path.c_str(), work.cmds.size(), shaders.size(), payloads.size(), work.skinJobs.size(), g_dumpPages.size(), bytes / 1048576.0);
+}
+// Leitura (nier_replay_bench). Memória física: g_mem.physicalBase já reservado pelo chamador.
+bool LoadFrameDump(const char* path, Frame& frame) {
+  FILE* f = std::fopen(path, "rb"); if (!f) return false;
+  std::fseek(f, 0, SEEK_END); long n = std::ftell(f); std::fseek(f, 0, SEEK_SET);
+  static std::vector<uint8_t> data; data.resize(size_t(n)); if (std::fread(data.data(), 1, data.size(), f) != data.size()) { std::fclose(f); return false; } std::fclose(f);
+  DumpReader r; r.p = data.data(); r.end = data.data() + data.size();
+  uint32_t magic = r.pod<uint32_t>();
+  if (magic != kDumpMagic && magic != kDumpMagicV1) return false;
+  const bool v2 = magic == kDumpMagic;
+  g_config.renderWidth = r.pod<int>(); g_config.renderHeight = r.pod<int>();
+  std::map<uint64_t, const GuestShader*> shaders;
+  for (uint64_t k = 0, ns = r.pod<uint64_t>(); k < ns && r.ok; ++k) {
+    auto* sh = new GuestShader;
+    uint64_t key = r.pod<uint64_t>(); sh->ok = r.pod<bool>(); sh->pixel = r.pod<bool>(); sh->key = r.pod<uint64_t>(); sh->source = r.str(); sh->error = r.str();
+    sh->inputs = r.vec<VertexInput>(); sh->literals = r.vec<float>(); sh->textureMask = r.pod<uint32_t>(); r.raw(sh->booleanMask, sizeof sh->booleanMask);
+    sh->inputMask = r.pod<uint8_t>(); sh->outputMask = r.pod<uint8_t>(); sh->relativeConstants = r.pod<bool>(); sh->constMap = r.vec<uint16_t>();
+    shaders[key] = sh;
+  }
+  std::map<uint64_t, buffers::Ref> payloads;
+  for (uint64_t k = 0, np = r.pod<uint64_t>(); k < np && r.ok; ++k) {
+    auto d = std::make_shared<buffers::Payload>();
+    d->serial = r.pod<uint64_t>(); d->sample = r.pod<uint64_t>(); d->input = r.pod<VertexInput>(); d->endian = r.pod<uint32_t>(); d->count = r.pod<uint32_t>();
+    d->layout = r.pod<buffers::Layout>(); d->raw = r.vec<uint8_t>(); d->bytes = r.vec<uint8_t>(); d->cacheable.store(true);
+    payloads[d->serial] = d;
+  }
+  frame.blob = r.vec<uint8_t>(); frame.presentInterval = r.pod<uint32_t>();
+  static std::vector<std::string> reasons;
+  for (uint64_t k = 0, nc = r.pod<uint64_t>(); k < nc && r.ok; ++k) {
+    Cmd c{r.pod<Kind>()};
+    uint64_t vk = r.pod<uint64_t>(), pk = r.pod<uint64_t>(); std::string why = r.str();
+    c.vs = vk ? shaders[vk] : nullptr; c.ps = pk ? shaders[pk] : nullptr;
+    if (!why.empty()) { reasons.push_back(why); c.skipReason = strdup(why.c_str()); }
+    c.state = r.pod<size_t>(); c.indices = r.pod<size_t>(); c.fetch = r.pod<size_t>(); r.raw(c.inputs, sizeof c.inputs);
+    for (uint32_t i = 0; i < kMaxInputs; ++i) { uint64_t sr = r.pod<uint64_t>(); if (sr) c.vertexData[i] = payloads[sr]; }
+    { uint64_t sr = r.pod<uint64_t>(); if (sr) c.indexData = payloads[sr]; }
+    c.indexAddress = r.pod<uint64_t>(); r.raw(c.streamInputs, sizeof c.streamInputs); c.streamIndices = r.pod<size_t>(); c.residentInputs = r.pod<uint32_t>(); c.residentIndices = r.pod<bool>();
+    c.inputCount = r.pod<uint32_t>(); c.vertexCount = r.pod<uint32_t>(); c.indexCount = r.pod<uint32_t>(); c.flags = r.pod<uint32_t>(); c.argb = r.pod<uint32_t>(); r.raw(c.rect, sizeof c.rect); c.hasRect = r.pod<bool>();
+    c.up = r.pod<bool>(); c.prim = r.pod<uint8_t>(); c.mode = r.pod<GLenum>(); c.skinJob = r.pod<int>(); c.level = r.pod<uint8_t>();
+    frame.cmds.push_back(c);
+  }
+  for (uint64_t k = 0, nj = r.pod<uint64_t>(); k < nj && r.ok; ++k) {
+    auto j = std::make_shared<SkinJob>();
+    j->ok = r.pod<bool>(); uint64_t no = r.pod<uint64_t>(); j->vertices = r.pod<uint32_t>(); j->ms = r.pod<double>();
+    for (uint64_t o = 0; o < no; ++o) { int in = r.pod<int>(); auto v = r.vec<float>(); j->outs.push_back({in, std::move(v)}); j->points.push_back(v2 ? r.pod<uint8_t>() != 0 : true); }
+    j->nOuts = j->outs.size(); j->done.store(true);
+    if (j->ok) PackSkinDirections(*j, j->points);
+    frame.skinJobs.push_back(j);
+  }
+  uint64_t np = r.pod<uint64_t>();
+  for (uint64_t k = 0; k < np && r.ok; ++k) { uint32_t pg = r.pod<uint32_t>(); r.raw(g_mem.physicalBase + (size_t(pg) << 12), 4096); }
+  std::fprintf(stderr, "[nier-bench] dump %s: %zu comandos, %zu shaders, %zu buffers, %zu jobs, %llu páginas, interno %dx%d%s\n", path, frame.cmds.size(), shaders.size(), payloads.size(), frame.skinJobs.size(), (unsigned long long)np, g_config.renderWidth, g_config.renderHeight, r.ok ? "" : " (TRUNCADO)");
+  return r.ok;
+}
+uint32_t ReplayFrameCore(Frame& work) {
+  g_mainTarget = 0;
+  uint32_t frameDraws = 0;
+  g_frameSampled.clear();
+  for (const Cmd& c : work.cmds) {
+    if (c.kind != Kind::Draw || !c.ps) continue;
+    const uint8_t* st = work.blob.data() + c.state;
+    for (int t = 0; t < 32; ++t)
+      if (c.ps->textureMask & (1u << t)) {
+        auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t));
+        g_frameSampled.insert(TexKey(tf));
+      }
+  }
+  PrepareFrameStreams(work);
+  PlanDirectPasses(work);
+  for (size_t oi = 0; oi < g_order.size(); ++oi) {
+    size_t i = g_order[oi];
+    const Cmd& c = work.cmds[i];
+    if (c.kind == Kind::Resolve && g_abMode == 3) continue;
+    if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
+    else if (c.kind == Kind::Skip) Skip(c.skipReason);
+    else {
+      uint8_t cls = g_drawClass[i];
+      if (cls == 2 && g_skipPrepass) { ++g_skippedPrepass; continue; }
+      if (cls == 1 && g_skipShadow) { ++g_skippedShadow; continue; }
+      if (cls == 4 && g_skipShadow) {
+        // recepção de sombra sem mapa de sombra: o destino (máscara) fica branco = tudo iluminado
+        ++g_skippedReceive;
+        const Redirect& rd = g_redirects[i];
+        if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
+        continue;
+      }
+      if ((g_abMode == 1 && cls == 3) || (g_abMode == 2 && cls == 0)) continue;
+      static uint32_t abHalf = 0;
+      if (g_abMode == 11 && cls == 0 && !c.up && (++abHalf & 1)) continue;  // AB: metade dos desenhos de cenário
+      if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
+      g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
+      g_drawClassCurrent = cls;
+      ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
+    }
+  }
+  g_copiesSkipped += uint32_t(g_pendingCopies.size());
+  g_pendingCopies.clear();
+  return frameDraws;
+}
+// Inicialização GL da thread de render (também usada pelo nier_replay_bench).
+void RenderInitGl() {
   CreateBlit();
   InitStreamBuffers();
   const char* extensions = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
@@ -2172,6 +2590,15 @@ void RenderThread() {
   std::fprintf(stderr, "[nier-gl] GLES2 na thread de render: %s / %s; interno %dx%d; uniformes VS %d FS %d; depth24 %d\n",
                reinterpret_cast<const char*>(glGetString(GL_RENDERER)), reinterpret_cast<const char*>(glGetString(GL_VERSION)),
                g_config.renderWidth, g_config.renderHeight, vsUniforms, fsUniforms, int(g_depth24));
+}
+void RenderThread() {
+  if (UsingPbuffer()) {
+    if (!eglMakeCurrent(g_eglDisplay, g_eglSurface, g_eglSurface, g_eglContext)) { std::fprintf(stderr, "[nier-gl] eglMakeCurrent falhou\n"); return; }
+  } else {
+    if (!SDL_GL_MakeCurrent(g_window, g_context)) { std::fprintf(stderr, "[nier-gl] contexto: %s\n", SDL_GetError()); return; }
+    SDL_GL_SetSwapInterval(1);
+  }
+  RenderInitGl();
   Frame work;
   auto last = Clock::now();
   for (;;) {
@@ -2184,54 +2611,18 @@ void RenderThread() {
       work.skinJobs.swap(g_inflight.skinJobs); g_inflight.skinJobs.clear();
       work.presentInterval = g_inflight.presentInterval;
     }
-    g_mainTarget = 0;
-    uint32_t frameDraws = 0;
-    g_frameSampled.clear();
-    for (const Cmd& c : work.cmds) {
-      if (c.kind != Kind::Draw || !c.ps) continue;
-      const uint8_t* st = work.blob.data() + c.state;
-      for (int t = 0; t < 32; ++t)
-        if (c.ps->textureMask & (1u << t)) {
-          auto tf = xenos::DecodeFetch(Field(st, kFetchConstants + 24 * t));
-          g_frameSampled.insert(TexKey(tf));
-        }
-    }
     auto tr = Clock::now();
     static bool abCycle = std::getenv("NIER_AB_CYCLE") != nullptr;
     static int abPeriod = std::getenv("NIER_AB_PERIOD") ? std::max(2, std::atoi(std::getenv("NIER_AB_PERIOD"))) : 6;
     static Clock::time_point abStart{}; static bool abOn = false;
     if (abCycle) {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
-      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 9 : 0;
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 17 : 0;
     }
-    PrepareFrameStreams(work);
-    PlanDirectPasses(work);
-    for (size_t oi = 0; oi < g_order.size(); ++oi) {
-      size_t i = g_order[oi];
-      const Cmd& c = work.cmds[i];
-      if (c.kind == Kind::Resolve && g_abMode == 3) continue;
-      if (c.kind == Kind::Resolve) { auto tr0 = Clock::now(); ReplayResolve(work, c, g_resolveDirect[i] != 0, g_resolveKeep[i] != 0); ++g_resolves; g_pResolve += Ms(tr0, Clock::now()); }
-      else if (c.kind == Kind::Skip) Skip(c.skipReason);
-      else {
-        uint8_t cls = g_drawClass[i];
-        if (cls == 2 && g_skipPrepass) { ++g_skippedPrepass; continue; }
-        if (cls == 1 && g_skipShadow) { ++g_skippedShadow; continue; }
-        if (cls == 4 && g_skipShadow) {
-          // recepção de sombra sem mapa de sombra: o destino (máscara) fica branco = tudo iluminado
-          ++g_skippedReceive;
-          const Redirect& rd = g_redirects[i];
-          if (rd.key) { Target& t = DirectTarget(rd.key, rd.w, rd.h); if (t.whiteFrame != g_frames.load()) { t.whiteFrame = g_frames.load(); glColorMask(1, 1, 1, 1); glClearColor(1, 1, 1, 1); glClear(GL_COLOR_BUFFER_BIT); g_gl.fixedValid = false; } }
-          continue;
-        }
-        if ((g_abMode == 1 && cls == 3) || (g_abMode == 2 && cls == 0)) continue;
-        if (cls == 0 && !c.up && CullDraw(work, c)) { ++g_culledDraws; g_culledIndices += c.indexCount; continue; }
-        g_idxByClass[cls] += c.indexCount; ++g_drawsByClass[cls];
-        g_drawClassCurrent = cls;
-        ++g_draws; ++frameDraws; ReplayDraw(work, c, g_redirects[i]);
-      }
-    }
-    g_copiesSkipped += uint32_t(g_pendingCopies.size());
-    g_pendingCopies.clear();
+    bool dumping = FrameDumpWanted(work);
+    if (dumping) BeginDump();
+    uint32_t frameDraws = ReplayFrameCore(work);
+    if (dumping) EndDump(work);
     AuditBufferImage(work);
     if (GlProfile()) { auto tf = Clock::now(); glFinish(); g_pFinish += Ms(tf, Clock::now()); }  // LEVE_OK: perfil opt-in (NIER_GL_PROFILE) para medir a GPU
     auto tp = Clock::now();
@@ -2290,7 +2681,28 @@ void RenderThread() {
         double secs = std::chrono::duration<double>(Clock::now() - fsLast).count(); fsLast = Clock::now();
         uint64_t up = g_fsUpdates.exchange(0), dr = g_fsDropped.exchange(0);
         uint64_t rec = g_recordNs.exchange(0), th = g_triHits.exchange(0), tm = g_triMisses.exchange(0);
+        if (W && !g_vtxByVs.empty()) {
+          std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>> v(g_vtxByVs.begin(), g_vtxByVs.end());
+          std::sort(v.begin(), v.end(), [](auto& a, auto& b) { return a.second.first > b.second.first; });
+          uint64_t tot = 0; for (auto& e : v) tot += e.second.first;
+          std::string t; char b[96];
+          for (size_t i = 0; i < v.size() && i < 8; ++i) { std::snprintf(b, sizeof b, " %06llX:%.0fv/%.0fi/%dops", (unsigned long long)(v[i].first >> 40), v[i].second.first / double(W), v[i].second.second / double(W), g_vtxOps[v[i].first]); t += b; }
+          std::fprintf(stderr, "[nier-vtx] vértices/quadro %.0f; top VS:%s\n", tot / double(W), t.c_str());
+          g_vtxByVs.clear();
+        }
         if (W) {
+          std::fprintf(stderr, "[nier-agrupamento] %.1f desenhos/quadro de cenário agrupados: vértices na faixa %.0f -> %.0f (%.0f%%), %.1f chamadas; %zu malhas em cache\n",
+                       g_clDraws / double(W), g_clVertsIn / double(W), g_clVertsDrawn / double(W), g_clVertsIn ? 100.0 * double(g_clVertsDrawn) / double(g_clVertsIn) : 0.0, g_clCalls / double(W), g_clusters.size());
+          std::fprintf(stderr, "[nier-agrupamento] recusas/quadro: classe %.1f tira %.1f semMVP %.1f pequeno %.1f IB %.1f VB %.1f malha %.1f\n", g_clWhy[0] / double(W), g_clWhy[1] / double(W), g_clWhy[2] / double(W), g_clWhy[3] / double(W), g_clWhy[4] / double(W), g_clWhy[5] / double(W), g_clWhy[6] / double(W));
+          for (auto& w : g_clWhy) w = 0;
+          if (!g_clNoMvp.empty()) { std::vector<std::pair<uint64_t, uint64_t>> v(g_clNoMvp.begin(), g_clNoMvp.end()); std::sort(v.begin(), v.end(), [](auto& a, auto& b) { return a.second > b.second; });
+            std::string t; char b[64]; for (size_t i = 0; i < v.size() && i < 6; ++i) { std::snprintf(b, sizeof b, " %016llX:%.0fv", (unsigned long long)v[i].first, v[i].second / double(W)); t += b; }
+            std::fprintf(stderr, "[nier-agrupamento] cenário sem MVP reconhecido (vértices/quadro):%s\n", t.c_str()); g_clNoMvp.clear(); }
+          g_clDraws = g_clVertsIn = g_clVertsDrawn = g_clCalls = 0;
+          std::fprintf(stderr, "[nier-exposicao] PC0 material %.4g %.4g %.4g | cópia de volta %u na janela, nível %u endereço %08X A,R,G,B %u %u %u %u | tarja %u desenhos, cor do vértice %.3g %.3g %.3g %.3g, textura 1x1 fmt %u texel RGBA %u %u %u %u%s\n",
+                       g_expPc0[0], g_expPc0[1], g_expPc0[2], g_expRbCount, g_expRbLevel, g_expRbAddr, g_expRb[0], g_expRb[1], g_expRb[2], g_expRb[3],
+                       g_barCount, g_barColor[0], g_barColor[1], g_barColor[2], g_barColor[3], g_barFmt, g_barTexel[0], g_barTexel[1], g_barTexel[2], g_barTexel[3], g_barDecoded ? "" : " (não decodificou)");
+          g_expRbCount = 0; g_barCount = 0;
           std::fprintf(stderr, "[nier-lod] índices de cenário/quadro por distância (w): <5 %.0f, 5-10 %.0f, 10-20 %.0f, 20-40 %.0f, 40-80 %.0f, 80-160 %.0f, 160-320 %.0f, >=320 %.0f; cortados por LOD %.0f\n",
                        g_lodHist[0] / double(W), g_lodHist[1] / double(W), g_lodHist[2] / double(W), g_lodHist[3] / double(W), g_lodHist[4] / double(W), g_lodHist[5] / double(W), g_lodHist[6] / double(W), g_lodHist[7] / double(W), g_lodCulledIdx / double(W));
           for (auto& h : g_lodHist) h = 0; g_lodCulledIdx = 0;
@@ -2329,7 +2741,7 @@ void RenderThread() {
     {
       std::lock_guard lock(g_queueMutex);
       work.Clear();
-      TrimBufferObjects();
+      TrimBufferObjects(); TrimClusters();
       g_inflight.blob.swap(work.blob);
       g_inflight.cmds.swap(work.cmds);
       g_hasInflight = false;

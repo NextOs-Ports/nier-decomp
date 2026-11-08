@@ -93,3 +93,10 @@ add_executable(nier_tarjas_driver_probe EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/../tests/tarjas_driver_probe.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test_input.cpp)
 target_link_libraries(nier_tarjas_driver_probe PRIVATE nier_render_deps)
+
+# C1-K1 banco de replay: reproduz um quadro gravado (NIER_FRAME_DUMP) sem o jogo; mede por modo do A/B.
+add_executable(nier_replay_bench EXCLUDE_FROM_ALL
+  ${CMAKE_CURRENT_SOURCE_DIR}/../tests/replay_bench.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_input.cpp)
+target_link_libraries(nier_replay_bench PRIVATE nier_render_deps)
