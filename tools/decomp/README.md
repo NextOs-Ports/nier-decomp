@@ -37,9 +37,12 @@ Instância reprovada não entra no jogo; o gerador pode mantê-la no arquivo (fi
 
 A última rodada fornecida revoga qualquer reprovação, inclusive menos de 500 execuções
 válidas. Os símbolos `REX_HOOK_RAW` de `port/render/d3d_hooks.cpp` são reservados para o
-renderer: não viram overrides de decomp, mesmo quando verificados. Assim a captura e o
-estado do render são preservados sem símbolos fortes duplicados. A4 tem 3.215 funções
-aprovadas e 3.214 overrides ativos; `sub_8256BB90` continua no hook do render.
+renderer: o nome forte `sub_X` continua no hook, e a reconstrução verificada recebe o
+nome `nier_native_sub_X`. O hook chama esse backend quando presente; com overrides
+desligados, chama a tradução original. Assim captura/estado e bypass são preservados.
+O gerador grava `.backends.txt`; `check_overrides.py` também exige esses backends fortes
+no ELF. A4 tinha 3.214 overrides diretos e o hook `sub_8256BB90`; a ponte também liga
+a reconstrução dessa função sem duplicar o símbolo do hook.
 
 Bisseção se o jogo quebrar: `-DNIER_DECOMP_OVERRIDES_LIST=<arquivo com sub_X por linha>` ou
 `-DNIER_DECOMP_EXCLUDE=<arquivo>`; `-DNIER_DECOMP_RUNS=a.json;b.json` soma rodadas ainda
