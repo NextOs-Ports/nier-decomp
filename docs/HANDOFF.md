@@ -18,6 +18,10 @@
 - **.164 (BENCH1/BENCH2 em nier-team/messages):** base 176-183 ms | sem-cenário 23 | sem-personagens 74 | PS chapado 70 | tesoura 74 | texturas 1x1 142 | personagens: ~102 ms, dos quais ~75 PIXEL e **~56 só do discard** (alpha-test), ~27 vértice+skin+envio. O agrupamento do cenário (C1-J1) deu só 5-10 ms; LOD por distância não ajuda.
 - **Próximo:** (1) C1: discard dos personagens (variante sem discard onde alpha=1; blend no cabelo/roupa como preset Mali); (2) X1: PS leves dos personagens e do cenário; (3) captura ~30 ms/update; (4) D1 segue a lista quente (messages/D1-quentes-gameplay.json).
 
+## Atenção na retomada
+- `main` d558df0 juntou o HDR8 do X1 (6613bf1) com o banco/discard do C1 (d0830e7) resolvendo 3 conflitos em `port/render/renderer.cpp` (ProgramFor com `hdrChannels` e `noDiscard`). **Compila (sintaxe), mas ainda NÃO rodou no PC nem no .164**: primeiro passo da retomada = build host+ARM da main e uma prova PC até a gameplay.
+- Skinning com direções em byte (C1 d0830e7) só provado no PC; A/B `NIER_SKIN_FLOAT_DIR=1`.
+
 ## Infra
 - Equipe por D-Bus no Konsole `org.kde.konsole-1687`: coord aba 3, X1 Codex aba 4, D1 Codex aba 5, C1 Claude aba 6 (`nier-team/bin/mandar.sh`, `avisar-coord.sh`, REGRAS-COMUNS.md).
 - Aparelho: `nier-ab/run_ab.py` (NFS do jogo; descobre o IP do PC sozinho — o PC trocou .239→.218 no Wi-Fi). Corte duro 280 s do processo. ES mascarado.
