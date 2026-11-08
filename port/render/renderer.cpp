@@ -641,9 +641,25 @@ GLuint TextureForImpl(const xenos::TextureFetch& t, bool allowResolved) {
   g_gl.tex[g_gl.unit] = tex.id;
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   const uint8_t* upload = (la || lum) ? lumAlpha.data() : g_pixels.data();
-  GLenum glFormat = lum ? GL_LUMINANCE : la ? GL_LUMINANCE_ALPHA : GL_RGBA;
-  if (fresh || tex.glFormat != glFormat) glTexImage2D(GL_TEXTURE_2D, 0, GLint(glFormat), GLsizei(t.width), GLsizei(t.height), 0, glFormat, GL_UNSIGNED_BYTE, upload);
-  else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GLsizei(t.width), GLsizei(t.height), glFormat, GL_UNSIGNED_BYTE, upload);
+  GLenum glFormat = lum ? GL_LUMINANCE : la ? GL_LUMINANCE_ALPHA : GL_RGBA, glType = GL_UNSIGNED_BYTE;
+  // C1-J2 NIER_TEX565=1: textura opaca (alpha 255 em todos os texels) vai como RGB565 — metade da banda de amostragem
+  // na Mali-450 (DXT1 decodificado ocupava 4x a banda original em RGBA8).
+  static bool tex565 = std::getenv("NIER_TEX565") && std::atoi(std::getenv("NIER_TEX565")) != 0;
+  thread_local std::vector<uint16_t> px565;
+  if (tex565 && glFormat == GL_RGBA && t.width * t.height >= 64 * 64) {
+    const size_t n = size_t(t.width) * t.height;
+    bool opaque = true;
+    for (size_t i = 0; i < n && opaque; ++i) opaque = g_pixels[i * 4 + 3] == 255;
+    if (opaque) {
+      px565.resize(n);
+      for (size_t i = 0; i < n; ++i) { const uint8_t* q = &g_pixels[i * 4]; px565[i] = uint16_t(((q[0] >> 3) << 11) | ((q[1] >> 2) << 5) | (q[2] >> 3)); }
+      glFormat = GL_RGB; glType = GL_UNSIGNED_SHORT_5_6_5; upload = reinterpret_cast<const uint8_t*>(px565.data());
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+    }
+  }
+  if (fresh || tex.glFormat != glFormat) glTexImage2D(GL_TEXTURE_2D, 0, GLint(glFormat), GLsizei(t.width), GLsizei(t.height), 0, glFormat, glType, upload);
+  else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GLsizei(t.width), GLsizei(t.height), glFormat, glType, upload);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   tex.glFormat = glFormat;
   ++tex.uploads;
   g_uploadMs += std::chrono::duration<double, std::milli>(Clock::now() - tu).count();
