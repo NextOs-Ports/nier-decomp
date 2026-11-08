@@ -524,7 +524,7 @@ float g_barColor[4] = {0, 0, 0, 0}; uint8_t g_barTexel[4] = {0, 0, 0, 0}; uint32
 int g_abMode = 0;
 // 6 cenário sem glDrawElements (estado/uniformes/buffers continuam), 7 cenário com metade dos índices (mesma faixa de vértices),
 // 8 LOD por distância (NIER_LOD_DIST ou 60)
-const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia"};
+const char* kAbNames[] = {"base", "sem-pos", "sem-cenario", "sem-resolve", "ps-chapado", "tesoura-1x1", "cenario-sem-glDraw", "cenario-metade-indices", "lod-distancia", "sem-agrupamento"};
 std::atomic<uint64_t> g_fsUpdates{0}, g_fsDropped{0}, g_fsMaxBurst{0};
 std::atomic<uint64_t> g_triHits{0}, g_triMisses{0}, g_recordNs{0}, g_recordCpuNs{0};  // perfil da thread de captura
 std::atomic<uint64_t> g_recPhaseNs[7];  // RecordDraw por etapa: shaders, estado, índices, vértices, IB, skin, resto
@@ -1454,6 +1454,7 @@ void UploadVertexTextures(const Frame& f, const Cmd& c, Program& p, const uint8_
 // Descarte no CPU: AABB do VBO de posição (1x por serial) × MVP do desenho (constantes do estado). Fora do
 // frustum (os 8 cantos atrás do mesmo plano) ou < 2 px na tela (todos os cantos à frente) = não desenha.
 uint64_t g_lodHist[8] = {}, g_lodCulledIdx = 0;
+std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> g_vtxByVs; std::unordered_map<uint64_t, int> g_vtxOps;
 bool CullDraw(const Frame& f, const Cmd& c) {
   static bool off = std::getenv("NIER_NO_CULL_AABB") != nullptr;
   if (off || !c.vs || !c.ps) return false;
@@ -1531,6 +1532,173 @@ bool CullDraw(const Frame& f, const Cmd& c) {
 }
 struct Redirect { uint64_t key = 0; int w = 0, h = 0; bool passStart = false; bool skip = false; };
 uint32_t g_bloomSkips = 0;
+// C1-J1 agrupamentos por malha estática (GP da Utgard sombreia a FAIXA de vértices de cada chamada): a malha do
+// cenário vira grupos de até kClusterVerts vértices contíguos num VBO reordenado (duplicatas na borda), cada um com
+// caixa; por quadro só os grupos dentro do frustum (e da distância NIER_LOD_DIST, se ligada) são desenhados, os
+// consecutivos numa chamada só. Sem perda visual. NIER_NO_CLUSTER=1 desliga; padrão na Mali e NIER_MALI_LIKE.
+struct ClusterMesh {
+  bool ok = false;
+  std::vector<GLuint> vbo; std::vector<buffers::Layout> layout;
+  GLuint ibo = 0;
+  struct Cl { uint32_t first, count; float lo[3], hi[3]; uint32_t verts; };
+  std::vector<Cl> cl;
+  std::vector<std::weak_ptr<const buffers::Payload>> refs;
+  uint64_t used = 0;
+};
+std::unordered_map<uint64_t, ClusterMesh> g_clusters;
+uint64_t g_clVertsIn = 0, g_clVertsDrawn = 0, g_clDraws = 0, g_clCalls = 0;
+bool MvpRows(const Cmd& c, const CullInfo& cull, const uint8_t* state, float m[4][4]) {
+  size_t literals = c.vs->literals.size() / 4;
+  for (int r = 0; r < 4; ++r) {
+    int k = cull.row[r];
+    if (k < 0 || size_t(k) >= c.vs->constMap.size()) return false;
+    size_t reg = c.vs->constMap[k];
+    if (reg >= 256 - literals) return false;
+    for (int cc = 0; cc < 4; ++cc) m[r][cc] = BEF(Field(state, kVertexConstants + reg * 16 + 4 * cc));
+  }
+  return true;
+}
+bool ClusterOn() {
+  static int on = -1;
+  if (on < 0) on = std::getenv("NIER_NO_CLUSTER") ? 0 : (g_mali || std::getenv("NIER_MALI_LIKE") || std::getenv("NIER_CLUSTER")) ? 1 : 0;
+  return on == 1;
+}
+const ClusterMesh* ClusterFor(const Cmd& c, const Program& p) {
+  uint64_t key = c.indexData->serial * 0x9E3779B97F4A7C15ull;
+  for (uint32_t i = 0; i < c.inputCount; ++i) key = (key ^ c.vertexData[i]->serial) * 1099511628211ull;
+  auto [it, inserted] = g_clusters.try_emplace(key);
+  ClusterMesh& m = it->second;
+  m.used = g_frames.load();
+  if (!inserted) return m.ok ? &m : nullptr;
+  static const uint32_t kClusterVerts = std::getenv("NIER_CLUSTER_VERTS") ? uint32_t(std::atoi(std::getenv("NIER_CLUSTER_VERTS"))) : 384;
+  const auto& idxBytes = c.indexData->bytes;
+  if (idxBytes.size() < size_t(c.indexCount) * 2) return nullptr;
+  const uint16_t* src = reinterpret_cast<const uint16_t*>(idxBytes.data());
+  std::vector<uint16_t> list;  // tira (com emendas degeneradas) -> lista, sentido alternado
+  if (c.mode == GL_TRIANGLE_STRIP) {
+    list.reserve(size_t(c.indexCount) * 3);
+    for (uint32_t k = 2; k < c.indexCount; ++k) {
+      uint16_t a = src[k - 2], b = src[k - 1], d = src[k];
+      if (a == b || b == d || a == d) continue;
+      if (k & 1) { list.push_back(b); list.push_back(a); list.push_back(d); } else { list.push_back(a); list.push_back(b); list.push_back(d); }
+    }
+  } else list.assign(src, src + c.indexCount);
+  const uint16_t* idx = list.data();
+  const uint32_t ni = uint32_t(list.size());
+  if (ni % 3) return nullptr;
+  auto pos = FloatsFor(c.vertexData[p.cull.posInput], c.vertexCount);
+  if (!pos) return nullptr;
+  std::vector<uint32_t> order; order.reserve(ni);  // vértices originais na ordem do VBO novo
+  std::vector<uint16_t> newIdx; newIdx.reserve(ni);
+  std::vector<int32_t> local(c.vertexCount, -1);
+  std::vector<uint32_t> touched;
+  ClusterMesh::Cl cur{0, 0, {1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, 0};
+  uint32_t curBase = 0;
+  auto close = [&] {
+    cur.verts = uint32_t(touched.size());
+    if (cur.count) m.cl.push_back(cur);
+    for (uint32_t v : touched) local[v] = -1;
+    touched.clear();
+    cur = ClusterMesh::Cl{uint32_t(newIdx.size()), 0, {1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, 0};
+    curBase = uint32_t(order.size());
+  };
+  for (uint32_t t = 0; t < ni; t += 3) {
+    uint32_t need = 0;
+    for (int k = 0; k < 3; ++k) if (idx[t + k] >= c.vertexCount) return nullptr; else if (local[idx[t + k]] < 0) ++need;
+    if (touched.size() + need > kClusterVerts) close();
+    for (int k = 0; k < 3; ++k) {
+      uint32_t v = idx[t + k];
+      if (local[v] < 0) {
+        local[v] = int32_t(order.size() - curBase); touched.push_back(v); order.push_back(v);
+        const float* q = &(*pos)[size_t(v) * 4];
+        for (int a = 0; a < 3; ++a) { cur.lo[a] = std::min(cur.lo[a], q[a]); cur.hi[a] = std::max(cur.hi[a], q[a]); }
+      }
+      newIdx.push_back(uint16_t(curBase + uint32_t(local[v])));
+      if (order.size() > 65535) return nullptr;
+    }
+    cur.count += 3;
+  }
+  close();
+  if (m.cl.size() < 2) return nullptr;  // malha pequena: sem ganho
+  m.vbo.resize(c.inputCount); m.layout.resize(c.inputCount);
+  std::vector<uint8_t> tmp;
+  for (uint32_t i = 0; i < c.inputCount; ++i) {
+    const auto& d = *c.vertexData[i];
+    size_t e = d.layout.bytes;
+    if (d.bytes.size() < size_t(c.vertexCount) * e) { m.vbo.clear(); return nullptr; }
+    tmp.resize(order.size() * e);
+    for (size_t k = 0; k < order.size(); ++k) std::memcpy(&tmp[k * e], &d.bytes[size_t(order[k]) * e], e);
+    glGenBuffers(1, &m.vbo[i]); glBindBuffer(GL_ARRAY_BUFFER, m.vbo[i]);
+    glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(tmp.size()), tmp.data(), GL_STATIC_DRAW);
+    m.layout[i] = d.layout;
+    m.refs.push_back(c.vertexData[i]);
+  }
+  glGenBuffers(1, &m.ibo); glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.ibo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(newIdx.size() * 2), newIdx.data(), GL_STATIC_DRAW);
+  m.refs.push_back(c.indexData);
+  g_gl.fixedValid = g_gl.fixedValid;  // estado fixo intacto; buffers religados no desenho
+  m.ok = true;
+  return &m;
+}
+void TrimClusters() {  // entre quadros: malhas cujos dados saíram do cache ou sem uso há 120 quadros
+  for (auto it = g_clusters.begin(); it != g_clusters.end();) {
+    bool dead = g_frames.load() - it->second.used > 120;
+    for (auto& r : it->second.refs) if (r.expired()) dead = true;
+    if (dead) { for (GLuint b : it->second.vbo) glDeleteBuffers(1, &b); if (it->second.ibo) glDeleteBuffers(1, &it->second.ibo); it = g_clusters.erase(it); }
+    else ++it;
+  }
+}
+// Devolve true se desenhou (ou cortou tudo) pelos agrupamentos.
+uint64_t g_clWhy[8] = {};  // recusas: 0 classe/up, 1 tira, 2 sem MVP, 3 pequeno, 4 IB não residente, 5 VB não residente, 6 sem malha
+bool TryClusterDraw(const Cmd& c, const Program& p, const uint8_t* state) {
+  if (!ClusterOn()) return false;
+  if (c.up || g_drawClassCurrent != 0) { ++g_clWhy[0]; return false; }
+  if (c.mode != GL_TRIANGLES && c.mode != GL_TRIANGLE_STRIP) { ++g_clWhy[1]; return false; }
+  if (!p.cull.ok) { ++g_clWhy[2]; return false; }
+  if (c.indexCount < 3000) { ++g_clWhy[3]; return false; }
+  if (!c.residentIndices || !c.indexData) { ++g_clWhy[4]; return false; }
+  for (uint32_t i = 0; i < c.inputCount; ++i) if (!(c.residentInputs & (1u << i)) || !c.vertexData[i] || g_transientUsed[i] || g_drawRemap[i]) { ++g_clWhy[5]; return false; }
+  if (p.cull.posInput < 0 || uint32_t(p.cull.posInput) >= c.inputCount) return false;
+  float mvp[4][4];
+  if (!MvpRows(c, p.cull, state, mvp)) return false;
+  const ClusterMesh* m = ClusterFor(c, p);
+  if (!m) { ++g_clWhy[6]; return false; }
+  // distância de corte dos grupos (autorizada pelo dono): padrão 80 com os agrupamentos (cidade da abertura sem
+  // diferença visível no PC); NIER_LOD_DIST=0 desliga, outro valor troca
+  static float lodDist = std::getenv("NIER_LOD_DIST") ? float(std::atof(std::getenv("NIER_LOD_DIST"))) : 80.0f;
+  for (uint32_t i = 0; i < c.inputCount; ++i) {
+    glBindBuffer(GL_ARRAY_BUFFER, m->vbo[i]);
+    const auto& l = m->layout[i];
+    glVertexAttribPointer(i, l.components, l.type, l.normalized ? GL_TRUE : GL_FALSE, l.bytes, nullptr);
+  }
+  SetAttribs(c.inputCount);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->ibo);
+  g_clVertsIn += c.vertexCount; ++g_clDraws;
+  uint32_t runFirst = 0, runCount = 0;
+  auto flush = [&] {
+    if (!runCount) return;
+    if (!(g_abMode == 6)) glDrawElements(GL_TRIANGLES, GLsizei(runCount), GL_UNSIGNED_SHORT, reinterpret_cast<void*>(size_t(runFirst) * 2));
+    ++g_clCalls; runCount = 0;
+  };
+  for (const auto& k : m->cl) {
+    int out[6] = {}; float minW = 1e30f;
+    for (int i = 0; i < 8; ++i) {
+      float v[4] = {(i & 1) ? k.hi[0] : k.lo[0], (i & 2) ? k.hi[1] : k.lo[1], (i & 4) ? k.hi[2] : k.lo[2], 1.0f}, cl[4];
+      for (int r = 0; r < 4; ++r) cl[r] = mvp[r][0] * v[0] + mvp[r][1] * v[1] + mvp[r][2] * v[2] + mvp[r][3] * v[3];
+      float w = cl[3]; minW = std::min(minW, w);
+      if (cl[0] < -w) ++out[0]; if (cl[0] > w) ++out[1]; if (cl[1] < -w) ++out[2]; if (cl[1] > w) ++out[3]; if (cl[2] < 0) ++out[4]; if (cl[2] > w) ++out[5];
+    }
+    bool culled = false;
+    for (int q = 0; q < 6; ++q) if (out[q] == 8) culled = true;
+    if (lodDist > 0 && minW > lodDist) culled = true;
+    if (culled) { flush(); continue; }
+    if (runCount && runFirst + runCount != k.first) flush();
+    if (!runCount) runFirst = k.first;
+    runCount += k.count; g_clVertsDrawn += k.verts;
+  }
+  flush();
+  return true;
+}
 void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   const uint8_t* state = f.blob.data() + c.state;
   auto t0 = Clock::now();
@@ -1614,7 +1782,9 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   auto t2 = Clock::now();
   g_pState += Ms(t1, t2);
   size_t indexOffset = 0;
-  if (!ReferenceBuffers() && !g_bufferAuditReference) {
+  bool clustered = !ReferenceBuffers() && !g_bufferAuditReference && g_abMode != 6 && g_abMode != 7 && g_abMode != 9 && TryClusterDraw(c, *p, state);
+  if (clustered) {
+  } else if (!ReferenceBuffers() && !g_bufferAuditReference) {
     const auto& stream = g_streamSlots[g_frames.load() % g_streamSlots.size()];
     bool streamBound = false;
     for (uint32_t i = 0; i < c.inputCount; ++i) {
@@ -1690,10 +1860,12 @@ void ReplayDraw(const Frame& f, const Cmd& c, const Redirect& rd) {
   }
   if (p->dynIndex) { ++g_relDraws; g_relVertices += c.vertexCount; g_relIndices += c.indexCount; }
   if (GlProfile()) g_topDraws.push_back({c.indexCount, c.vertexCount, c.prim, g_drawClassCurrent, uint32_t(c.vs->key >> 40), uint32_t(c.ps->key >> 40), p->vsOps});
+  static bool diagVtx = std::getenv("NIER_DIAG_VTX") != nullptr;  // vértices por VS (custo da GP: faixa x VS)
+  if (diagVtx) { g_vtxByVs[c.vs->key].first += c.vertexCount; g_vtxByVs[c.vs->key].second += c.indexCount; g_vtxOps[c.vs->key] = p->vsOps; }
   if (g_abMode == 5) { glEnable(GL_SCISSOR_TEST); glScissor(0, 0, 1, 1); }
   GLsizei abCount = GLsizei(c.indexCount);
   if (g_abMode == 7 && g_drawClassCurrent == 0 && c.mode == GL_TRIANGLES) abCount = GLsizei((c.indexCount / 2) / 3 * 3);
-  if (!(g_abMode == 6 && g_drawClassCurrent == 0))
+  if (!clustered && !(g_abMode == 6 && g_drawClassCurrent == 0))
     glDrawElements(c.mode, abCount, GL_UNSIGNED_SHORT, reinterpret_cast<void*>(indexOffset));
   if (g_abMode == 5) glDisable(GL_SCISSOR_TEST);
   g_pDraw += Ms(t3, Clock::now());
@@ -2212,7 +2384,7 @@ void RenderThread() {
     static Clock::time_point abStart{}; static bool abOn = false;
     if (abCycle) {
       if (!abOn) { size_t d = 0; for (const auto& c : work.cmds) if (c.kind == Kind::Draw && !c.up) ++d; if (d >= 50) { abOn = true; abStart = Clock::now(); } }
-      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 9 : 0;
+      g_abMode = abOn ? int(std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - abStart).count() / abPeriod) % 10 : 0;
     }
     PrepareFrameStreams(work);
     PlanDirectPasses(work);
@@ -2300,7 +2472,21 @@ void RenderThread() {
         double secs = std::chrono::duration<double>(Clock::now() - fsLast).count(); fsLast = Clock::now();
         uint64_t up = g_fsUpdates.exchange(0), dr = g_fsDropped.exchange(0);
         uint64_t rec = g_recordNs.exchange(0), th = g_triHits.exchange(0), tm = g_triMisses.exchange(0);
+        if (W && !g_vtxByVs.empty()) {
+          std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>> v(g_vtxByVs.begin(), g_vtxByVs.end());
+          std::sort(v.begin(), v.end(), [](auto& a, auto& b) { return a.second.first > b.second.first; });
+          uint64_t tot = 0; for (auto& e : v) tot += e.second.first;
+          std::string t; char b[96];
+          for (size_t i = 0; i < v.size() && i < 8; ++i) { std::snprintf(b, sizeof b, " %06llX:%.0fv/%.0fi/%dops", (unsigned long long)(v[i].first >> 40), v[i].second.first / double(W), v[i].second.second / double(W), g_vtxOps[v[i].first]); t += b; }
+          std::fprintf(stderr, "[nier-vtx] vértices/quadro %.0f; top VS:%s\n", tot / double(W), t.c_str());
+          g_vtxByVs.clear();
+        }
         if (W) {
+          std::fprintf(stderr, "[nier-agrupamento] %.1f desenhos/quadro de cenário agrupados: vértices na faixa %.0f -> %.0f (%.0f%%), %.1f chamadas; %zu malhas em cache\n",
+                       g_clDraws / double(W), g_clVertsIn / double(W), g_clVertsDrawn / double(W), g_clVertsIn ? 100.0 * double(g_clVertsDrawn) / double(g_clVertsIn) : 0.0, g_clCalls / double(W), g_clusters.size());
+          std::fprintf(stderr, "[nier-agrupamento] recusas/quadro: classe %.1f tira %.1f semMVP %.1f pequeno %.1f IB %.1f VB %.1f malha %.1f\n", g_clWhy[0] / double(W), g_clWhy[1] / double(W), g_clWhy[2] / double(W), g_clWhy[3] / double(W), g_clWhy[4] / double(W), g_clWhy[5] / double(W), g_clWhy[6] / double(W));
+          for (auto& w : g_clWhy) w = 0;
+          g_clDraws = g_clVertsIn = g_clVertsDrawn = g_clCalls = 0;
           std::fprintf(stderr, "[nier-exposicao] PC0 material %.4g %.4g %.4g | cópia de volta %u na janela, nível %u endereço %08X A,R,G,B %u %u %u %u | tarja %u desenhos, cor do vértice %.3g %.3g %.3g %.3g, textura 1x1 fmt %u texel RGBA %u %u %u %u%s\n",
                        g_expPc0[0], g_expPc0[1], g_expPc0[2], g_expRbCount, g_expRbLevel, g_expRbAddr, g_expRb[0], g_expRb[1], g_expRb[2], g_expRb[3],
                        g_barCount, g_barColor[0], g_barColor[1], g_barColor[2], g_barColor[3], g_barFmt, g_barTexel[0], g_barTexel[1], g_barTexel[2], g_barTexel[3], g_barDecoded ? "" : " (não decodificou)");
@@ -2343,7 +2529,7 @@ void RenderThread() {
     {
       std::lock_guard lock(g_queueMutex);
       work.Clear();
-      TrimBufferObjects();
+      TrimBufferObjects(); TrimClusters();
       g_inflight.blob.swap(work.blob);
       g_inflight.cmds.swap(work.cmds);
       g_hasInflight = false;
