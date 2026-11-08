@@ -20,7 +20,7 @@
 
 ## Atenção na retomada
 - `main` d558df0 juntou o HDR8 do X1 (6613bf1) com o banco/discard do C1 (d0830e7) resolvendo 3 conflitos em `port/render/renderer.cpp` (ProgramFor com `hdrChannels` e `noDiscard`). **Compila (sintaxe), mas ainda NÃO rodou no PC nem no .164**: primeiro passo da retomada = build host+ARM da main e uma prova PC até a gameplay.
-- FRAMESKIP (receita da casa x2/x3/x4): existe (`NIER_FRAMESKIP=auto|2|3|4`), padrão DESLIGADO desde o H4 porque no .164 o auto subiu updates para 15-16/s mas derrubou desenhados para 2-4/s (CPU de 4 núcleos disputada; lógica já é por Δt real). Retestar frameskip x2 FIXO logo após o ganho do discard/PS leves, medindo desenhados/s e o dt por update (hoje 120-160 ms = controle aos saltos).
+- FRAMESKIP (receita da casa x2/x3/x4): existe (`NIER_FRAMESKIP=auto|2|3|4`), padrão DESLIGADO desde o H4 porque no .164 o auto subiu updates para 15-16/s mas derrubou desenhados para 2-4/s (CPU de 4 núcleos disputada; lógica já é por Δt real). CRITÉRIO DO DONO (07/11): só retestar frameskip x2 quando a gameplay passar de 10 fps ESTÁVEIS sem pular quadro (10-12 fps); até lá, só deixar o desenho mais leve. Retestar frameskip x2 FIXO, medindo desenhados/s e o dt por update (hoje 120-160 ms = controle aos saltos).
 - Skinning com direções em byte (C1 d0830e7) só provado no PC; A/B `NIER_SKIN_FLOAT_DIR=1`.
 
 ## Infra
