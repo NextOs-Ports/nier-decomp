@@ -93,3 +93,9 @@ add_executable(nier_tarjas_driver_probe EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/../tests/tarjas_driver_probe.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test_input.cpp)
 target_link_libraries(nier_tarjas_driver_probe PRIVATE nier_render_deps)
+
+add_executable(nier_texture_hdr8_test EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/../tests/texture_hdr8_test.cpp)
+add_executable(nier_texture_hdr8_gpu_test EXCLUDE_FROM_ALL
+  ${CMAKE_CURRENT_SOURCE_DIR}/../tests/texture_hdr8_gpu_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/shader_runtime.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test_input.cpp)
+target_link_libraries(nier_texture_hdr8_gpu_test PRIVATE nier_render_deps)
